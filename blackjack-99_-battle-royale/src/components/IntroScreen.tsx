@@ -40,7 +40,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
     {
       id: 'friend-chess',
       title: 'Friend Chess',
-      description: 'Play chess online against your friends.',
+      description: 'Are you worthy of the title of GrandMaster?',
       image: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&q=80&w=400',
       category: 'Strategy',
       rating: 4.6,
