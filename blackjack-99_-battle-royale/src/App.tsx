@@ -22,6 +22,7 @@ import { DealerAvatar, DealerMood } from './components/DealerAvatar';
 
 import { AuthOverlay } from './components/AuthOverlay';
 import { ProfileOverlay } from './components/ProfileOverlay';
+import { IntroScreen } from './components/IntroScreen';
 
 const TURN_TIME_LIMIT = 15;
 const BOT_DECISION_DELAY = 150; // Faster bot turns for better flow
@@ -35,6 +36,7 @@ export default function App() {
   const [userWins, setUserWins] = useState<number>(0);
   const [showAuth, setShowAuth] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -413,8 +415,28 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg-dark text-white font-sans selection:bg-stake-green selection:text-bg-dark overflow-hidden flex flex-col">
-      {/* Profile Button in Corner */}
-      <div className="fixed top-6 right-6 z-50">
+      <AnimatePresence mode="wait">
+        {showIntro ? (
+          <motion.div
+            key="intro"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+            className="w-full"
+          >
+            <IntroScreen onLaunchGame={() => setShowIntro(false)} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="game"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex-1 flex flex-col overflow-hidden relative"
+          >
+            {/* Profile Button in Corner */}
+            <div className="fixed top-6 right-6 z-50">
         {currentUser ? (
           <button 
             onClick={() => setShowProfile(true)}
@@ -771,6 +793,9 @@ export default function App() {
           </AnimatePresence>
         </div>
       )}
+    </motion.div>
+  )}
+</AnimatePresence>
     </div>
   );
 }
