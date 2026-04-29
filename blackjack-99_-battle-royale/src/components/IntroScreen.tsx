@@ -25,7 +25,7 @@ const games = [
     category: 'Arcade',
     rating: 4.7,
     players: 'Live',
-    externalUrl: 'PASTE-YOUR-SNAKE-GAME-LINK-HERE'
+    externalUrl: 'https://multiplayer-neon-snake.onrender.com/'
   }
 ];
     // Add more placeholders for the "catalog" feel
