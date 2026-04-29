@@ -7,16 +7,27 @@ interface IntroScreenProps {
 }
 
 export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
-  const games = [
-    {
-      id: 'blackjack-99',
-      title: 'Blackjack 99',
-      description: 'Survival Battle Royale',
-      image: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&q=80&w=400',
-      category: 'Strategy',
-      rating: 4.8,
-      players: '2.4k'
-    }
+const games = [
+  {
+    id: 'blackjack-99',
+    title: 'Blackjack 99',
+    description: 'Survival Battle Royale',
+    image: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&q=80&w=400',
+    category: 'Strategy',
+    rating: 4.8,
+    players: '2.4k'
+  },
+  {
+    id: 'neon-snake',
+    title: 'Neon Snake',
+    description: 'Multiplayer glowing snake arena',
+    image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400',
+    category: 'Arcade',
+    rating: 4.7,
+    players: 'Live',
+    externalUrl: 'PASTE-YOUR-SNAKE-GAME-LINK-HERE'
+  }
+];
     // Add more placeholders for the "catalog" feel
     /*
     {
