@@ -36,7 +36,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
   category: "Action",
   rating: 4.5,
   players: "1 Player",
-  externalUrl: "https://PUT-THE-PUNCHY-LINK-HERE.com"
+  externalUrl: "https://fishfolk.github.io/punchy/player/latest/"
 }
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white font-sans selection:bg-orange-500 selection:text-white">
