@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function getRoom(roomId) {
+      return get(/databases/$(database)/documents/rooms/$(roomId)).data;
+    }
+
+    function isHost(roomId) {
+      return getRoom(roomId).hostId == request.auth.uid;
+    }
+
+    function isValidUser(data) {
+      return data.username is string && data.username.size() >= 3 && data.username.size() <= 32
+        && data.winsOffline is int && data.gamesOffline is int
+        && data.winsOnline is int && data.gamesOnline is int
+        && data.totalWins is int;
+    }
+
+    // Daily Leaderboard Rules
+    match /daily_leaderboard/{date}/players/{userId} {
+      allow list: if true;
+      allow get: if true;
+      allow create: if isOwner(userId) && incoming().wins == 1 && incoming().date == date;
+      allow update: if isOwner(userId) && incoming().wins == existing().wins + 1 && incoming().date == date;
+    }
+
+    // User Rules
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming());
+    }
+
+    // Validation Functions
+    function isValidRoom(data) {
+      return data.hostId == request.auth.uid 
+        && data.status in ['waiting', 'playing', 'finished']
+        && data.round is int && data.round >= 1
+        && data.keys().hasAll(['status', 'round', 'hostId', 'createdAt']);
+    }
+
+    function isValidPlayer(data) {
+      return data.userId == request.auth.uid
+        && data.status in ['playing', 'standing', 'busted', 'eliminated', 'winner']
+        && (!data.keys().contains('name') || (data.name is string && data.name.size() <= 32))
+        && (!data.keys().contains('hand') || data.hand is list);
+    }
+
+    // Room Rules
+    match /rooms/{roomId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && existing().status == 'waiting';
+      
+      allow create: if isSignedIn() 
+        && isValidId(roomId)
+        && isValidRoom(incoming())
+        && incoming().createdAt == request.time;
+        
+      allow update: if isSignedIn() && (
+        // Host can update phase, round, status, dealerHand
+        (isHost(roomId) && incoming().hostId == existing().hostId) ||
+        // Players can potentially trigger state changes if they were the last ones? 
+        // Better to restrict most to host.
+        false
+      );
+      
+      allow delete: if isHost(roomId);
+
+      // Player Rules (Subcollection)
+      match /players/{playerId} {
+        allow read: if isSignedIn();
+        
+        allow create: if isSignedIn()
+          && isOwner(playerId)
+          && isValidPlayer(incoming())
+          && (getRoom(roomId).status == 'waiting');
+          
+        allow update: if isSignedIn() && (
+          // Self-update
+          (isOwner(playerId) && isValidPlayer(incoming()) && existing().status != 'eliminated') ||
+          // Host can eliminate or set winner
+          (isHost(roomId) && incoming().diff(existing()).affectedKeys().hasOnly(['status']))
+        );
+        
+        allow delete: if isOwner(playerId) || isHost(roomId);
+      }
+    }
+  }
+}

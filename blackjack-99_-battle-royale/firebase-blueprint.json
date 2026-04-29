@@ -1,0 +1,79 @@
+{
+  "entities": {
+    "Room": {
+      "title": "Game Room",
+      "description": "A battle royale game session",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["waiting", "playing", "finished"] },
+        "round": { "type": "integer" },
+        "dealerHand": { "type": "array" },
+        "dealerHidden": { "type": "boolean" },
+        "hostId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "phase": { "type": "string", "enum": ["dealing", "player-turn", "dealer-turn", "round-end"] },
+        "currentPlayerId": { "type": "string" },
+        "timeLeft": { "type": "integer" }
+      },
+      "required": ["status", "round", "hostId"]
+    },
+    "Player": {
+      "title": "Participant",
+      "description": "A player in a game room",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "hand": { "type": "array" },
+        "status": { "type": "string", "enum": ["playing", "standing", "busted", "eliminated", "winner"] },
+        "userId": { "type": "string" },
+        "joinedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "status"]
+    },
+    "UserStats": {
+      "title": "User Statistics",
+      "description": "Lifetime stats for a player",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "winsOffline": { "type": "integer" },
+        "gamesOffline": { "type": "integer" },
+        "winsOnline": { "type": "integer" },
+        "gamesOnline": { "type": "integer" },
+        "totalWins": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["username"]
+    },
+    "DailyWin": {
+      "title": "Daily Win Record",
+      "description": "Wins recorded for a specific day",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "wins": { "type": "integer" },
+        "date": { "type": "string" }
+      },
+      "required": ["userId", "wins", "date", "name"]
+    }
+  },
+  "firestore": {
+    "/daily_leaderboard/{date}/players/{userId}": {
+      "schema": "DailyWin",
+      "description": "Win tracking for a specific day"
+    },
+    "/users/{userId}": {
+      "schema": "UserStats",
+      "description": "Global statistics for a registered user"
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Room metadata and shared game state"
+    },
+    "/rooms/{roomId}/players/{playerId}": {
+      "schema": "Player",
+      "description": "Individual player state within a room"
+    }
+  }
+}
