@@ -31,7 +31,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       id: 'punchy',
       title: 'Punchy',
       description: 'A fast-paced fighting game.',
-      image: '/punchy-preview.png',
+      image: 'https://share.google/n4lfjvg8FThBjYAxx',
       category: 'Action',
       rating: 4.5,
       players: '1 Player',
