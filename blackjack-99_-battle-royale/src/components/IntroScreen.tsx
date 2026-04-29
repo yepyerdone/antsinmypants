@@ -26,8 +26,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       rating: 4.7,
       players: 'Live',
       externalUrl: 'https://multiplayer-neon-snake.onrender.com/'
-    }
-  ];
+    },
 {
   id: "punchy",
   title: "Punchy",
