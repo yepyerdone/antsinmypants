@@ -1,9 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&family=Luckiest+Guy&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Luckiest Guy", cursive;
   
   --color-bg-dark: #0f212e;
   --color-bg-accent: #1a2c38;
@@ -52,4 +53,3 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
