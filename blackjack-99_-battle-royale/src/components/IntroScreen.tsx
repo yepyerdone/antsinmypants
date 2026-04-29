@@ -7,50 +7,26 @@ interface IntroScreenProps {
 }
 
 export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
-const games = [
-  {
-    id: 'blackjack-99',
-    title: 'Blackjack 99',
-    description: 'Survival Battle Royale',
-    image: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&q=80&w=400',
-    category: 'Strategy',
-    rating: 4.8,
-    players: '2.4k'
-  },
-  {
-    id: 'neon-snake',
-    title: 'Neon Snake',
-    description: 'Multiplayer glowing snake arena',
-    image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400',
-    category: 'Arcade',
-    rating: 4.7,
-    players: 'Live',
-    externalUrl: 'https://multiplayer-neon-snake.onrender.com/'
-  }
-];
-    // Add more placeholders for the "catalog" feel
-    /*
+  const games = [
     {
-      id: 'coming-soon-1',
-      title: 'Solitaire Dash',
-      description: 'Coming Soon',
-      image: 'https://images.unsplash.com/photo-1544652478-6653e09f18a2?auto=format&fit=crop&q=80&w=400',
-      category: 'Puzzle',
-      rating: 0,
-      players: '0',
-      locked: true
+      id: 'blackjack-99',
+      title: 'Blackjack 99',
+      description: 'Survival Battle Royale',
+      image: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&q=80&w=400',
+      category: 'Strategy',
+      rating: 4.8,
+      players: '2.4k'
     },
     {
-      id: 'coming-soon-2',
-      title: 'Poker Night',
-      description: 'Coming Soon',
-      image: 'https://images.unsplash.com/photo-1518893063132-36e46dbe2428?auto=format&fit=crop&q=80&w=400',
-      category: 'Card',
-      rating: 0,
-      players: '0',
-      locked: true
+      id: 'neon-snake',
+      title: 'Neon Snake',
+      description: 'Multiplayer glowing snake arena',
+      image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400',
+      category: 'Arcade',
+      rating: 4.7,
+      players: 'Live',
+      externalUrl: 'https://multiplayer-neon-snake.onrender.com/'
     }
-    */
   ];
 
   return (
@@ -155,10 +131,18 @@ const games = [
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-gray-500">
                     <Clock size={12} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{game.players} playing now</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">
+                      {game.players} playing now
+                    </span>
                   </div>
                   <button 
-                    onClick={() => onLaunchGame(game.id)}
+                    onClick={() => {
+                      if ('externalUrl' in game && game.externalUrl) {
+                        window.location.href = game.externalUrl;
+                      } else {
+                        onLaunchGame(game.id);
+                      }
+                    }}
                     className="bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-2xl shadow-lg shadow-orange-600/20 transition-all group-hover:scale-110"
                   >
                     <Play size={20} fill="currentColor" />
@@ -174,7 +158,9 @@ const games = [
               <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center mb-4">
                 <Clock className="text-gray-500 w-6 h-6" />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 italic">Coming Soon to the Colony</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 italic">
+                Coming Soon to the Colony
+              </span>
             </div>
           ))}
         </div>
@@ -186,7 +172,9 @@ const games = [
           <div className="flex flex-col items-center md:items-start">
             <div className="flex items-center space-x-2 mb-4">
               <Gamepad2 className="text-orange-500 w-5 h-5" />
-              <span className="text-xl font-black italic uppercase tracking-tighter text-white">Ants In My Pants</span>
+              <span className="text-xl font-black italic uppercase tracking-tighter text-white">
+                Ants In My Pants
+              </span>
             </div>
             <p className="text-gray-500 text-xs font-medium tracking-tight max-w-xs text-center md:text-left">
               The ultimate destination for gamers who demand more from their playtime.
@@ -219,4 +207,3 @@ const games = [
     </div>
   );
 };
-
