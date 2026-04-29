@@ -27,16 +27,28 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       players: 'Live',
       externalUrl: 'https://multiplayer-neon-snake.onrender.com/'
     },
-{
-  id: "punchy",
-  title: "Punchy",
-  description: "A fast-paced fighting game.",
-  image: "/punchy-preview.png",
-  category: "Action",
-  rating: 4.5,
-  players: "1 Player",
-  externalUrl: "https://fishfolk.github.io/punchy/player/latest/"
-}];
+    {
+      id: 'punchy',
+      title: 'Punchy',
+      description: 'A fast-paced fighting game.',
+      image: '/punchy-preview.png',
+      category: 'Action',
+      rating: 4.5,
+      players: '1 Player',
+      externalUrl: 'https://fishfolk.github.io/punchy/player/latest/'
+    },
+    {
+      id: 'friend-chess',
+      title: 'Friend Chess',
+      description: 'Play chess online against your friends.',
+      image: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&q=80&w=400',
+      category: 'Strategy',
+      rating: 4.6,
+      players: '2 Players',
+      externalUrl: 'https://gm-drab-three.vercel.app/#'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-white font-sans selection:bg-orange-500 selection:text-white">
       {/* Navigation / Header */}
@@ -49,7 +61,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
             Ants In My Pants
           </span>
         </div>
-        
+
         <div className="hidden md:flex items-center space-x-8 text-xs font-bold uppercase tracking-widest text-gray-400">
           <a href="#" className="hover:text-orange-500 transition-colors">New Games</a>
           <a href="#" className="hover:text-orange-500 transition-colors">Strategy</a>
@@ -59,9 +71,9 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
 
         <div className="flex items-center space-x-4">
           <div className="relative hidden sm:block">
-            <input 
-              type="text" 
-              placeholder="Search games..." 
+            <input
+              type="text"
+              placeholder="Search games..."
               className="bg-white/5 border border-white/10 rounded-full py-2 px-6 text-xs focus:outline-none focus:border-orange-500/50 w-48 transition-all"
             />
           </div>
@@ -97,10 +109,17 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
             <TrendingUp className="text-orange-500 w-5 h-5" />
             <h2 className="text-2xl font-black uppercase italic tracking-tight">Game Catalog</h2>
           </div>
+
           <div className="flex space-x-2">
-            <button className="bg-white/5 hover:bg-white/10 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/5 transition-all">All</button>
-            <button className="text-gray-500 hover:text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all">Popular</button>
-            <button className="text-gray-500 hover:text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all">Strategy</button>
+            <button className="bg-white/5 hover:bg-white/10 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/5 transition-all">
+              All
+            </button>
+            <button className="text-gray-500 hover:text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all">
+              Popular
+            </button>
+            <button className="text-gray-500 hover:text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all">
+              Strategy
+            </button>
           </div>
         </div>
 
@@ -112,13 +131,15 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
               className="group relative bg-[#222] rounded-[2rem] overflow-hidden border border-white/5 hover:border-orange-500/30 transition-all duration-300 shadow-xl"
             >
               <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={game.image} 
-                  alt={game.title} 
+                <img
+                  src={game.image}
+                  alt={game.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   referrerPolicy="no-referrer"
                 />
+
                 <div className="absolute inset-0 bg-gradient-to-t from-[#222] via-transparent to-transparent opacity-60" />
+
                 <div className="absolute top-4 left-4 bg-orange-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
                   {game.category}
                 </div>
@@ -126,16 +147,20 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
 
               <div className="p-8">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-2xl font-black italic uppercase tracking-tight font-display">{game.title}</h3>
+                  <h3 className="text-2xl font-black italic uppercase tracking-tight font-display">
+                    {game.title}
+                  </h3>
+
                   <div className="flex items-center space-x-1 text-orange-500">
                     <Star size={14} fill="currentColor" />
                     <span className="text-xs font-black">{game.rating}</span>
                   </div>
                 </div>
+
                 <p className="text-gray-400 text-sm mb-6 leading-relaxed">
                   {game.description}
                 </p>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2 text-gray-500">
                     <Clock size={12} />
@@ -143,7 +168,8 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
                       {game.players} playing now
                     </span>
                   </div>
-                  <button 
+
+                  <button
                     onClick={() => {
                       if ('externalUrl' in game && game.externalUrl) {
                         window.location.href = game.externalUrl;
@@ -162,10 +188,14 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
 
           {/* Catalog Placeholders for "vibe" */}
           {[1, 2].map((i) => (
-            <div key={i} className="bg-white/5 rounded-[2rem] border border-white/5 border-dashed flex flex-col items-center justify-center p-12 opacity-50 grayscale">
+            <div
+              key={i}
+              className="bg-white/5 rounded-[2rem] border border-white/5 border-dashed flex flex-col items-center justify-center p-12 opacity-50 grayscale"
+            >
               <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center mb-4">
                 <Clock className="text-gray-500 w-6 h-6" />
               </div>
+
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 italic">
                 Coming Soon to the Colony
               </span>
@@ -184,11 +214,12 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
                 Ants In My Pants
               </span>
             </div>
+
             <p className="text-gray-500 text-xs font-medium tracking-tight max-w-xs text-center md:text-left">
               The ultimate destination for gamers who demand more from their playtime.
             </p>
           </div>
-          
+
           <div className="flex space-x-12">
             <div className="flex flex-col space-y-3">
               <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Platform</span>
@@ -196,6 +227,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
               <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Community</a>
               <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Support</a>
             </div>
+
             <div className="flex flex-col space-y-3">
               <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Legal</span>
               <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Terms</a>
@@ -204,8 +236,10 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
             </div>
           </div>
         </div>
+
         <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-600">
           <span>&copy; 2024 Ants In My Pants Gaming</span>
+
           <div className="flex items-center space-x-2">
             <Info size={12} />
             <span>Play Responsibly</span>
