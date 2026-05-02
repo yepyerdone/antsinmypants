@@ -23,6 +23,7 @@ import { DealerAvatar, DealerMood } from './components/DealerAvatar';
 import { AuthOverlay } from './components/AuthOverlay';
 import { ProfileOverlay } from './components/ProfileOverlay';
 import { IntroScreen } from './components/IntroScreen';
+import { Game as MolarMadness } from './games/molar-madness/MolarMadness';
 
 const TURN_TIME_LIMIT = 15;
 const BOT_DECISION_DELAY = 150; // Faster bot turns for better flow
@@ -37,6 +38,7 @@ export default function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
