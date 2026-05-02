@@ -46,6 +46,15 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       rating: 4.6,
       players: '2 Players',
       externalUrl: 'https://gm-drab-three.vercel.app/#'
+    },
+    {
+      id: 'molar-madness',
+      title: 'Molar Madness',
+      description: 'Familiarly-styled arcade game with cavitites, candy, and hygeine',
+      image: 'images/molar-madness.png',
+      category: 'Arcade',
+      rating: 4.7,
+      players: '1 Player'
     }
   ];
 
