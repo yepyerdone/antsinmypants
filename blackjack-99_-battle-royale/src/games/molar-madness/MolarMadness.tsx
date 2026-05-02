@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Tile, TILE_SIZE, COLORS, COLORS_L2, INITIAL_MAZE, INITIAL_MAZE_2, GRID_WIDTH, GRID_HEIGHT } from '../game/constants';
 import { motion, AnimatePresence } from 'motion/react';
-import { db } from '../lib/firebase';
+import { db } from './lib/firebase';
 import { 
   collection, 
   query, 
