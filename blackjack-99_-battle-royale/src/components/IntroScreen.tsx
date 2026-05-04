@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Gamepad2, Play, Star, TrendingUp, Clock, Info } from 'lucide-react';
 
@@ -7,6 +8,7 @@ interface IntroScreenProps {
 }
 
 export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
+  const navigate = useNavigate();
   const games = [
     {
       id: 'blackjack-99',
@@ -40,12 +42,12 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
     {
       id: 'friend-chess',
       title: 'Friend Chess',
-      description: 'Are you worthy of the title of GrandMaster?',
+      description: 'Play real-time chess against a friend with lobby codes.',
       image: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&q=80&w=400',
       category: 'Strategy',
       rating: 4.6,
       players: '2 Players',
-      externalUrl: 'https://gm-drab-three.vercel.app/#'
+      internalPath: '/friend-chess',
     },
     {
       id: 'molar-madness',
@@ -180,15 +182,20 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
 
                   <button
                     onClick={() => {
-                      if ('externalUrl' in game && game.externalUrl) {
+                      if ('internalPath' in game && game.internalPath) {
+                        navigate(game.internalPath);
+                      } else if ('externalUrl' in game && game.externalUrl) {
                         window.location.href = game.externalUrl;
                       } else {
                         onLaunchGame(game.id);
                       }
                     }}
-                    className="bg-orange-600 hover:bg-orange-500 text-white p-3 rounded-2xl shadow-lg shadow-orange-600/20 transition-all group-hover:scale-110"
+                    className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-3 rounded-2xl shadow-lg shadow-orange-600/20 transition-all group-hover:scale-110 flex items-center justify-center gap-2 min-w-[3rem]"
                   >
-                    <Play size={20} fill="currentColor" />
+                    <Play size={18} fill="currentColor" className="shrink-0" />
+                    {'internalPath' in game && game.internalPath ? (
+                      <span className="text-[10px] font-black uppercase tracking-widest pr-1">Play Now</span>
+                    ) : null}
                   </button>
                 </div>
               </div>

@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "theme": { "type": "string" }
+      },
+      "required": ["uid", "displayName"]
+    },
+    "Lobby": {
+      "title": "Lobby",
+      "description": "A chess game lobby",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "playerW": { "type": "string", "description": "UID of white player" },
+        "playerB": { "type": "string", "description": "UID of black player" },
+        "fen": { "type": "string", "description": "Current board position" },
+        "status": { "type": "string", "enum": ["waiting", "playing", "finished"] },
+        "turn": { "type": "string", "enum": ["w", "b"] },
+        "whiteName": { "type": "string" },
+        "blackName": { "type": "string" },
+        "winner": { "type": "string" },
+        "moveCount": { "type": "number" },
+        "isQuickMatch": { "type": "boolean" },
+        "theme": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["code", "fen", "status", "turn", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User data"
+    },
+    "lobbies/{lobbyId}": {
+      "schema": "Lobby",
+      "description": "Active and past chess lobbies"
+    },
+    "lobbies/{lobbyId}/moves/{moveId}": {
+      "schema": {
+        "title": "Move",
+        "type": "object",
+        "properties": {
+          "move": { "type": "string" },
+          "index": { "type": "number" },
+          "player": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+      "description": "Historical move record"
+    }
+  }
+}

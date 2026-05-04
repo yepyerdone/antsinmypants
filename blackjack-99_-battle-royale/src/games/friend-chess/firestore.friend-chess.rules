@@ -1,0 +1,58 @@
+// Copy these rules into Firebase Console → Firestore → Rules (merge with your existing rules),
+// or deploy alongside your project rules. Paths are namespaced for Friend Chess only.
+//
+// Replace nothing — collection names match the app: friendChessUsers, friendChessLobbies.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    match /friendChessUsers/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
+
+    match /friendChessLobbies/{lobbyId} {
+      function isPlayer(data) {
+        return isSignedIn() && (request.auth.uid == data.playerW || request.auth.uid == data.playerB);
+      }
+
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.playerW == request.auth.uid;
+      allow update: if
+        (
+          resource.data.status == 'waiting' &&
+          request.resource.data.status == 'playing' &&
+          request.resource.data.playerB == request.auth.uid &&
+          request.resource.data.playerW == resource.data.playerW
+        ) ||
+        (
+          isPlayer(resource.data) && (
+            (
+              resource.data.status == 'playing' && (
+                (resource.data.turn == 'w' && request.auth.uid == resource.data.playerW) ||
+                (resource.data.turn == 'b' && request.auth.uid == resource.data.playerB)
+              )
+            ) ||
+            (request.resource.data.status == 'finished')
+          )
+        );
+
+      match /moves/{moveId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && (
+          get(/databases/$(database)/documents/friendChessLobbies/$(lobbyId)).data.playerW == request.auth.uid ||
+          get(/databases/$(database)/documents/friendChessLobbies/$(lobbyId)).data.playerB == request.auth.uid
+        );
+      }
+    }
+  }
+}

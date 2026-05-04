@@ -1,0 +1,6 @@
+{
+  "name": "Grandmaster Chess Lobbies",
+  "description": "A real-time multiplayer chess platform with private lobbies and join codes to challenge friends.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
