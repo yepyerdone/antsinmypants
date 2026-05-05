@@ -42,14 +42,14 @@ export const Game: React.FC = () => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const playerRef = useRef<Entity>({ x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1 });
+  const playerRef = useRef<Entity>({ x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1.25 });
   const hasStartedRef = useRef(false);
   const cheatBufferRef = useRef('');
   const ghostsRef = useRef<Entity[]>([
-    { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.6, type: 'RED', isDead: false },
-    { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.6, type: 'PINK', isDead: false },
-    { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.6, type: 'CYAN', isDead: false },
-    { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.6, type: 'ORANGE', isDead: false },
+    { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.85, type: 'RED', isDead: false },
+    { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.85, type: 'PINK', isDead: false },
+    { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.85, type: 'CYAN', isDead: false },
+    { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.85, type: 'ORANGE', isDead: false },
   ]);
 
   const requestRef = useRef<number>(0);
@@ -437,12 +437,12 @@ export const Game: React.FC = () => {
     setMaze(JSON.parse(JSON.stringify(INITIAL_MAZE)));
     hasStartedRef.current = false;
     setPowerTimer(0);
-    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1 };
+    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1.25 };
     ghostsRef.current = [
-        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.6, type: 'RED', isDead: false },
-        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.6, type: 'PINK', isDead: false },
-        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.6, type: 'CYAN', isDead: false },
-        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.6, type: 'ORANGE', isDead: false },
+        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.85, type: 'RED', isDead: false },
+        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.85, type: 'PINK', isDead: false },
+        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.85, type: 'CYAN', isDead: false },
+        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.85, type: 'ORANGE', isDead: false },
     ];
     setGameState('PLAYING');
     setShowNameInput(false);
@@ -455,12 +455,12 @@ export const Game: React.FC = () => {
     setMaze(JSON.parse(JSON.stringify(INITIAL_MAZE_2)));
     hasStartedRef.current = false;
     setPowerTimer(0);
-    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1.1 };
+    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1.35 };
     ghostsRef.current = [
-        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.7, type: 'RED', isDead: false },
-        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.7, type: 'PINK', isDead: false },
-        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.7, type: 'CYAN', isDead: false },
-        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.7, type: 'ORANGE', isDead: false },
+        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.95, type: 'RED', isDead: false },
+        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.95, type: 'PINK', isDead: false },
+        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.95, type: 'CYAN', isDead: false },
+        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.95, type: 'ORANGE', isDead: false },
     ];
     setGameState('PLAYING');
   };
