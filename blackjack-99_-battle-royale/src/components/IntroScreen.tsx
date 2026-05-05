@@ -53,7 +53,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       id: 'molar-madness',
       title: 'Molar Madness',
       description: 'Familiarly-styled arcade game with cavitites, candy, and hygeine',
-      image: 'images/molar-madness.png',
+      image: './components/pictures/molar-madness-cover.png',
       category: 'Arcade',
       rating: 4.7,
       players: '1 Player'
