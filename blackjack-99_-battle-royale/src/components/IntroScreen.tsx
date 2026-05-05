@@ -312,8 +312,18 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
 
           <div className="site-games-rows">
             {gameSections.map((section) => (
-              <section key={section.title} className="site-game-row" aria-labelledby={`site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`}>
-                <h3 id={`site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`}>{section.title}</h3>
+              <section
+                key={section.title}
+                className="site-game-row"
+                aria-labelledby={
+                  section.title === 'Featured Games'
+                    ? 'site-games-title'
+                    : `site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`
+                }
+              >
+                {section.title !== 'Featured Games' && (
+                  <h3 id={`site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`}>{section.title}</h3>
+                )}
 
                 <div className="site-games-grid">
                   {getSectionGames(section.gameIds).map((game, index) => (
