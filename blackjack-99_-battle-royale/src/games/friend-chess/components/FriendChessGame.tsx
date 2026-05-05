@@ -146,6 +146,7 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
           }
 
           const g = new Chess(latestLobby.fen);
+          const fenBefore = g.fen();
           const move = g.move({
             from: sourceSquare as never,
             to: targetSquare as never,
@@ -192,6 +193,8 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
 
           transaction.set(moveRef, {
             move: move.san,
+            fenBefore,
+            fenAfter: g.fen(),
             index: moveIndex,
             player: user.uid,
             timestamp: serverTimestamp(),

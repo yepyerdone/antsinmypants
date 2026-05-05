@@ -8,9 +8,15 @@ import { Chessboard } from 'react-chessboard';
 import { ChevronLeft, ChevronRight, RotateCcw, Calendar, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+const STANDARD_INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
 interface FriendChessHistoryViewProps {
   onBack: () => void;
   initialGame?: LobbyData | null;
+}
+
+function getReviewInitialFen(game: LobbyData, replayMoves: MoveRecord[]) {
+  return game.initialFen || replayMoves[0]?.fenBefore || STANDARD_INITIAL_FEN;
 }
 
 export default function FriendChessHistoryView({ onBack, initialGame }: FriendChessHistoryViewProps) {
@@ -71,6 +77,8 @@ export default function FriendChessHistoryView({ onBack, initialGame }: FriendCh
           timestamp: null,
         })) as MoveRecord[];
         setMoves(legacyMoves);
+      } else {
+        setMoves([]);
       }
     }
     fetchMoves();
@@ -78,7 +86,14 @@ export default function FriendChessHistoryView({ onBack, initialGame }: FriendCh
 
   useEffect(() => {
     if (selectedGame) {
-      const g = new Chess();
+      let g: Chess;
+      try {
+        g = new Chess(getReviewInitialFen(selectedGame, moves));
+      } catch (e) {
+        console.error('Invalid review starting position:', e);
+        g = new Chess();
+      }
+
       for (let i = 0; i <= moveIndex; i++) {
         if (moves[i]) {
           try {
@@ -96,7 +111,11 @@ export default function FriendChessHistoryView({ onBack, initialGame }: FriendCh
     setSelectedGame(g);
     setMoveIndex(-1);
     setMoves([]);
-    setViewerGame(new Chess());
+    try {
+      setViewerGame(new Chess(g.initialFen || STANDARD_INITIAL_FEN));
+    } catch {
+      setViewerGame(new Chess());
+    }
   };
 
   const nextMove = () => {

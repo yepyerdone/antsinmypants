@@ -180,6 +180,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
         playerW: user.uid,
         whiteName: playerName,
         fen: initialFen,
+        initialFen,
         status: 'waiting',
         turn: 'w',
         variant,
@@ -290,11 +291,13 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
         onJoinLobby(lobbyDoc.id);
       } else {
         const code = `QM-${nanoid(4).toUpperCase()}`;
+        const initialFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
         const docRef = await addDoc(collection(db, FC_COLLECTIONS.lobbies), {
           code,
           playerW: user.uid,
           whiteName: playerName,
-          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          fen: initialFen,
+          initialFen,
           variant: 'standard',
           status: 'waiting',
           turn: 'w',

@@ -10,6 +10,7 @@ export interface LobbyData {
   whiteName: string;
   blackName?: string;
   fen: string;
+  initialFen?: string;
   status: GameStatus;
   turn: 'w' | 'b';
   variant?: LobbyVariant;
@@ -32,6 +33,8 @@ export interface LobbyData {
 export interface MoveRecord {
   id?: string;
   move: string;
+  fenBefore?: string;
+  fenAfter?: string;
   player: string;
   index: number;
   timestamp: unknown;
