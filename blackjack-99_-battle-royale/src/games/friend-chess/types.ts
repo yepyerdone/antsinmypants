@@ -1,5 +1,7 @@
 export type GameStatus = 'waiting' | 'playing' | 'finished';
 
+export type LobbyVariant = 'standard' | 'chess960';
+
 export interface LobbyData {
   id: string;
   code: string;
@@ -10,6 +12,7 @@ export interface LobbyData {
   fen: string;
   status: GameStatus;
   turn: 'w' | 'b';
+  variant?: LobbyVariant;
   winner?: string;
   moveCount: number;
   isQuickMatch?: boolean;

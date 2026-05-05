@@ -308,6 +308,10 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
               {lobby.status}
             </span>
           </div>
+          <div className="flex items-center justify-between mb-4 text-[10px] uppercase tracking-widest text-[#666] font-bold">
+            <span>{lobby.variant === 'chess960' ? 'Fischer Random' : 'Standard Chess'}</span>
+            <span className="text-[#999]">{lobby.turn === 'w' ? 'White to move' : 'Black to move'}</span>
+          </div>
           <h2 className="text-xl font-bold tracking-widest text-white flex items-center gap-2 uppercase">
             {lobby.code}
             <button

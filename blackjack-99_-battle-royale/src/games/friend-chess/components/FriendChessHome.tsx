@@ -31,14 +31,52 @@ import {
   Trophy,
   ChevronRight,
   History,
+  Crown,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+
+type LobbyVariant = 'standard' | 'chess960';
 
 interface FriendChessHomeProps {
   onJoinLobby: (id: string) => void;
   onShowHistory: (game?: LobbyData) => void;
   onShowSettings: () => void;
 }
+
+const generateChess960FEN = (): string => {
+  const positions: string[] = Array(8).fill('');
+  const pickRandom = (items: number[]) => items.splice(Math.floor(Math.random() * items.length), 1)[0];
+
+  const evenSquares = [0, 2, 4, 6];
+  const oddSquares = [1, 3, 5, 7];
+  positions[pickRandom(evenSquares)] = 'B';
+  positions[pickRandom(oddSquares)] = 'B';
+
+  const remainingAfterBishops = positions
+    .map((value, index) => (value === '' ? index : -1))
+    .filter((index): index is number => index !== -1);
+  positions[pickRandom(remainingAfterBishops)] = 'Q';
+
+  const remainingAfterQueen = positions
+    .map((value, index) => (value === '' ? index : -1))
+    .filter((index): index is number => index !== -1);
+  positions[pickRandom(remainingAfterQueen)] = 'N';
+  positions[pickRandom(remainingAfterQueen)] = 'N';
+
+  const remaining = positions
+    .map((value, index) => (value === '' ? index : -1))
+    .filter((index): index is number => index !== -1)
+    .sort((a, b) => a - b);
+
+  positions[remaining[0]] = 'R';
+  positions[remaining[1]] = 'K';
+  positions[remaining[2]] = 'R';
+
+  const whiteBackrank = positions.join('');
+  const blackBackrank = positions.map((piece) => piece.toLowerCase()).join('');
+
+  return `${blackBackrank}/pppppppp/8/8/8/8/PPPPPPPP/${whiteBackrank} w KQkq - 0 1`;
+};
 
 export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSettings }: FriendChessHomeProps) {
   const { db, auth } = getFriendChessFirebase();
@@ -175,18 +213,24 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
     }
   };
 
-  const createLobby = async () => {
+  const createLobby = async (variant: LobbyVariant = 'standard') => {
     if (!user) return;
     setLoading(true);
     try {
       const code = nanoid(6).toUpperCase();
+      const isChess960 = variant === 'chess960';
+      const initialFen = isChess960
+        ? generateChess960FEN()
+        : 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
       const docRef = await addDoc(collection(db, FC_COLLECTIONS.lobbies), {
         code,
         playerW: user.uid,
         whiteName: user.displayName || 'Anonymous',
-        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        fen: initialFen,
         status: 'waiting',
         turn: 'w',
+        variant,
         moves: [],
         moveCount: 0,
         timeControl: selectedTime,
@@ -265,6 +309,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
         collection(db, FC_COLLECTIONS.lobbies),
         where('status', '==', 'waiting'),
         where('isQuickMatch', '==', true),
+        where('variant', '==', 'standard'),
         where('timeControl', '==', selectedTime),
         limit(5),
       );
@@ -289,6 +334,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
           playerW: user.uid,
           whiteName: user.displayName || 'Anonymous',
           fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          variant: 'standard',
           status: 'waiting',
           turn: 'w',
           moveCount: 0,
@@ -436,16 +482,27 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid sm:grid-cols-3 gap-4">
               <div
-                onClick={createLobby}
+                onClick={() => createLobby('standard')}
                 className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group"
               >
                 <div className="w-12 h-12 bg-fc-gold/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-fc-gold transition-all">
                   <Plus size={24} className="text-fc-gold group-hover:text-black transition-colors" />
                 </div>
                 <h3 className="text-lg font-bold mb-1 uppercase tracking-wider">New Table</h3>
-                <p className="text-xs text-[#666] leading-relaxed">Create a private lobby and challenge a friend.</p>
+                <p className="text-xs text-[#666] leading-relaxed">Create a standard table with the classic chess setup.</p>
+              </div>
+
+              <div
+                onClick={() => createLobby('chess960')}
+                className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group"
+              >
+                <div className="w-12 h-12 bg-fc-gold/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-fc-gold transition-all">
+                  <Crown size={24} className="text-fc-gold group-hover:text-black transition-colors" />
+                </div>
+                <h3 className="text-lg font-bold mb-1 uppercase tracking-wider">New Fischer Table</h3>
+                <p className="text-xs text-[#666] leading-relaxed">Create a Chess960 table with randomized back-rank pieces.</p>
               </div>
 
               <div
