@@ -54,7 +54,7 @@ const games: GameCardData[] = [
   {
     id: 'the-ascension',
     title: 'The Ascension',
-    description: 'A cinematic camera challenge with instant rankings and a dedicated top-score board.',
+    description: 'A high-stakes 1v1 matchmaking game where facial metrics determine dominance.'
     category: 'Challenge',
     meta: 'Top 10 scores',
     preview: 'ascension',
@@ -229,7 +229,7 @@ function GamePreview({ type, title, coverImage }: { type: PreviewType; title: st
         <span className="preview-ascension-face" />
         <span className="preview-ascension-ring preview-ascension-ring--one" />
         <span className="preview-ascension-ring preview-ascension-ring--two" />
-        <span className="preview-score">9.1</span>
+        <span className="preview-score">11/10</span>
       </div>
     );
   }
