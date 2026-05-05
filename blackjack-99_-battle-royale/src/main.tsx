@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import App from './App.tsx';
 import FriendChessApp from './games/friend-chess/FriendChessApp.tsx';
+import MusicalChairs from './games/musical-chairs/MusicalChairs';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -12,6 +13,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/friend-chess" element={<FriendChessApp />} />
         <Route path="/snake-rush" element={<App />} />
         <Route path="/molar-madness" element={<App />} />
+  <Route path="/chairs-io" element={<MusicalChairs />} />
         <Route path="*" element={<App />} />
       </Routes>
     </BrowserRouter>
