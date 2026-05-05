@@ -18,6 +18,7 @@ export function GameSession({ gameId, onExit }: GameSessionProps) {
   const [chairs, setChairs] = useState<Chair[]>([]);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null); // For future music support
+  const endRoundTriggeredRef = useRef<string | null>(null);
 
   const isHost = game?.hostId === auth.currentUser?.uid;
   const me = players.find(p => p.uid === auth.currentUser?.uid);
@@ -55,6 +56,22 @@ export function GameSession({ gameId, onExit }: GameSessionProps) {
 
     return () => clearInterval(interval);
   }, [game?.status, game?.timerValue, game?.timerStartTime, isHost]);
+
+  useEffect(() => {
+    if (!game || !isHost || game.status !== 'playing' || timeLeft > 0) return;
+
+    const roundKey = `${game.id}:${game.currentRound}`;
+    if (endRoundTriggeredRef.current === roundKey) return;
+
+    const activePlayerCount = players.filter(p => !p.isEliminated).length;
+    const claimedChairCount = chairs.filter(chair => chair.claimedBy).length;
+    const expectedClaimCount = Math.max(0, activePlayerCount - 1);
+
+    if (expectedClaimCount > 0 && claimedChairCount >= expectedClaimCount) {
+      endRoundTriggeredRef.current = roundKey;
+      gameService.endRound(game.id);
+    }
+  }, [chairs, game, isHost, players, timeLeft]);
 
   const handleStart = () => {
     if (players.length < 2) {

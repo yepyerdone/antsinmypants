@@ -147,8 +147,10 @@ export const gameService = {
       const chairSnap = await getDoc(chairRef);
       if (chairSnap.data()?.claimedBy) return;
 
-      await updateDoc(chairRef, { claimedBy: auth.currentUser.uid });
-      await updateDoc(playerRef, { chairId: chairId });
+      const batch = writeBatch(db);
+      batch.update(chairRef, { claimedBy: auth.currentUser.uid });
+      batch.update(playerRef, { chairId: chairId });
+      await batch.commit();
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, path);
     }
