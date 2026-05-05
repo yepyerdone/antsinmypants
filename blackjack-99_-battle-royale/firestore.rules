@@ -61,6 +61,18 @@ service cloud.firestore {
         && incoming().score >= 0;
     }
 
+    // Snake Rush Leaderboard Rules
+    match /snake_rush_leaderboard/{entryId} {
+      allow list, get: if true;
+      allow create: if isSignedIn()
+        && incoming().name is string
+        && incoming().name.size() >= 1
+        && incoming().name.size() <= 16
+        && incoming().score is number
+        && incoming().score >= 0
+        && incoming().gameMode is string;
+    }
+
     // Chairs.io Rules
     function getChairsGame(gameId) {
       return get(/databases/$(database)/documents/games/$(gameId)).data;

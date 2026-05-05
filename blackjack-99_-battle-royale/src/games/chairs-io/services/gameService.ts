@@ -15,6 +15,7 @@ import {
 import { db, auth } from '../lib/firebase';
 import { Game, Player, Chair, GameStatus } from '../types';
 import { nanoid } from 'nanoid';
+import { getCurrentPlayerIdentity } from '../../../hooks/usePlayerIdentity';
 
 enum OperationType {
   CREATE = 'create',
@@ -87,9 +88,10 @@ export const gameService = {
       
       if (snap.exists()) return;
 
+      const { playerName } = getCurrentPlayerIdentity();
       const player: Player = {
         uid: auth.currentUser.uid,
-        displayName: auth.currentUser.displayName || `Player ${auth.currentUser.uid.slice(0, 4)}`,
+        displayName: playerName || `Player ${auth.currentUser.uid.slice(0, 4)}`,
         isEliminated: false,
         isReady: false,
         chairId: null,

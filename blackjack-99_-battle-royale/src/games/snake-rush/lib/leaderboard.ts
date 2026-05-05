@@ -15,6 +15,9 @@ export type LeaderboardEntry = {
   score: number;
   date: string;
   gameMode: string;
+  boardSize?: string;
+  playerId?: string | null;
+  isGuest?: boolean;
 };
 
 const STORAGE_KEY = 'snake_rush_leaderboard';
@@ -46,12 +49,20 @@ export const getScores = async (limit?: number): Promise<LeaderboardEntry[]> => 
     const snapshot = await getDocs(scoresQuery);
     const results = snapshot.docs.map((doc) => {
       const data = doc.data();
+      const createdAt = data.createdAt;
       return {
         id: doc.id,
         name: typeof data.name === 'string' ? data.name : 'Anonymous',
         score: typeof data.score === 'number' ? data.score : 0,
-        date: data.createdAt instanceof Date ? data.createdAt.toISOString() : new Date().toISOString(),
+        date: createdAt instanceof Date
+          ? createdAt.toISOString()
+          : typeof createdAt?.toDate === 'function'
+            ? createdAt.toDate().toISOString()
+            : new Date().toISOString(),
         gameMode: typeof data.gameMode === 'string' ? data.gameMode : 'classic',
+        boardSize: typeof data.boardSize === 'string' ? data.boardSize : undefined,
+        playerId: typeof data.playerId === 'string' ? data.playerId : null,
+        isGuest: typeof data.isGuest === 'boolean' ? data.isGuest : undefined,
       } as LeaderboardEntry;
     });
 
@@ -74,16 +85,20 @@ export const getScores = async (limit?: number): Promise<LeaderboardEntry[]> => 
 export const addScore = async (
   name: string,
   score: number,
-  gameMode: string
+  gameMode: string,
+  playerId?: string | null,
+  isGuest?: boolean
 ): Promise<void> => {
   await fallbackDelay();
 
   const entry: LeaderboardEntry = {
     id: Date.now().toString(),
-    name: name.trim().slice(0, 15) || 'Anonymous',
+    name: name.trim().slice(0, 16) || (isGuest ? 'Guest Player' : 'Player'),
     score,
     date: new Date().toISOString(),
     gameMode,
+    playerId: playerId ?? null,
+    isGuest: Boolean(isGuest),
   };
 
   try {
@@ -92,6 +107,8 @@ export const addScore = async (
       name: entry.name,
       score: entry.score,
       gameMode: entry.gameMode,
+      playerId: entry.playerId,
+      isGuest: entry.isGuest,
       createdAt: serverTimestamp(),
     });
   } catch (error) {

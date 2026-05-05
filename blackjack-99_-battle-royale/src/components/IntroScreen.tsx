@@ -1,288 +1,322 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Gamepad2, Play, Star, TrendingUp, Clock, Info } from 'lucide-react';
+import { ExternalLink, Flame, Gamepad2, Gauge, LogOut, Play, Sparkles, Trophy, UserRound, Users } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface IntroScreenProps {
   onLaunchGame: (gameId: string) => void;
 }
 
-export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
-  const navigate = useNavigate();
-  const games = [
-    {
-      id: 'blackjack-99',
-      title: 'Blackjack 99',
-      description: 'Survival Battle Royale',
-      image: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?auto=format&fit=crop&q=80&w=400',
-      category: 'Strategy',
-      rating: 4.8,
-      players: '2.4k'
-    },
-    {
-      id: 'neon-snake',
-      title: 'Neon Snake',
-      description: 'Multiplayer glowing snake arena',
-      image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=400',
-      category: 'Arcade',
-      rating: 4.7,
-      players: 'Live',
-      externalUrl: 'https://multiplayer-neon-snake.onrender.com/'
-    },
-    {
-      id: 'punchy',
-      title: 'Punchy',
-      description: 'A fast-paced fighting game.',
-      image: 'https://share.google/n4lfjvg8FThBjYAxx',
-      category: 'Action',
-      rating: 4.5,
-      players: '1 Player',
-      externalUrl: 'https://fishfolk.github.io/punchy/player/latest/'
-    },
-    {
-      id: 'friend-chess',
-      title: 'Friend Chess',
-      description: 'Play real-time chess against a friend with lobby codes.',
-      image: 'https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&q=80&w=400',
-      category: 'Strategy',
-      rating: 4.6,
-      players: '2 Players',
-      internalPath: '/friend-chess',
-    },
-    {
-      id: 'snake-rush',
-      title: 'Snake Rush',
-      description: 'Fast arcade snake with multiple board sizes and a live leaderboard.',
-      image: 'https://images.unsplash.com/photo-1519241047957-be31d7379a5d?auto=format&fit=crop&q=80&w=400',
-      category: 'Arcade',
-      rating: 4.8,
-      players: '1 Player',
-      internalPath: '/snake-rush',
-    },
-    {
-      id: 'molar-madness',
-      title: 'Molar Madness',
-      description: 'Familiarly-styled arcade game with cavitites, candy, and hygeine',
-      image: '/molar-madness-cover.png',
-      category: 'Arcade',
-      rating: 4.7,
-      players: '1 Player',
-      internalPath: '/molar-madness',
-    },
-    {
-      id: 'chairs-io',
-      title: 'Chairs.io',
-      description: 'Real-time musical chairs with private lobbies and online play.',
-      image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=400',
-      category: 'Party',
-      rating: 4.5,
-      players: '2-8',
-      internalPath: '/chairs-io',
-    }
-  ];
+type PreviewType = 'blackjack' | 'neon-snake' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs';
+
+type GameCardData = {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  meta: string;
+  preview: PreviewType;
+  internalPath?: string;
+  externalUrl?: string;
+  coverImage?: string;
+};
+
+const games: GameCardData[] = [
+  {
+    id: 'blackjack-99',
+    title: 'Blackjack 99',
+    description: 'Survive a fast battle royale table where every hand can knock players out.',
+    category: 'Cards',
+    meta: 'Solo or online',
+    preview: 'blackjack',
+    internalPath: '/blackjack-99',
+  },
+  {
+    id: 'neon-snake',
+    title: 'Neon Snake',
+    description: 'A glowing multiplayer snake arena for quick reflex duels.',
+    category: 'Arcade',
+    meta: 'External arena',
+    preview: 'neon-snake',
+    externalUrl: 'https://multiplayer-neon-snake.onrender.com/',
+  },
+  {
+    id: 'punchy',
+    title: 'Punchy',
+    description: 'A snappy fighting game with quick rounds and arcade action.',
+    category: 'Action',
+    meta: 'External game',
+    preview: 'punchy',
+    externalUrl: 'https://fishfolk.github.io/punchy/player/latest/',
+  },
+  {
+    id: 'friend-chess',
+    title: 'Friend Chess',
+    description: 'Create lobby codes, play real-time chess, and review your match history.',
+    category: 'Strategy',
+    meta: '2 players',
+    preview: 'chess',
+    internalPath: '/friend-chess',
+  },
+  {
+    id: 'snake-rush',
+    title: 'Snake Rush',
+    description: 'High-speed snake with modes, board sizes, and online score chasing.',
+    category: 'Arcade',
+    meta: 'Leaderboard',
+    preview: 'snake',
+    internalPath: '/snake-rush',
+    coverImage: '/snake-rush.png',
+  },
+  {
+    id: 'molar-madness',
+    title: 'Molar Madness',
+    description: 'Dodge, chomp, and defend the enamel in a retro maze challenge.',
+    category: 'Arcade',
+    meta: 'Score attack',
+    preview: 'molar',
+    internalPath: '/molar-madness',
+    coverImage: '/molar-madness.png',
+  },
+  {
+    id: 'chairs-io',
+    title: 'Chairs.io',
+    description: 'Real-time musical chairs with private lobbies and tense eliminations.',
+    category: 'Party',
+    meta: '2-8 players',
+    preview: 'chairs',
+    internalPath: '/chairs-io',
+  },
+];
+
+function GamePreview({ type, title, coverImage }: { type: PreviewType; title: string; coverImage?: string }) {
+  if (coverImage) {
+    return (
+      <div className="site-game-preview site-game-preview--image" aria-label={`${title} preview`}>
+        <img src={coverImage} alt={`${title} cover`} className="site-game-preview__image" />
+      </div>
+    );
+  }
+
+  if (type === 'blackjack') {
+    return (
+      <div className="site-game-preview site-game-preview--blackjack" aria-label={`${title} preview`}>
+        <span className="preview-table" />
+        <span className="preview-card preview-card--one">A</span>
+        <span className="preview-card preview-card--two">9</span>
+        <span className="preview-chip preview-chip--one" />
+        <span className="preview-chip preview-chip--two" />
+        <span className="preview-score">99</span>
+      </div>
+    );
+  }
+
+  if (type === 'snake' || type === 'neon-snake') {
+    return (
+      <div className={`site-game-preview site-game-preview--${type}`} aria-label={`${title} preview`}>
+        <span className="preview-snake-cell preview-snake-cell--head" />
+        <span className="preview-snake-cell preview-snake-cell--body-a" />
+        <span className="preview-snake-cell preview-snake-cell--body-b" />
+        <span className="preview-snake-cell preview-snake-cell--body-c" />
+        <span className="preview-food" />
+        <span className="preview-score">420</span>
+      </div>
+    );
+  }
+
+  if (type === 'chess') {
+    return (
+      <div className="site-game-preview site-game-preview--chess" aria-label={`${title} preview`}>
+        <span className="preview-chessboard" />
+        <span className="preview-piece preview-piece--king">K</span>
+        <span className="preview-piece preview-piece--rook">R</span>
+        <span className="preview-piece preview-piece--pawn-a" />
+        <span className="preview-piece preview-piece--pawn-b" />
+      </div>
+    );
+  }
+
+  if (type === 'molar') {
+    return (
+      <div className="site-game-preview site-game-preview--molar" aria-label={`${title} preview`}>
+        <span className="preview-maze" />
+        <span className="preview-tooth" />
+        <span className="preview-candy preview-candy--one" />
+        <span className="preview-candy preview-candy--two" />
+        <span className="preview-ghost" />
+      </div>
+    );
+  }
+
+  if (type === 'chairs') {
+    return (
+      <div className="site-game-preview site-game-preview--chairs" aria-label={`${title} preview`}>
+        <span className="preview-stage" />
+        <span className="preview-chair preview-chair--one" />
+        <span className="preview-chair preview-chair--two" />
+        <span className="preview-chair preview-chair--three" />
+        <span className="preview-player preview-player--one" />
+        <span className="preview-player preview-player--two" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] text-white font-sans selection:bg-orange-500 selection:text-white">
-      {/* Navigation / Header */}
-      <nav className="bg-[#121212] border-b border-white/5 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center space-x-2">
-          <div className="bg-orange-600 p-2 rounded-lg">
-            <Gamepad2 className="text-white w-6 h-6" />
-          </div>
-          <span className="text-2xl font-black italic tracking-tighter uppercase text-orange-500 font-display">
-            honor roll games
+    <div className="site-game-preview site-game-preview--punchy" aria-label={`${title} preview`}>
+      <span className="preview-ring" />
+      <span className="preview-fighter preview-fighter--one" />
+      <span className="preview-fighter preview-fighter--two" />
+      <span className="preview-hit" />
+      <span className="preview-score">KO</span>
+    </div>
+  );
+}
+
+export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
+  const navigate = useNavigate();
+  const { displayName, isGuest, logout } = useAuth();
+
+  const launchGame = (game: GameCardData) => {
+    if (game.internalPath) {
+      navigate(game.internalPath);
+      return;
+    }
+
+    if (game.externalUrl) {
+      window.location.href = game.externalUrl;
+      return;
+    }
+
+    onLaunchGame(game.id);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
+
+  return (
+    <div className="site-home">
+      <header className="site-home-header">
+        <Link to="/" className="site-home-logo" aria-label="Honor Roll Arcade home">
+          <span>
+            <Gamepad2 size={24} />
           </span>
-        </div>
+          <strong>Honor Roll Arcade</strong>
+        </Link>
 
-        <div className="hidden md:flex items-center space-x-8 text-xs font-bold uppercase tracking-widest text-gray-400">
-          <a href="#" className="hover:text-orange-500 transition-colors">New Games</a>
-          <a href="#" className="hover:text-orange-500 transition-colors">Strategy</a>
-          <a href="#" className="hover:text-orange-500 transition-colors">Action</a>
-          <a href="#" className="hover:text-orange-500 transition-colors">About</a>
-        </div>
+        <nav className="site-home-nav" aria-label="Site navigation">
+          <Link to="/">Home</Link>
+          <a href="#games">Games</a>
+        </nav>
 
-        <div className="flex items-center space-x-4">
-          <div className="relative hidden sm:block">
-            <input
-              type="text"
-              placeholder="Search games..."
-              className="bg-white/5 border border-white/10 rounded-full py-2 px-6 text-xs focus:outline-none focus:border-orange-500/50 w-48 transition-all"
-            />
+        <div className="site-home-account">
+          <div className="site-home-player">
+            <UserRound size={16} />
+            <span>Playing as {displayName}</span>
+            {isGuest && <small>Guest</small>}
           </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <header className="relative py-16 px-6 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-orange-600/10 rounded-full blur-[120px]" />
-        </div>
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
-            <h1 className="text-7xl md:text-9xl font-black tracking-tighter uppercase italic text-white mb-6 drop-shadow-2xl font-display">
-              <span className="text-orange-600">honor roll games</span>
-            </h1>
-            <p className="text-gray-400 max-w-2xl mx-auto text-lg md:text-xl font-medium">
-              The premier playground for high-stakes games and addictive puzzles. Join the colony and start your win streak today.
-            </p>
-          </motion.div>
+          <button type="button" onClick={handleLogout}>
+            <LogOut size={16} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </header>
 
-      {/* Featured / Catalog Section */}
-      <main className="max-w-6xl mx-auto px-6 pb-24">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-3">
-            <TrendingUp className="text-orange-500 w-5 h-5" />
-            <h2 className="text-2xl font-black uppercase italic tracking-tight">Game Catalog</h2>
-          </div>
-
-          <div className="flex space-x-2">
-            <button className="bg-white/5 hover:bg-white/10 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/5 transition-all">
-              All
-            </button>
-            <button className="text-gray-500 hover:text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all">
-              Popular
-            </button>
-            <button className="text-gray-500 hover:text-white px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all">
-              Strategy
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {games.map((game) => (
-            <motion.div
-              key={game.id}
-              whileHover={{ y: -10 }}
-              className="group relative bg-[#222] rounded-[2rem] overflow-hidden border border-white/5 hover:border-orange-500/30 transition-all duration-300 shadow-xl"
-            >
-              <div className="aspect-video relative overflow-hidden">
-                <img
-                  src={game.image}
-                  alt={game.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-
-                <div className="absolute inset-0 bg-gradient-to-t from-[#222] via-transparent to-transparent opacity-60" />
-
-                <div className="absolute top-4 left-4 bg-orange-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
-                  {game.category}
-                </div>
-              </div>
-
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-2xl font-black italic uppercase tracking-tight font-display">
-                    {game.title}
-                  </h3>
-
-                  <div className="flex items-center space-x-1 text-orange-500">
-                    <Star size={14} fill="currentColor" />
-                    <span className="text-xs font-black">{game.rating}</span>
-                  </div>
-                </div>
-
-                <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                  {game.description}
-                </p>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2 text-gray-500">
-                    <Clock size={12} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                      {game.players} playing now
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      if ('internalPath' in game && game.internalPath) {
-                        navigate(game.internalPath);
-                      } else if ('externalUrl' in game && game.externalUrl) {
-                        window.location.href = game.externalUrl;
-                      } else {
-                        onLaunchGame(game.id);
-                      }
-                    }}
-                    className="bg-orange-600 hover:bg-orange-500 text-white px-4 py-3 rounded-2xl shadow-lg shadow-orange-600/20 transition-all group-hover:scale-110 flex items-center justify-center gap-2 min-w-[3rem]"
-                  >
-                    <Play size={18} fill="currentColor" className="shrink-0" />
-                    {'internalPath' in game && game.internalPath ? (
-                      <span className="text-[10px] font-black uppercase tracking-widest pr-1">Play Now</span>
-                    ) : null}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-
-          {/* Catalog Placeholders for "vibe" */}
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="bg-white/5 rounded-[2rem] border border-white/5 border-dashed flex flex-col items-center justify-center p-12 opacity-50 grayscale"
-            >
-              <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center mb-4">
-                <Clock className="text-gray-500 w-6 h-6" />
-              </div>
-
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 italic">
-                Coming Soon to the Colony
+      <main className="site-home-main">
+        <section className="site-home-hero" aria-labelledby="site-home-title">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="site-home-hero__copy"
+          >
+            <div className="site-home-pill">
+              <Flame size={16} />
+              <span>Quick-play arcade</span>
+            </div>
+            <h1 id="site-home-title">Pick a game. Chase the high score.</h1>
+            <p>A growing arcade of fast, simple games built for quick breaks.</p>
+            <div className="site-home-actions">
+              <a href="#games" className="site-home-primary">
+                <Play size={18} fill="currentColor" />
+                <span>Browse Games</span>
+              </a>
+              <span className="site-home-secondary">
+                <Sparkles size={17} />
+                Guests choose a player name
               </span>
             </div>
-          ))}
-        </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.05 }}
+            className="site-home-stats"
+            aria-label="Arcade highlights"
+          >
+            <div className="site-home-stat">
+              <Gamepad2 size={20} />
+              <strong>{games.length}</strong>
+              <span>Games available</span>
+            </div>
+            <div className="site-home-stat">
+              <Trophy size={20} />
+              <strong>Live</strong>
+              <span>Score chasing</span>
+            </div>
+            <div className="site-home-stat">
+              <Users size={20} />
+              <strong>Guest</strong>
+              <span>Play supported</span>
+            </div>
+          </motion.div>
+        </section>
+
+        <section id="games" className="site-games-section" aria-labelledby="site-games-title">
+          <div className="site-section-heading">
+            <div>
+              <div className="site-home-pill">
+                <Gauge size={16} />
+                <span>Game Select</span>
+              </div>
+              <h2 id="site-games-title">Featured Games</h2>
+            </div>
+            <p>Tap a card to jump straight into the correct route or game arena.</p>
+          </div>
+
+          <div className="site-games-grid">
+            {games.map((game, index) => (
+              <motion.button
+                key={game.id}
+                type="button"
+                onClick={() => launchGame(game)}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, delay: index * 0.035 }}
+                className="site-game-card"
+              >
+                <GamePreview type={game.preview} title={game.title} coverImage={game.coverImage} />
+
+                <span className="site-game-card__body">
+                  <span className="site-game-card__meta">
+                    <span>{game.category}</span>
+                    <span>{game.meta}</span>
+                  </span>
+                  <strong>{game.title}</strong>
+                  <span className="site-game-card__description">{game.description}</span>
+                  <span className="site-game-card__cta">
+                    <span>{game.externalUrl ? 'Open Game' : 'Play Now'}</span>
+                    {game.externalUrl ? <ExternalLink size={15} /> : <Play size={15} fill="currentColor" />}
+                  </span>
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </section>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-[#121212] border-t border-white/5 py-12 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-8 md:space-y-0">
-          <div className="flex flex-col items-center md:items-start">
-            <div className="flex items-center space-x-2 mb-4">
-              <Gamepad2 className="text-orange-500 w-5 h-5" />
-              <span className="text-xl font-black italic uppercase tracking-tighter text-white">
-                Ants In My Pants
-              </span>
-            </div>
-
-            <p className="text-gray-500 text-xs font-medium tracking-tight max-w-xs text-center md:text-left">
-              The ultimate destination for gamers who demand more from their playtime.
-            </p>
-          </div>
-
-          <div className="flex space-x-12">
-            <div className="flex flex-col space-y-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Platform</span>
-              <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Games</a>
-              <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Community</a>
-              <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Support</a>
-            </div>
-
-            <div className="flex flex-col space-y-3">
-              <span className="text-[10px] font-black uppercase tracking-widest text-orange-500">Legal</span>
-              <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Terms</a>
-              <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="text-xs text-gray-400 hover:text-white transition-colors">Cookies</a>
-            </div>
-          </div>
-        </div>
-
-        <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-600">
-          <span>&copy; 2024 honor roll games Gaming</span>
-
-          <div className="flex items-center space-x-2">
-            <Info size={12} />
-            <span>Play Responsibly</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

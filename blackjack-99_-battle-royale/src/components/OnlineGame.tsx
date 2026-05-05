@@ -11,8 +11,9 @@ import { cn } from '../lib/utils';
 import { Trophy, Skull, User, LogOut, Timer as TimerIcon } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-import { getUserStats, trackGameResult } from '../lib/user';
+import { trackGameResult } from '../lib/user';
 import { DealerAvatar, DealerMood } from './DealerAvatar';
+import { usePlayerIdentity } from '../hooks/usePlayerIdentity';
 
 interface OnlineGameProps {
   roomId: string;
@@ -26,13 +27,14 @@ export function OnlineGame({ roomId, isHost, onExit }: OnlineGameProps) {
   const [eliminated, setEliminated] = useState(false);
   const [hasTrackedResult, setHasTrackedResult] = useState(false);
   const user = auth.currentUser;
+  const { playerName } = usePlayerIdentity();
 
   useEffect(() => {
     if (!user || hasTrackedResult) return;
 
     if (room?.status === 'finished') {
        const isWin = room.winnerId === user.uid;
-       trackGameResult(user.uid, 'online', isWin, user.displayName || 'Player');
+       trackGameResult(user.uid, 'online', isWin, playerName);
        setHasTrackedResult(true);
 
        if (isWin) {
@@ -46,10 +48,10 @@ export function OnlineGame({ roomId, isHost, onExit }: OnlineGameProps) {
     
     const myPlayer = players.find(p => p.userId === user.uid);
     if (myPlayer?.status === 'eliminated' && !hasTrackedResult) {
-       trackGameResult(user.uid, 'online', false);
+       trackGameResult(user.uid, 'online', false, playerName);
        setHasTrackedResult(true);
     }
-  }, [room?.status, room?.winnerId, players, user, hasTrackedResult]);
+  }, [room?.status, room?.winnerId, players, user, hasTrackedResult, playerName]);
 
   useEffect(() => {
     const roomRef = doc(db, 'rooms', roomId);

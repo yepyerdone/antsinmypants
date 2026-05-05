@@ -1,4 +1,3 @@
-import { signInAnonymously, signOut } from 'firebase/auth';
 import { app, auth, db } from '../../../lib/firebase';
 
 /**
@@ -14,12 +13,4 @@ export type FriendChessClient = {
 
 export function getFriendChessFirebase(): FriendChessClient {
   return { app, auth, db };
-}
-
-export function signInFriendChessAnonymous() {
-  return signInAnonymously(auth);
-}
-
-export function signOutFriendChess() {
-  return signOut(auth);
 }

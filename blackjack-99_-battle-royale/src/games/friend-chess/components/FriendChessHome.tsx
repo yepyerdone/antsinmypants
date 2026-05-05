@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  getFriendChessFirebase,
-  signInFriendChessAnonymous,
-  signOutFriendChess,
-} from '../lib/friendChessFirebase';
+import { getFriendChessFirebase } from '../lib/friendChessFirebase';
 import {
   collection,
   addDoc,
@@ -17,7 +13,6 @@ import {
   setDoc,
   getDoc,
 } from 'firebase/firestore';
-import { updateProfile } from 'firebase/auth';
 import { handleFirestoreError, OperationType } from '../lib/friendChessUtils';
 import { nanoid } from 'nanoid';
 import type { LobbyData, UserProfile } from '../types';
@@ -34,6 +29,8 @@ import {
   Crown,
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useAuth } from '../../../context/AuthContext';
+import { usePlayerIdentity } from '../../../hooks/usePlayerIdentity';
 
 type LobbyVariant = 'standard' | 'chess960';
 
@@ -80,13 +77,14 @@ const generateChess960FEN = (): string => {
 
 export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSettings }: FriendChessHomeProps) {
   const { db, auth } = getFriendChessFirebase();
+  const { logout } = useAuth();
+  const { playerName } = usePlayerIdentity();
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(auth.currentUser);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  const [tempName, setTempName] = useState('');
   const [recentGames, setRecentGames] = useState<LobbyData[]>([]);
   const [isMatching, setIsMatching] = useState(false);
   const [selectedTime, setSelectedTime] = useState<number>(600);
@@ -159,59 +157,12 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
     }
   };
 
-  const handleEnterHall = async () => {
-    if (!tempName.trim()) return;
-    setLoading(true);
-    setAuthError(null);
-    try {
-      const name = tempName.trim();
-
-      if (auth.currentUser && !auth.currentUser.isAnonymous) {
-        await updateProfile(auth.currentUser, { displayName: name });
-        await ensureUserDoc(auth.currentUser.uid, name);
-        setUser({ ...auth.currentUser });
-        return;
-      }
-
-      if (auth.currentUser?.isAnonymous) {
-        await updateProfile(auth.currentUser, { displayName: name });
-        await ensureUserDoc(auth.currentUser.uid, name);
-        setUser({ ...auth.currentUser });
-        return;
-      }
-
-      const cred = await signInFriendChessAnonymous();
-      const signedIn = cred.user;
-      await updateProfile(signedIn, { displayName: name });
-      await ensureUserDoc(signedIn.uid, name);
-      setUser(signedIn);
-    } catch (err: unknown) {
-      console.error(err);
-      const anyErr = err as { code?: string; message?: string };
-      const code = anyErr?.code ?? '';
-      const msg = anyErr?.message ?? '';
-
-      if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
-        setAuthError(
-          'Anonymous sign-in is turned off for this Firebase project. In Firebase Console → Authentication → Sign-in method, enable Anonymous.',
-        );
-      } else if (code === 'auth/unauthorized-domain') {
-        setAuthError(
-          'This exact website domain is not allowed to use Firebase Auth. In Firebase Console → Authentication → Settings → Authorized domains, add your production host (e.g. your-app.vercel.app or your custom domain), save, then try again.',
-        );
-      } else if (code === 'auth/network-request-failed') {
-        setAuthError('Network error while contacting Firebase. Check connection, VPN, or ad blockers.');
-      } else if (code === 'permission-denied' || msg.includes('permission-denied')) {
-        setAuthError(
-          'Firestore denied writing your player profile. Publish rules for friendChessUsers (see firestore.friend-chess.rules in the repo) on the same Firebase project you use in production.',
-        );
-      } else {
-        setAuthError(msg || 'Failed to join the hall. Check your connection or Firebase setup.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    if (!user) return;
+    ensureUserDoc(user.uid, playerName).catch((err) => {
+      console.error('Failed to sync friend chess user profile:', err);
+    });
+  }, [user, playerName]);
 
   const createLobby = async (variant: LobbyVariant = 'standard') => {
     if (!user) return;
@@ -226,7 +177,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
       const docRef = await addDoc(collection(db, FC_COLLECTIONS.lobbies), {
         code,
         playerW: user.uid,
-        whiteName: user.displayName || 'Anonymous',
+        whiteName: playerName,
         fen: initialFen,
         status: 'waiting',
         turn: 'w',
@@ -278,7 +229,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
 
       await updateDoc(doc(db, FC_COLLECTIONS.lobbies, lobbyDoc.id), {
         playerB: user.uid,
-        blackName: user.displayName || 'Anonymous',
+        blackName: playerName,
         status: 'playing',
         'clocks.lastTickAt': serverTimestamp(),
         updatedAt: serverTimestamp(),
@@ -321,7 +272,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
         const lobbyDoc = openLobbies[0];
         await updateDoc(doc(db, FC_COLLECTIONS.lobbies, lobbyDoc.id), {
           playerB: user.uid,
-          blackName: user.displayName || 'Anonymous',
+          blackName: playerName,
           status: 'playing',
           'clocks.lastTickAt': serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -332,7 +283,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
         const docRef = await addDoc(collection(db, FC_COLLECTIONS.lobbies), {
           code,
           playerW: user.uid,
-          whiteName: user.displayName || 'Anonymous',
+          whiteName: playerName,
           fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
           variant: 'standard',
           status: 'waiting',
@@ -378,24 +329,19 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
           <p className="text-[#888] text-lg mb-10 tracking-wide uppercase font-bold">Friend Chess</p>
 
           <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="ENTER YOUR NAME"
-              value={tempName}
-              onChange={(e) => setTempName(e.target.value)}
-              className="w-full bg-fc-bg-dark border border-fc-border-dim rounded-md px-6 py-4 text-center text-lg tracking-widest outline-none focus:border-fc-gold text-white uppercase font-bold"
-              maxLength={20}
-            />
             {authError && (
               <p className="text-red-500 text-xs bg-red-500/10 p-3 rounded border border-red-500/20 leading-relaxed">{authError}</p>
             )}
+            <div className="w-full bg-fc-bg-dark border border-fc-border-dim rounded-md px-6 py-4 text-center text-sm tracking-widest text-[#888] uppercase font-bold">
+              Use the site start screen to choose Google, email, or guest mode.
+            </div>
             <button
-              onClick={handleEnterHall}
-              disabled={!tempName.trim() || loading}
+              onClick={() => window.location.assign('/')}
+              disabled={loading}
               className="w-full bg-fc-gold hover:bg-fc-gold-light text-black font-bold py-4 px-8 rounded-md flex items-center justify-center gap-3 transition-all active:scale-95 shadow-2xl uppercase tracking-widest text-sm disabled:opacity-50"
             >
               <User size={18} />
-              JOIN
+              Back to Site Sign In
             </button>
           </div>
         </motion.div>
@@ -441,13 +387,13 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-fc-gold to-[#8C7642]"></div>
             )}
             <div className="overflow-hidden">
-              <p className="text-sm font-semibold truncate">{user.displayName}</p>
+              <p className="text-sm font-semibold truncate">{playerName}</p>
               <p className="text-[11px] text-[#666] uppercase tracking-wider">Player</p>
             </div>
             <button
               type="button"
               title="Signs out of every game on this site (one Firebase account)."
-              onClick={() => void signOutFriendChess()}
+              onClick={() => void logout()}
               className="ml-auto text-gray-600 hover:text-red-400"
             >
               <LogOut size={16} />

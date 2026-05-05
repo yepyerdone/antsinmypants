@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { ArrowLeft, Save, Palette, Check } from 'lucide-react';
 import { BOARD_THEMES, DEFAULT_THEME, FC_COLLECTIONS } from '../constants';
 import { Chessboard } from 'react-chessboard';
+import { usePlayerIdentity } from '../../../hooks/usePlayerIdentity';
 
 interface FriendChessSettingsProps {
   onBack: () => void;
@@ -11,6 +12,7 @@ interface FriendChessSettingsProps {
 
 export default function FriendChessSettings({ onBack }: FriendChessSettingsProps) {
   const { db, auth } = getFriendChessFirebase();
+  const { playerName } = usePlayerIdentity();
   const [user, setUser] = useState(auth.currentUser);
   const [selectedThemeId, setSelectedThemeId] = useState(DEFAULT_THEME.id);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,7 @@ export default function FriendChessSettings({ onBack }: FriendChessSettingsProps
         userRef,
         {
           uid: user.uid,
-          displayName: user.displayName || 'Anonymous',
+          displayName: playerName,
           theme: selectedThemeId,
           updatedAt: new Date(),
         },

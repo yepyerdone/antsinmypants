@@ -12,6 +12,7 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
+import { usePlayerIdentity } from '../../hooks/usePlayerIdentity';
 
 interface Entity {
   x: number;
@@ -23,6 +24,7 @@ interface Entity {
 }
 
 export const Game: React.FC = () => {
+  const { playerName, playerId, isGuest } = usePlayerIdentity();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(parseInt(localStorage.getItem('molar_madness_highscore') || '0'));
@@ -33,21 +35,21 @@ export const Game: React.FC = () => {
   
   const [leaderboard, setLeaderboard] = useState<{name: string, score: number, id: string}[]>([]);
   const [showNameInput, setShowNameInput] = useState(false);
-  const [playerName, setPlayerName] = useState(localStorage.getItem('molar_player_name') || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scoreSaved, setScoreSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const playerRef = useRef<Entity>({ x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 2 });
+  const playerRef = useRef<Entity>({ x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1 });
   const hasStartedRef = useRef(false);
   const cheatBufferRef = useRef('');
   const ghostsRef = useRef<Entity[]>([
-    { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 1.2, type: 'RED', isDead: false },
-    { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 1.2, type: 'PINK', isDead: false },
-    { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 1.2, type: 'CYAN', isDead: false },
-    { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 1.2, type: 'ORANGE', isDead: false },
+    { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.6, type: 'RED', isDead: false },
+    { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.6, type: 'PINK', isDead: false },
+    { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.6, type: 'CYAN', isDead: false },
+    { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.6, type: 'ORANGE', isDead: false },
   ]);
 
   const requestRef = useRef<number>(0);
@@ -435,15 +437,17 @@ export const Game: React.FC = () => {
     setMaze(JSON.parse(JSON.stringify(INITIAL_MAZE)));
     hasStartedRef.current = false;
     setPowerTimer(0);
-    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 2 };
+    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1 };
     ghostsRef.current = [
-        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 1.2, type: 'RED', isDead: false },
-        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 1.2, type: 'PINK', isDead: false },
-        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 1.2, type: 'CYAN', isDead: false },
-        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 1.2, type: 'ORANGE', isDead: false },
+        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.6, type: 'RED', isDead: false },
+        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.6, type: 'PINK', isDead: false },
+        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.6, type: 'CYAN', isDead: false },
+        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.6, type: 'ORANGE', isDead: false },
     ];
     setGameState('PLAYING');
     setShowNameInput(false);
+    setScoreSaved(false);
+    setSaveError(null);
   };
 
   const startLevel2 = () => {
@@ -451,33 +455,34 @@ export const Game: React.FC = () => {
     setMaze(JSON.parse(JSON.stringify(INITIAL_MAZE_2)));
     hasStartedRef.current = false;
     setPowerTimer(0);
-    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 2.2 };
+    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1.1 };
     ghostsRef.current = [
-        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 1.4, type: 'RED', isDead: false },
-        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 1.4, type: 'PINK', isDead: false },
-        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 1.4, type: 'CYAN', isDead: false },
-        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 1.4, type: 'ORANGE', isDead: false },
+        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.7, type: 'RED', isDead: false },
+        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.7, type: 'PINK', isDead: false },
+        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.7, type: 'CYAN', isDead: false },
+        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.7, type: 'ORANGE', isDead: false },
     ];
     setGameState('PLAYING');
   };
 
   const submitScore = async () => {
-    if (!playerName.trim() || isSubmitting) return;
+    if (isSubmitting || scoreSaved) return;
     setSaveError(null);
     setIsSubmitting(true);
     try {
       if (!auth.currentUser) {
         await signInAnonymously(auth);
       }
-      const trimmedName = playerName.trim().substring(0, 15);
+      const trimmedName = playerName.trim().substring(0, 16) || (isGuest ? 'Guest Player' : 'Player');
       const normalizedScore = Math.trunc(score);
-      localStorage.setItem('molar_player_name', trimmedName);
       await addDoc(collection(db, 'leaderboard'), {
         name: trimmedName,
         score: normalizedScore,
+        playerId: playerId ?? null,
+        isGuest,
         createdAt: serverTimestamp()
       });
-      setShowNameInput(false);
+      setScoreSaved(true);
     } catch (e) {
       console.error("Error adding score: ", e);
       setSaveError('Unable to save score. Please check console for details.');
@@ -485,6 +490,11 @@ export const Game: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (!showNameInput || scoreSaved || isSubmitting) return;
+    submitScore();
+  }, [showNameInput, scoreSaved, isSubmitting]);
 
   return (
     <div className="relative flex flex-col items-center justify-start min-h-screen bg-[#1a0a2e] text-[#ff00ff] font-['Press_Start_2P'] overflow-hidden border-x-[12px] border-y-[12px] border-[#2e1055] select-none">
@@ -633,24 +643,27 @@ export const Game: React.FC = () => {
                 className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-8 text-center"
               >
                 <h2 className="text-2xl mb-4 text-[#ff00ff] arcade-text-shadow">TOP 10 SCORE!</h2>
-                <p className="text-sm mb-6 text-[#00ffff]">ENTER YOUR INITIALS</p>
-                
-                <input 
-                  type="text" 
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value.toUpperCase())}
-                  maxLength={15}
-                  placeholder="PLAYER"
-                  className="bg-[#0a0414] border-4 border-[#00ffff] p-4 text-center text-xl mb-6 outline-none focus:border-[#ff00ff] transition-colors w-64 uppercase"
-                />
+                <p className="text-sm mb-6 text-[#00ffff]">
+                  {scoreSaved
+                    ? `SAVED AS ${playerName.toUpperCase()}`
+                    : `SAVING AS ${playerName.toUpperCase()}`}
+                </p>
 
-                <button
-                  onClick={submitScore}
-                  disabled={isSubmitting || !playerName.trim()}
-                  className="px-8 py-4 bg-[#ff00ff] text-white hover:bg-white hover:text-black transition-colors border-4 border-[#00ffff] cursor-pointer text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'SAVING...' : 'REGISTER SCORE'}
-                </button>
+                <div className="bg-[#0a0414] border-4 border-[#00ffff] p-4 text-center text-xl mb-6 w-64 uppercase">
+                  {score.toLocaleString()}
+                </div>
+
+                {scoreSaved && (
+                  <button
+                    onClick={() => setShowNameInput(false)}
+                    className="px-8 py-4 bg-[#ff00ff] text-white hover:bg-white hover:text-black transition-colors border-4 border-[#00ffff] cursor-pointer text-sm font-bold"
+                  >
+                    CONTINUE
+                  </button>
+                )}
+                {isSubmitting && (
+                  <p className="text-xs text-white/60 animate-pulse">REGISTERING SCORE...</p>
+                )}
                 {saveError && (
                   <p className="text-xs text-red-400 mt-3">{saveError}</p>
                 )}

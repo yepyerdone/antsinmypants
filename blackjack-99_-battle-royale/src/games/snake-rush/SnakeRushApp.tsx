@@ -8,7 +8,7 @@ import { StartScreen } from './components/StartScreen';
 import { GameOverScreen } from './components/GameOverScreen';
 import { LeaderboardScreen } from './components/LeaderboardScreen';
 import { GameMode, BoardSize } from './lib/constants';
-import { Volume2, VolumeX, Trophy } from 'lucide-react';
+import { Activity, Gauge, Grid3X3, Pause, Trophy, Volume2, VolumeX } from 'lucide-react';
 
 export default function App() {
   const [mode, setMode] = useState<GameMode>('classic');
@@ -33,81 +33,104 @@ export default function App() {
     direction
   } = useSnakeGame(mode, size, playSound);
 
+  const level = Math.floor(score / 50) + 1;
+  const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
+  const sizeLabel = size.charAt(0).toUpperCase() + size.slice(1);
+  const pointsToRecord = Math.max(highScore - score, 0);
+
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-4 overflow-hidden relative selection:bg-emerald-500/30">
-      
-      {/* Background Decor */}
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none" 
-           style={{ background: 'radial-gradient(circle at 50% -20%, rgba(52, 211, 153, 0.2) 0%, transparent 70%)' }} />
-
-      {/* Header UI */}
-      {gameState !== 'START' && (
-        <div className="glass-panel p-6 rounded-2xl w-full max-w-[500px] flex items-center justify-between z-10 mb-6 border-b-0 shadow-lg">
-          <div className="flex flex-col">
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Score</span>
-            <span className="text-3xl font-mono font-black text-white leading-none">{score}</span>
-          </div>
-          
-          <div className="flex flex-col items-center">
-            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest bg-black/20 px-3 py-1 rounded-full mb-1 border border-white/5">
-              {mode} &bull; {size} &bull; Lvl {Math.floor(score / 50) + 1}
-            </span>
-          </div>
-
-          <div className="flex flex-col items-end">
-             <span className="text-slate-400 flex items-center gap-1 text-xs font-bold uppercase tracking-widest">
-               <Trophy size={12}/> High
-             </span>
-             <span className="text-2xl font-mono font-bold text-emerald-400 leading-none">{highScore}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Main Game Area */}
-      <div className="relative z-10 w-full flex flex-col items-center">
-        
-        {/* The Board */}
-        {(gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'GAMEOVER' || gameState === 'COUNTDOWN') && (
-          <div className="relative w-full max-w-[500px]">
-            <GameBoard 
-               snake={snake} 
-               food={food} 
-               boardSize={size} 
-               gameState={gameState} 
-               currentSpeed={currentSpeed} 
-               direction={direction}
-               score={score}
-            />
-            
-            {/* Overlays on top of the board */}
-            {gameState === 'COUNTDOWN' && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg backdrop-blur-sm z-20">
-                <span className="text-8xl font-black text-white animate-pulse font-mono tracking-tighter">
-                  {countdown}
-                </span>
-              </div>
-            )}
-
-            {gameState === 'PAUSED' && (
-              <div className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center rounded-[8px] z-20">
-                <span className="text-[64px] font-black text-white tracking-widest mb-4 leading-none">PAUSED</span>
-                <button 
-                  onClick={togglePause}
-                  className="btn-arcade px-8 py-3 rounded-xl font-bold text-white uppercase tracking-wide"
-                >
-                  Resume
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Mobile Controls */}
-        {(gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'COUNTDOWN') && (
-           <MobileControls onDirectionChange={changeDirection} />
-        )}
-
+    <div className="snake-rush-root min-h-screen text-white flex flex-col items-center justify-center p-4 overflow-hidden relative selection:bg-emerald-500/30">
+      <div className="snake-game-backdrop" aria-hidden="true">
+        <svg viewBox="0 0 1200 760" preserveAspectRatio="none">
+          <path d="M-80 232 C 142 124 304 326 470 218 S 696 84 864 190 1040 352 1280 206" />
+          <path d="M-120 642 C 118 540 252 698 440 596 S 674 378 866 466 1018 622 1280 488" />
+        </svg>
       </div>
+
+      {gameState !== 'START' && (
+        <section className="snake-game-shell" aria-label="Snake Rush gameplay">
+          <div className="snake-game-machine">
+            <header className="snake-game-hud">
+              <div className="snake-hud-stat snake-hud-stat--primary">
+                <span className="snake-hud-label">
+                  <Activity size={15} aria-hidden="true" />
+                  Score
+                </span>
+                <strong>{score}</strong>
+                <small>Level {level}</small>
+              </div>
+
+              <div className="snake-hud-center">
+                <div className="snake-hud-logo">
+                  <span>Snake</span>
+                  <span>Rush</span>
+                </div>
+                <div className="snake-hud-pills" aria-label="Current run settings">
+                  <span>
+                    <Gauge size={13} aria-hidden="true" />
+                    {modeLabel}
+                  </span>
+                  <span>
+                    <Grid3X3 size={13} aria-hidden="true" />
+                    {sizeLabel} {boardConfig.cols}x{boardConfig.rows}
+                  </span>
+                  <span>Lvl {level}</span>
+                </div>
+              </div>
+
+              <div className="snake-hud-stat snake-hud-stat--high">
+                <span className="snake-hud-label">
+                  <Trophy size={15} aria-hidden="true" />
+                  High
+                </span>
+                <strong>{highScore}</strong>
+                <small>{pointsToRecord > 0 ? `${pointsToRecord} to beat` : 'Record pace'}</small>
+              </div>
+            </header>
+
+            <div className="snake-board-stage">
+              <GameBoard
+                 snake={snake}
+                 food={food}
+                 boardSize={size}
+                 gameState={gameState}
+                 currentSpeed={currentSpeed}
+                 direction={direction}
+                 score={score}
+              />
+
+              {gameState === 'COUNTDOWN' && (
+                <div className="snake-countdown-overlay">
+                  <span>{countdown}</span>
+                </div>
+              )}
+
+              {gameState === 'PAUSED' && (
+                <div className="snake-pause-overlay">
+                  <div className="snake-pause-card">
+                    <span className="snake-overlay-kicker">
+                      <Pause size={15} aria-hidden="true" />
+                      Run held
+                    </span>
+                    <strong>Paused</strong>
+                    <button
+                      type="button"
+                      onClick={togglePause}
+                      className="snake-overlay-button"
+                    >
+                      Resume
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {(gameState === 'PLAYING' || gameState === 'PAUSED' || gameState === 'COUNTDOWN') && (
+             <MobileControls onDirectionChange={changeDirection} />
+          )}
+        </section>
+      )}
 
       {/* Screens */}
       {gameState === 'START' && (
@@ -122,6 +145,7 @@ export default function App() {
       {gameState === 'GAMEOVER' && (
         <GameOverScreen 
           score={score}
+          highScore={highScore}
           gameMode={mode}
           onRestart={startGame}
           onMainMenu={() => setGameState('START')}
@@ -136,7 +160,7 @@ export default function App() {
       <div className="absolute top-4 right-4 z-50 flex gap-2">
         <button 
           onClick={toggleSound}
-          className="w-10 h-10 glass-panel flex items-center justify-center text-slate-400 hover:text-white transition-colors border-0 shadow-none hover:-translate-y-0.5"
+          className="snake-sound-button"
           title="Toggle Sound"
         >
           {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}

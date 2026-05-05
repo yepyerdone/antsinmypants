@@ -1,85 +1,95 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { addScore } from '../lib/leaderboard';
 import { GameMode } from '../lib/constants';
+import { BadgeCheck, Home, Loader2, RotateCcw, Trophy } from 'lucide-react';
+import { usePlayerIdentity } from '../../../hooks/usePlayerIdentity';
 
 interface GameOverScreenProps {
   score: number;
+  highScore: number;
   gameMode: GameMode;
   onRestart: () => void;
   onMainMenu: () => void;
 }
 
-export const GameOverScreen: React.FC<GameOverScreenProps> = ({ score, gameMode, onRestart, onMainMenu }) => {
-  const [name, setName] = useState('');
+export const GameOverScreen: React.FC<GameOverScreenProps> = ({ score, highScore, gameMode, onRestart, onMainMenu }) => {
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saveStartedRef = useRef(false);
+  const { playerName, playerId, isGuest } = usePlayerIdentity();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || submitted) return;
-    
+  useEffect(() => {
+    if (score <= 0 || saveStartedRef.current) return;
+
+    saveStartedRef.current = true;
     setSaving(true);
-    await addScore(name, score, gameMode);
-    setSaving(false);
-    setSubmitted(true);
-  };
+    setSaveError(null);
+
+    addScore(playerName, score, gameMode, playerId, isGuest)
+      .then(() => setSubmitted(true))
+      .catch((error) => {
+        console.error('Failed to save Snake Rush score:', error);
+        setSaveError('Score could not be saved. You can still play again.');
+      })
+      .finally(() => setSaving(false));
+  }, [gameMode, isGuest, playerId, playerName, score]);
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="glass-panel p-8 rounded-2xl w-full max-w-md shadow-2xl flex flex-col items-center">
-        
-        <h2 className="text-4xl font-black text-red-500 mb-2 uppercase tracking-tight">Game Over</h2>
-        
-        <div className="text-center mb-8">
-          <div className="text-slate-400 text-lg uppercase tracking-widest text-xs mb-1">Final Score</div>
-          <div className="text-6xl font-mono font-bold text-white">{score}</div>
+    <div className="snake-gameover-overlay">
+      <div className="snake-gameover-card">
+        <div className="snake-gameover-header">
+          <p className="snake-card__eyebrow">Run Complete</p>
+          <h2>Game Over</h2>
+          <span className="capitalize">{gameMode} mode</span>
         </div>
 
-        {score > 0 && !submitted && (
-          <form onSubmit={handleSubmit} className="w-full mb-8 space-y-3">
-            <label className="block text-sm font-medium text-slate-300 uppercase text-center tracking-wide">
-              New High Score! Enter Name
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                autoFocus
-                maxLength={15}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Player 1"
-                className="flex-1 bg-black/30 border-2 border-slate-700 focus:border-emerald-500 rounded-xl px-4 py-3 text-white font-bold outline-none transition-colors"
-                disabled={saving}
-              />
-              <button
-                type="submit"
-                disabled={!name.trim() || saving}
-                className="btn-arcade disabled:opacity-50 text-white px-6 font-bold rounded-xl transition-colors uppercase text-sm"
-              >
-                {saving ? '...' : 'Save'}
-              </button>
-            </div>
-          </form>
-        )}
+        <div className="snake-gameover-score-grid">
+          <div className="snake-gameover-score snake-gameover-score--final">
+            <span>Final Score</span>
+            <strong>{score}</strong>
+          </div>
+          <div className="snake-gameover-score">
+            <span>
+              <Trophy size={14} aria-hidden="true" />
+              High Score
+            </span>
+            <strong>{highScore}</strong>
+          </div>
+        </div>
 
-        {submitted && (
-          <div className="mb-8 text-emerald-400 font-bold bg-emerald-500/10 px-6 py-3 rounded-xl w-full text-center border border-emerald-500/20">
-            Score Saved!
+        {score > 0 && saving && (
+          <div className="snake-score-saved">
+            <Loader2 className="animate-spin" size={18} aria-hidden="true" />
+            <span>Saving as {playerName}</span>
           </div>
         )}
 
-        <div className="w-full space-y-3">
+        {score > 0 && submitted && (
+          <div className="snake-score-saved">
+            <BadgeCheck size={18} aria-hidden="true" />
+            <span>Saved as {playerName}</span>
+          </div>
+        )}
+
+        {saveError && <div className="snake-score-error">{saveError}</div>}
+
+        <div className="snake-gameover-actions">
           <button 
+            type="button"
             onClick={onRestart}
-            className="w-full py-4 btn-arcade text-white rounded-xl font-black tracking-widest text-lg uppercase transition-transform active:scale-95"
+            className="snake-start-button"
           >
-            Play Again
+            <RotateCcw size={20} aria-hidden="true" />
+            <span>Play Again</span>
           </button>
           <button 
+            type="button"
             onClick={onMainMenu}
-            className="w-full py-3 border border-white/20 text-white hover:bg-white/10 rounded-xl font-bold tracking-wide uppercase transition-colors"
+            className="snake-secondary-button"
           >
-            Main Menu
+            <Home size={17} aria-hidden="true" />
+            <span>Main Menu</span>
           </button>
         </div>
 

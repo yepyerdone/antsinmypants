@@ -11,18 +11,17 @@ import { createDeck, calculateScore } from './lib/blackjack';
 import { CardComponent } from './components/CardComponent';
 import { BattleRoyaleHUD, SidebarPlayerList } from './components/BattleRoyaleHUD';
 import { cn } from './lib/utils';
-import { Play, RotateCcw, User, Cpu, Info, Skull, Trophy, Timer as TimerIcon } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, User, Cpu, Info, Skull, Trophy, Timer as TimerIcon } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 import { OnlineLobby } from './components/OnlineLobby';
 import { OnlineGame } from './components/OnlineGame';
-import { auth, testConnection } from './lib/firebase';
+import { testConnection } from './lib/firebase';
 import { getUserStats, trackGameResult } from './lib/user';
 import { DailyLeaderboard } from './components/DailyLeaderboard';
 import { DealerAvatar, DealerMood } from './components/DealerAvatar';
+import { useAuth } from './context/AuthContext';
 
-import { AuthOverlay } from './components/AuthOverlay';
-import { ProfileOverlay } from './components/ProfileOverlay';
 import { IntroScreen } from './components/IntroScreen';
 import { Game as MolarMadness } from './games/molar-madness/MolarMadness';
 import SnakeRushApp from './games/snake-rush/SnakeRushApp';
@@ -33,21 +32,22 @@ const TURN_TIME_LIMIT = 15;
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { firebaseUser, displayName } = useAuth();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [mode, setMode] = useState<'online' | 'offline' | null>(null);
   const [onlineRoom, setOnlineRoom] = useState<{ id: string; isHost: boolean } | null>(null);
   const [eliminatedPlayer, setEliminatedPlayer] = useState<string | null>(null);
   const [userWins, setUserWins] = useState<number>(0);
-  const [showAuth, setShowAuth] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle direct navigation to game routes (refresh/page load)
   useEffect(() => {
-    if (location.pathname === '/snake-rush') {
+    if (location.pathname === '/blackjack-99') {
+      setSelectedGame(null);
+      setShowIntro(false);
+    } else if (location.pathname === '/snake-rush') {
       setSelectedGame('snake-rush');
       setShowIntro(false);
     } else if (location.pathname === '/molar-madness') {
@@ -64,29 +64,22 @@ export default function App() {
 
   useEffect(() => {
     testConnection();
-
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setCurrentUser(user);
-
-      if (user) {
-        getUserStats(user.uid)
-          .then((stats) => {
-            if (stats) setUserWins(stats.totalWins || 0);
-          })
-          .catch((err) => {
-            console.error('Failed to load user stats:', err);
-          });
-      }
-    });
-
-    const openAuthListener = () => setShowAuth(true);
-    window.addEventListener('open-auth', openAuthListener);
-
-    return () => {
-      unsubscribe();
-      window.removeEventListener('open-auth', openAuthListener);
-    };
   }, []);
+
+  useEffect(() => {
+    if (!firebaseUser) {
+      setUserWins(0);
+      return;
+    }
+
+    getUserStats(firebaseUser.uid)
+      .then((stats) => {
+        setUserWins(stats?.totalWins || 0);
+      })
+      .catch((err) => {
+        console.error('Failed to load user stats:', err);
+      });
+  }, [firebaseUser]);
 
   const initializeGame = (playersCount: number) => {
     const deck = createDeck();
@@ -426,8 +419,8 @@ export default function App() {
         if (p.id === 'player-1') {
           setEliminatedPlayer('YOU');
 
-          if (auth.currentUser) {
-            trackGameResult(auth.currentUser.uid, 'offline', false);
+          if (firebaseUser) {
+            trackGameResult(firebaseUser.uid, 'offline', false, displayName);
           }
         }
 
@@ -450,8 +443,8 @@ export default function App() {
             const newWins = userWins + 1;
             setUserWins(newWins);
 
-            if (auth.currentUser) {
-              trackGameResult(auth.currentUser.uid, 'offline', true, auth.currentUser.displayName || undefined);
+            if (firebaseUser) {
+              trackGameResult(firebaseUser.uid, 'offline', true, displayName);
             }
 
             confetti({
@@ -536,9 +529,10 @@ export default function App() {
             setShowIntro(true);
             navigate('/');
           }}
-          className="fixed top-4 left-4 z-50 bg-white text-slate-900 px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest"
+          className="snake-rush-back-button fixed top-4 left-4 z-50"
         >
-          ← Back to Games
+          <ArrowLeft size={15} aria-hidden="true" />
+          <span>Back to Games</span>
         </button>
 
         <SnakeRushApp />
@@ -597,40 +591,6 @@ export default function App() {
             transition={{ duration: 0.5 }}
             className="flex-1 flex flex-col overflow-hidden relative"
           >
-            <div className="fixed top-6 right-6 z-50">
-              {currentUser ? (
-                <button
-                  onClick={() => setShowProfile(true)}
-                  className="flex items-center space-x-3 bg-bg-accent hover:bg-white/5 border border-white/5 px-4 py-2 rounded-2xl transition-all"
-                >
-                  <div className="w-8 h-8 bg-stake-green/20 rounded-full flex items-center justify-center border border-stake-green/30">
-                    <User size={16} className="text-stake-green" />
-                  </div>
-
-                  <div className="text-left hidden md:block">
-                    <div className="text-[9px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1">
-                      Elite Player
-                    </div>
-                    <div className="text-xs font-black text-white truncate max-w-[100px]">
-                      {currentUser.displayName || 'PLAYER'}
-                    </div>
-                  </div>
-                </button>
-              ) : (
-                <button
-                  onClick={() => setShowAuth(true)}
-                  className="bg-stake-green text-bg-dark px-6 py-2 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-green-400 transition-all shadow-lg shadow-stake-green/20"
-                >
-                  Join Table
-                </button>
-              )}
-            </div>
-
-            <AnimatePresence>
-              {showAuth && <AuthOverlay onClose={() => setShowAuth(false)} />}
-              {showProfile && <ProfileOverlay onClose={() => setShowProfile(false)} />}
-            </AnimatePresence>
-
             {!mode && (
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                 <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="mb-12">

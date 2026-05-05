@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { db, auth, googleProvider, signInWithPopup } from '../lib/firebase';
-import { collection, query, where, getDocs, addDoc, serverTimestamp, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+import { collection, query, where, addDoc, serverTimestamp, onSnapshot, doc, setDoc } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../lib/error-handler';
-import { Users, LogIn, Plus } from 'lucide-react';
+import { LogIn, Plus } from 'lucide-react';
 import { getUserStats } from '../lib/user';
+import { usePlayerIdentity } from '../hooks/usePlayerIdentity';
 
 interface Room {
   id: string;
@@ -18,6 +19,7 @@ export function OnlineLobby({ onJoinRoom }: { onJoinRoom: (roomId: string, isHos
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(auth.currentUser);
+  const { playerName } = usePlayerIdentity();
 
   useEffect(() => {
     return auth.onAuthStateChanged((u) => setUser(u));
@@ -38,14 +40,6 @@ export function OnlineLobby({ onJoinRoom }: { onJoinRoom: (roomId: string, isHos
     return () => unsubscribe();
   }, [user]);
 
-  const handleLogin = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   const createRoom = async () => {
     if (!user) return;
     setLoading(true);
@@ -62,7 +56,7 @@ export function OnlineLobby({ onJoinRoom }: { onJoinRoom: (roomId: string, isHos
       // Join as player
       await setDoc(doc(db, `rooms/${roomRef.id}/players`, user.uid), {
         userId: user.uid,
-        name: stats?.username || user.displayName || 'Player',
+        name: playerName,
         status: 'playing',
         joinedAt: serverTimestamp(),
         hand: [],
@@ -84,7 +78,7 @@ export function OnlineLobby({ onJoinRoom }: { onJoinRoom: (roomId: string, isHos
       const stats = await getUserStats(user.uid);
       await setDoc(doc(db, `rooms/${roomId}/players`, user.uid), {
         userId: user.uid,
-        name: stats?.username || user.displayName || 'Player',
+        name: playerName,
         status: 'playing',
         joinedAt: serverTimestamp(),
         hand: [],
@@ -102,9 +96,11 @@ export function OnlineLobby({ onJoinRoom }: { onJoinRoom: (roomId: string, isHos
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-bg-accent rounded-3xl border border-white/5">
         <h2 className="text-3xl font-black mb-4 italic uppercase tracking-tighter">Login Required</h2>
-        <p className="text-gray-400 mb-8 text-center max-w-xs">You must be signed in to enter the online battle royale arena.</p>
+        <p className="text-gray-400 mb-8 text-center max-w-xs">
+          Return to the site start page and choose Google, email, or guest mode before joining online rooms.
+        </p>
         <button 
-          onClick={() => window.dispatchEvent(new CustomEvent('open-auth'))}
+          onClick={() => window.location.assign('/')}
           className="bg-stake-green text-bg-dark font-black px-12 py-4 rounded-2xl flex items-center space-x-3 hover:scale-105 transition-transform"
         >
           <LogIn size={20} />

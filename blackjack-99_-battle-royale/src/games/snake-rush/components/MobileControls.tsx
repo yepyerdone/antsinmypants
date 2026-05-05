@@ -8,31 +8,39 @@ interface MobileControlsProps {
 
 export const MobileControls: React.FC<MobileControlsProps> = ({ onDirectionChange }) => {
   return (
-    <div className="mt-8 flex flex-col items-center gap-2 sm:hidden select-none">
+    <div className="snake-mobile-controls sm:hidden select-none" aria-label="Mobile direction controls">
       <button 
-        className="w-16 h-16 glass-panel rounded-xl flex items-center justify-center active:bg-white/20 active:scale-95 transition-all text-white shadow-lg border-white/20"
+        type="button"
+        className="snake-mobile-button"
+        aria-label="Move up"
         onClick={(e) => { e.preventDefault(); onDirectionChange('UP'); }}
         onTouchStart={(e) => { e.preventDefault(); onDirectionChange('UP'); }} // better touch response
       >
         <ArrowUp size={32} />
       </button>
-      <div className="flex gap-2">
+      <div>
         <button 
-          className="w-16 h-16 glass-panel rounded-xl flex items-center justify-center active:bg-white/20 active:scale-95 transition-all text-white shadow-lg border-white/20"
+          type="button"
+          className="snake-mobile-button"
+          aria-label="Move left"
           onClick={(e) => { e.preventDefault(); onDirectionChange('LEFT'); }}
           onTouchStart={(e) => { e.preventDefault(); onDirectionChange('LEFT'); }}
         >
           <ArrowLeft size={32} />
         </button>
         <button 
-          className="w-16 h-16 glass-panel rounded-xl flex items-center justify-center active:bg-white/20 active:scale-95 transition-all text-white shadow-lg border-white/20"
+          type="button"
+          className="snake-mobile-button"
+          aria-label="Move down"
           onClick={(e) => { e.preventDefault(); onDirectionChange('DOWN'); }}
           onTouchStart={(e) => { e.preventDefault(); onDirectionChange('DOWN'); }}
         >
           <ArrowDown size={32} />
         </button>
         <button 
-          className="w-16 h-16 glass-panel rounded-xl flex items-center justify-center active:bg-white/20 active:scale-95 transition-all text-white shadow-lg border-white/20"
+          type="button"
+          className="snake-mobile-button"
+          aria-label="Move right"
           onClick={(e) => { e.preventDefault(); onDirectionChange('RIGHT'); }}
           onTouchStart={(e) => { e.preventDefault(); onDirectionChange('RIGHT'); }}
         >
