@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useLocation } from 'react-router-dom';
 import { Card, Player, GameState, PlayerStatus } from './types';
 import { createDeck, calculateScore } from './lib/blackjack';
 import { CardComponent } from './components/CardComponent';
@@ -24,10 +25,12 @@ import { AuthOverlay } from './components/AuthOverlay';
 import { ProfileOverlay } from './components/ProfileOverlay';
 import { IntroScreen } from './components/IntroScreen';
 import { Game as MolarMadness } from './games/molar-madness/MolarMadness';
+import SnakeRushApp from './games/snake-rush/SnakeRushApp';
 
 const TURN_TIME_LIMIT = 15;
 
 export default function App() {
+  const location = useLocation();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [mode, setMode] = useState<'online' | 'offline' | null>(null);
   const [onlineRoom, setOnlineRoom] = useState<{ id: string; isHost: boolean } | null>(null);
@@ -39,6 +42,20 @@ export default function App() {
   const [selectedGame, setSelectedGame] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle direct navigation to game routes (refresh/page load)
+  useEffect(() => {
+    if (location.pathname === '/snake-rush') {
+      setSelectedGame('snake-rush');
+      setShowIntro(false);
+    } else if (location.pathname === '/friend-chess') {
+      setSelectedGame('friend-chess');
+      setShowIntro(false);
+    } else if (location.pathname === '/') {
+      setSelectedGame(null);
+      setShowIntro(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     testConnection();
@@ -500,6 +517,24 @@ export default function App() {
         </button>
 
         <MolarMadness />
+      </div>
+    );
+  }
+
+  if (selectedGame === 'snake-rush') {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white">
+        <button
+          onClick={() => {
+            setSelectedGame(null);
+            setShowIntro(true);
+          }}
+          className="fixed top-4 left-4 z-50 bg-white text-slate-900 px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest"
+        >
+          ← Back to Games
+        </button>
+
+        <SnakeRushApp />
       </div>
     );
   }
