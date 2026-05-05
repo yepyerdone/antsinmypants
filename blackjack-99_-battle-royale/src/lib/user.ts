@@ -104,6 +104,7 @@ export async function saveUserProfile({ uid, displayName, email = null, provider
   const path = `users/${uid}`;
   try {
     const docRef = doc(db, 'users', uid);
+    const publicProfileRef = doc(db, 'publicProfiles', uid);
     const snap = await getDoc(docRef);
     const baseProfile = {
       uid,
@@ -127,6 +128,14 @@ export async function saveUserProfile({ uid, displayName, email = null, provider
     } else {
       await setDoc(docRef, baseProfile, { merge: true });
     }
+
+    await setDoc(publicProfileRef, {
+      uid,
+      username: displayName,
+      displayName,
+      searchName: displayName.toLowerCase(),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }

@@ -748,6 +748,12 @@ body {
   color: #ffedd5;
 }
 
+.site-home-icon-button {
+  width: 2.5rem;
+  justify-content: center;
+  padding: 0;
+}
+
 .site-home-player span {
   overflow: hidden;
   max-width: 13rem;
@@ -776,6 +782,298 @@ body {
   color: #fee2e2;
   background: rgba(127, 29, 29, 0.18);
   outline: 0;
+}
+
+.site-home-player:hover,
+.site-home-player:focus-visible,
+.site-home-icon-button:hover,
+.site-home-icon-button:focus-visible {
+  border-color: rgba(251, 191, 36, 0.56);
+  color: #fef3c7;
+  background: rgba(249, 115, 22, 0.16);
+}
+
+.site-profile-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.site-profile-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(8, 7, 6, 0.72);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+}
+
+.site-profile-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 760px);
+  max-height: min(88vh, 820px);
+  overflow-y: auto;
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 8px;
+  color: #fff7ed;
+  background:
+    linear-gradient(180deg, rgba(29, 21, 15, 0.98), rgba(8, 7, 6, 0.98)),
+    linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.04));
+  padding: 1rem;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.55);
+}
+
+.site-profile-header,
+.site-profile-section-heading,
+.site-profile-tabs,
+.site-profile-actions,
+.site-profile-add-friend > div {
+  display: flex;
+  align-items: center;
+}
+
+.site-profile-header {
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.5rem 0.5rem 1rem;
+}
+
+.site-profile-kicker {
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.site-profile-header h2 {
+  margin: 0.25rem 0 0;
+  font-size: 2.2rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.site-profile-header p,
+.site-profile-muted {
+  margin: 0.45rem 0 0;
+  color: #a8a29e;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.site-profile-close {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-radius: 8px;
+  color: #fff7ed;
+  background: rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.site-profile-tabs {
+  gap: 0.5rem;
+  padding: 1rem 0.5rem 0;
+}
+
+.site-profile-tabs button,
+.site-profile-add-friend button,
+.site-profile-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-radius: 8px;
+  color: #fed7aa;
+  background: rgba(255, 255, 255, 0.045);
+  min-height: 2.45rem;
+  padding: 0 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.site-profile-tabs button.is-active,
+.site-profile-add-friend button {
+  color: #1c0d02;
+  background: linear-gradient(135deg, #fbbf24, #f97316);
+}
+
+.site-profile-tabs button span {
+  display: grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  color: #1c0d02;
+  background: #fbbf24;
+  font-size: 0.68rem;
+}
+
+.site-profile-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.site-profile-section {
+  margin-top: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1rem;
+}
+
+.site-profile-section h3 {
+  margin: 0;
+  color: #fff7ed;
+  font-size: 1.35rem;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.site-profile-section-heading {
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.site-profile-section-heading span {
+  color: #fbbf24;
+  font-size: 0.75rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.site-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.site-profile-stats div,
+.site-profile-row,
+.site-profile-empty,
+.site-profile-message,
+.site-profile-error {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.site-profile-stats div {
+  display: grid;
+  gap: 0.4rem;
+  min-height: 8rem;
+  padding: 1rem;
+}
+
+.site-profile-stats svg {
+  color: #fbbf24;
+}
+
+.site-profile-stats span {
+  color: #a8a29e;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.site-profile-stats strong {
+  color: #fff7ed;
+  font-size: 2rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.site-profile-add-friend {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.site-profile-add-friend label {
+  color: #a8a29e;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.site-profile-add-friend > div {
+  gap: 0.5rem;
+}
+
+.site-profile-add-friend input {
+  width: 100%;
+  min-height: 2.8rem;
+  border: 1px solid rgba(251, 146, 60, 0.22);
+  border-radius: 8px;
+  color: #fff7ed;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0 0.8rem;
+  font-weight: 850;
+}
+
+.site-profile-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.site-profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem;
+}
+
+.site-profile-row > span,
+.site-profile-row strong {
+  color: #fff7ed;
+  font-weight: 950;
+}
+
+.site-profile-notification > div:first-child {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.site-profile-notification span,
+.site-profile-empty {
+  color: #a8a29e;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.site-profile-actions {
+  gap: 0.45rem;
+}
+
+.site-profile-empty,
+.site-profile-message,
+.site-profile-error {
+  padding: 0.85rem;
+}
+
+.site-profile-message {
+  margin: 1rem 0 0;
+  color: #bbf7d0;
+  background: rgba(22, 101, 52, 0.22);
+}
+
+.site-profile-error {
+  margin: 1rem 0 0;
+  color: #fecaca;
+  background: rgba(127, 29, 29, 0.22);
 }
 
 .site-home-main {
@@ -1480,6 +1778,18 @@ body {
 
   .site-games-grid {
     grid-template-columns: 1fr;
+  }
+
+  .site-profile-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .site-profile-row,
+  .site-profile-notification,
+  .site-profile-actions,
+  .site-profile-add-friend > div {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .site-game-card {

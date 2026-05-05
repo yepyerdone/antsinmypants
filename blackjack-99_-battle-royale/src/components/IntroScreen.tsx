@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ExternalLink, Flame, Gamepad2, Gauge, LogOut, Play, Sparkles, Trophy, UserRound, Users } from 'lucide-react';
+import { Bell, ExternalLink, Flame, Gamepad2, Gauge, LogOut, Play, Sparkles, UserRound, Trophy, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { ProfileModal } from './ProfileModal';
 
 interface IntroScreenProps {
   onLaunchGame: (gameId: string) => void;
@@ -199,6 +200,8 @@ function GamePreview({ type, title, coverImage }: { type: PreviewType; title: st
 export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
   const navigate = useNavigate();
   const { displayName, isGuest, logout } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileView, setProfileView] = useState<'profile' | 'inbox'>('profile');
 
   const launchGame = (game: GameCardData) => {
     if (game.internalPath) {
@@ -219,6 +222,11 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
     navigate('/');
   };
 
+  const openProfile = (view: 'profile' | 'inbox') => {
+    setProfileView(view);
+    setProfileOpen(true);
+  };
+
   return (
     <div className="site-home">
       <header className="site-home-header">
@@ -235,11 +243,14 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
         </nav>
 
         <div className="site-home-account">
-          <div className="site-home-player">
+          <button type="button" className="site-home-player" onClick={() => openProfile('profile')}>
             <UserRound size={16} />
-            <span>Playing as {displayName}</span>
+            <span>{displayName}</span>
             {isGuest && <small>Guest</small>}
-          </div>
+          </button>
+          <button type="button" className="site-home-icon-button" onClick={() => openProfile('inbox')} aria-label="Open notifications">
+            <Bell size={17} />
+          </button>
           <button type="button" onClick={handleLogout}>
             <LogOut size={16} />
             <span>Sign Out</span>
@@ -358,6 +369,8 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
           </div>
         </section>
       </main>
+
+      <ProfileModal isOpen={profileOpen} initialView={profileView} onClose={() => setProfileOpen(false)} />
     </div>
   );
 };

@@ -42,6 +42,43 @@ service cloud.firestore {
         && data.totalWins is int;
     }
 
+    function isValidPublicProfile(data, userId) {
+      return data.uid == userId
+        && data.username is string
+        && data.username.size() >= 3
+        && data.username.size() <= 32
+        && data.displayName is string
+        && data.displayName.size() >= 3
+        && data.displayName.size() <= 32
+        && data.searchName is string
+        && data.searchName.size() >= 3
+        && data.searchName.size() <= 32;
+    }
+
+    function isValidFriend(data, friendId) {
+      return data.uid == friendId
+        && data.displayName is string
+        && data.displayName.size() >= 3
+        && data.displayName.size() <= 32;
+    }
+
+    function isValidFriendNotification(data) {
+      return data.type == 'friend_request'
+        && data.status in ['pending', 'accepted', 'declined']
+        && data.fromUid is string
+        && data.fromName is string
+        && data.fromName.size() >= 3
+        && data.fromName.size() <= 32;
+    }
+
+    function isValidSentFriendRequest(data, targetId) {
+      return data.toUid == targetId
+        && data.toName is string
+        && data.toName.size() >= 3
+        && data.toName.size() <= 32
+        && data.status in ['pending', 'accepted', 'declined'];
+    }
+
     // Daily Leaderboard Rules
     match /daily_leaderboard/{date}/players/{userId} {
       allow list: if true;
@@ -181,6 +218,41 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if isOwner(userId) && isValidUser(incoming());
+
+      match /friends/{friendId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isSignedIn()
+          && (request.auth.uid == userId || request.auth.uid == friendId)
+          && isValidFriend(incoming(), friendId);
+        allow delete: if isOwner(userId);
+      }
+
+      match /notifications/{notificationId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isSignedIn()
+          && isValidFriendNotification(incoming())
+          && (
+            request.auth.uid == userId ||
+            incoming().fromUid == request.auth.uid
+          );
+        allow delete: if isOwner(userId);
+      }
+
+      match /sentFriendRequests/{targetId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isSignedIn()
+          && (
+            request.auth.uid == userId ||
+            request.auth.uid == targetId
+          )
+          && isValidSentFriendRequest(incoming(), targetId);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    match /publicProfiles/{userId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isOwner(userId) && isValidPublicProfile(incoming(), userId);
     }
 
     // Validation Functions
