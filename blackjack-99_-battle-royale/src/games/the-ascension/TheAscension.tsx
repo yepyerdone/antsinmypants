@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { doc, onSnapshot, runTransaction, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, limit, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -55,6 +55,55 @@ export default function TheAscension() {
   const handleMatchFinish = async () => {
     if (!activeMatchId || !profile || !user) return;
     setActiveMatchId(null);
+  };
+
+  const findNextBattle = async () => {
+    if (!profile || !user) return;
+
+    setActiveMatchId(null);
+
+    const openMatches = query(
+      collection(db, ASCENSION_MATCHES_COLLECTION),
+      where('status', '==', 'searching'),
+      limit(1)
+    );
+    const snap = await getDocs(openMatches);
+
+    if (!snap.empty) {
+      const matchDoc = snap.docs[0];
+      const matchData = matchDoc.data();
+
+      if (matchData.player1Id === user.uid) {
+        setActiveMatchId(matchDoc.id);
+        return;
+      }
+
+      await updateDoc(doc(db, ASCENSION_MATCHES_COLLECTION, matchDoc.id), {
+        player2Id: user.uid,
+        player2Username: profile.username,
+        player2Elo: profile.elo,
+        status: 'in_progress',
+        updatedAt: serverTimestamp(),
+      });
+      setActiveMatchId(matchDoc.id);
+      return;
+    }
+
+    const newMatch = await addDoc(collection(db, ASCENSION_MATCHES_COLLECTION), {
+      player1Id: user.uid,
+      player1Username: profile.username,
+      player1Elo: profile.elo,
+      status: 'searching',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    const unsub = onSnapshot(doc(db, ASCENSION_MATCHES_COLLECTION, newMatch.id), (matchSnap) => {
+      if (matchSnap.data()?.status === 'in_progress') {
+        unsub();
+        setActiveMatchId(newMatch.id);
+      }
+    });
   };
 
   useEffect(() => {
@@ -144,7 +193,7 @@ export default function TheAscension() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <Game matchId={activeMatchId} user={profile} onFinish={handleMatchFinish} />
+              <Game matchId={activeMatchId} user={profile} onFinish={handleMatchFinish} onNextBattle={findNextBattle} />
             </motion.div>
           ) : (
             <motion.div

@@ -11,9 +11,10 @@ interface GameProps {
   matchId: string;
   user: UserProfile;
   onFinish: () => void;
+  onNextBattle: () => void;
 }
 
-export default function Game({ matchId, user, onFinish }: GameProps) {
+export default function Game({ matchId, user, onFinish, onNextBattle }: GameProps) {
   const [match, setMatch] = useState<Match | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -31,6 +32,14 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
   const appliedRemoteCandidatesRef = useRef(0);
 
   const isPlayer1 = match?.player1Id === user.uid;
+  const myScore = match ? (isPlayer1 ? match.player1Score : match.player2Score) : undefined;
+  const opponentScore = match ? (isPlayer1 ? match.player2Score : match.player1Score) : undefined;
+  const eloDelta =
+    match?.winnerId === undefined || match.winnerId === null
+      ? 0
+      : match.winnerId === user.uid
+        ? 50 * Math.max(1, (user.winStreak || 0) + 1)
+        : -50;
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, ASCENSION_MATCHES_COLLECTION, matchId), (snap) => {
@@ -65,7 +74,15 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
   }, [matchId]);
 
   useEffect(() => {
-    if (!match || !cameraReady || !streamRef.current || !videoRef.current || match.status === 'searching') return;
+    if (myScore !== undefined) {
+      setHasSubmitted(true);
+      setIsAnalyzing(false);
+      setScanProgress(0);
+    }
+  }, [myScore]);
+
+  useEffect(() => {
+    if (!cameraReady || !streamRef.current || !videoRef.current || match?.status === 'searching' || !match?.player2Id) return;
 
     const liveFrameField = isPlayer1 ? 'player1LiveFrame' : 'player2LiveFrame';
     const liveFrameAtField = isPlayer1 ? 'player1LiveFrameAt' : 'player2LiveFrameAt';
@@ -79,7 +96,7 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
       const video = videoRef.current;
       if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
 
-      const width = 260;
+      const width = 180;
       const sourceWidth = video.videoWidth || 640;
       const sourceHeight = video.videoHeight || 360;
       canvas.width = width;
@@ -87,15 +104,15 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
       void updateDoc(matchDoc, {
-        [liveFrameField]: canvas.toDataURL('image/jpeg', 0.38),
+        [liveFrameField]: canvas.toDataURL('image/jpeg', 0.28),
         [liveFrameAtField]: Date.now(),
       });
     };
 
     publishFrame();
-    const interval = window.setInterval(publishFrame, 1000);
+    const interval = window.setInterval(publishFrame, 450);
     return () => window.clearInterval(interval);
-  }, [cameraReady, isPlayer1, match, matchId]);
+  }, [cameraReady, isPlayer1, match?.player2Id, match?.status, matchId]);
 
   useEffect(() => {
     if (!match || !streamRef.current || !cameraReady || !match.player2Id || match.status === 'searching') return;
@@ -268,6 +285,10 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
 
   const captureAndAnalyze = async () => {
     if (!videoRef.current || !canvasRef.current || isAnalyzing) return;
+    if (myScore !== undefined || match?.status === 'finished') {
+      setHasSubmitted(true);
+      return;
+    }
 
     setIsAnalyzing(true);
     setScanProgress(0);
@@ -317,7 +338,7 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
 
   // Check for winner
   useEffect(() => {
-    if (match?.player1Score && match?.player2Score && match.status !== 'finished') {
+    if (match?.player1Score !== undefined && match?.player2Score !== undefined && match.status !== 'finished') {
       const determineWinner = async () => {
         const p1Score = match.player1Score!;
         const p2Score = match.player2Score!;
@@ -371,9 +392,9 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
         <div className="mog-card overflow-hidden">
           <div className="p-4 border-bottom border-white/10 flex justify-between items-center">
             <span className="font-bold">{user.username} (You)</span>
-            {match && (isPlayer1 ? match.player1Score : match.player2Score) && (
+            {myScore !== undefined && (
               <span className="px-3 py-1 bg-white text-black font-mono text-sm rounded-full">
-                {(isPlayer1 ? match.player1Score : match.player2Score)?.toFixed(1)}
+                {myScore.toFixed(1)}
               </span>
             )}
           </div>
@@ -417,9 +438,9 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
         <div className="mog-card overflow-hidden">
           <div className="p-4 border-bottom border-white/10 flex justify-between items-center">
             <span className="font-bold">{isPlayer1 ? match?.player2Username : match?.player1Username}</span>
-            {match && (isPlayer1 ? match.player2Score : match.player1Score) && (
+            {opponentScore !== undefined && (
               <span className="px-3 py-1 bg-white/20 text-white font-mono text-sm rounded-full">
-                {(isPlayer1 ? match.player2Score : match.player1Score)?.toFixed(1)}
+                {opponentScore.toFixed(1)}
               </span>
             )}
           </div>
@@ -438,7 +459,7 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
                   className="absolute inset-0 w-full h-full object-cover grayscale brightness-75 contrast-125"
                 />
              )}
-             {!remoteFeedReady && !remoteLiveFrame && !(isPlayer1 ? match?.player2Score : match?.player1Score) ? (
+             {!remoteFeedReady && !remoteLiveFrame && opponentScore === undefined ? (
                 <div className="flex flex-col items-center gap-2 opacity-30 text-center px-4">
                    <Zap size={32} />
                    <span className="text-xs font-mono uppercase tracking-[0.2em]">Connecting opponent camera...</span>
@@ -446,9 +467,9 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
              ) : (
                 <div className={`relative z-10 flex flex-col items-center gap-4 text-center px-6 ${remoteFeedReady || remoteLiveFrame ? 'self-end mb-4 rounded-full bg-black/50 px-4 py-2 backdrop-blur-sm' : ''}`}>
                    <Trophy size={48} className="text-white/20" />
-                   <div className="text-3xl font-black italic">{(isPlayer1 ? match?.player2Score : match?.player1Score) ? 'METRICS RECEIVED' : 'LIVE FEED'}</div>
+                   <div className="text-3xl font-black italic">{opponentScore !== undefined ? 'METRICS RECEIVED' : 'LIVE FEED'}</div>
                    <div className="text-white/50 text-sm">
-                     {(isPlayer1 ? match?.player2Score : match?.player1Score)
+                     {opponentScore !== undefined
                        ? 'Opponent has submitted for evaluation.'
                        : 'Opponent camera connected.'}
                    </div>
@@ -480,20 +501,26 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
                  <div className="text-white/50">
                     {match.winnerId === user.uid ? "You are the dominant facial specimen." : "You were mogged."}
                  </div>
+                 <div className={`text-2xl font-black font-mono ${eloDelta >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                    {eloDelta > 0 ? `+${eloDelta}` : eloDelta} ELO
+                 </div>
                </div>
 
                <div className="grid grid-cols-2 gap-4">
                   <div className="mog-card p-6">
                      <div className="text-xs text-white/40 mb-1">YOU</div>
-                     <div className="text-3xl font-bold">{(isPlayer1 ? match.player1Score : match.player2Score)?.toFixed(1)}</div>
+                     <div className="text-3xl font-bold">{myScore?.toFixed(1)}</div>
                   </div>
                   <div className="mog-card p-6">
                      <div className="text-xs text-white/40 mb-1">OPPONENT</div>
-                     <div className="text-3xl font-bold opacity-50">{(isPlayer1 ? match.player2Score : match.player1Score)?.toFixed(1)}</div>
+                     <div className="text-3xl font-bold opacity-50">{opponentScore?.toFixed(1)}</div>
                   </div>
                </div>
 
-               <button onClick={onFinish} className="mog-button w-full">RETURN TO HUB</button>
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                 <button onClick={onNextBattle} className="mog-button w-full">NEXT BATTLE</button>
+                 <button onClick={onFinish} className="mog-button w-full bg-white/10 text-white border border-white/10">RETURN TO HUB</button>
+               </div>
             </div>
           </motion.div>
         )}
