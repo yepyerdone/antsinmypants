@@ -69,7 +69,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
             <Gamepad2 className="text-white w-6 h-6" />
           </div>
           <span className="text-2xl font-black italic tracking-tighter uppercase text-orange-500 font-display">
-            Ants In My Pants
+            honor roll games
           </span>
         </div>
 
@@ -104,7 +104,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
             className="text-center"
           >
             <h1 className="text-7xl md:text-9xl font-black tracking-tighter uppercase italic text-white mb-6 drop-shadow-2xl font-display">
-              <span className="text-orange-600">ANTS</span> IN MY <br /> PANTS
+              <span className="text-orange-600">honor roll games</span>
             </h1>
             <p className="text-gray-400 max-w-2xl mx-auto text-lg md:text-xl font-medium">
               The premier playground for high-stakes games and addictive puzzles. Join the colony and start your win streak today.
@@ -254,7 +254,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
         </div>
 
         <div className="max-w-6xl mx-auto mt-12 pt-8 border-t border-white/5 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-600">
-          <span>&copy; 2024 Ants In My Pants Gaming</span>
+          <span>&copy; 2024 honor roll games Gaming</span>
 
           <div className="flex items-center space-x-2">
             <Info size={12} />
