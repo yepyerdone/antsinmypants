@@ -44,6 +44,18 @@ const averageMetric = (metrics: ScanFrameMetrics[], key: keyof ScanFrameMetrics)
   return metrics.reduce((sum, frame) => sum + frame[key], 0) / metrics.length;
 };
 
+const getDominantMetric = (metrics: ScanFrameMetrics[]) => {
+  const values = [
+    { label: 'symmetry', value: averageMetric(metrics, 'symmetry') },
+    { label: 'lower-third definition', value: averageMetric(metrics, 'lowerThird') },
+    { label: 'facial structure sharpness', value: averageMetric(metrics, 'sharpness') },
+    { label: 'contrast', value: averageMetric(metrics, 'contrast') },
+    { label: 'exposure control', value: averageMetric(metrics, 'exposure') },
+  ];
+
+  return values.sort((a, b) => b.value - a.value)[0];
+};
+
 const analyzeLocalScan = (metrics: ScanFrameMetrics[]): MogAnalysis => {
   const symmetry = averageMetric(metrics, 'symmetry');
   const contrast = averageMetric(metrics, 'contrast');
@@ -60,11 +72,7 @@ const analyzeLocalScan = (metrics: ScanFrameMetrics[]): MogAnalysis => {
     exposure * 1.05;
   const mogScore = Number(parseScore(score, 5).toFixed(1));
 
-  const strongest = [
-    { label: 'symmetry', value: symmetry },
-    { label: 'jawline contrast', value: lowerThird },
-    { label: 'facial structure definition', value: sharpness },
-  ].sort((a, b) => b.value - a.value)[0].label;
+  const strongest = getDominantMetric(metrics).label;
 
   return {
     mogScore,
@@ -72,12 +80,35 @@ const analyzeLocalScan = (metrics: ScanFrameMetrics[]): MogAnalysis => {
   };
 };
 
-export const performPSLScan = async (base64Image: string): Promise<PSLAnalysis> => {
+const analyzeLocalPSLScan = (metrics: ScanFrameMetrics[]): PSLAnalysis => {
+  const symmetry = averageMetric(metrics, 'symmetry');
+  const contrast = averageMetric(metrics, 'contrast');
+  const sharpness = averageMetric(metrics, 'sharpness');
+  const lowerThird = averageMetric(metrics, 'lowerThird');
+  const exposure = averageMetric(metrics, 'exposure');
+
+  const pslScore =
+    1.4 +
+    symmetry * 1.85 +
+    lowerThird * 1.55 +
+    sharpness * 1.25 +
+    contrast * 0.95 +
+    exposure * 1.0;
+  const score = Math.max(1, Math.min(8, pslScore));
+  const strongest = getDominantMetric(metrics).label;
+
+  return {
+    pslScore: Number(score.toFixed(1)),
+    breakdown: `Measured baseline from scan frames. Strongest visual signal: ${strongest}; rating weighs symmetry, lower-third definition, structure sharpness, contrast, and exposure.`,
+  };
+};
+
+export const performPSLScan = async (base64Image: string, metrics: ScanFrameMetrics[] = []): Promise<PSLAnalysis> => {
   const ai = createClient();
-  const model = 'gemini-3-flash-preview';
+  const model = getModel();
 
   if (!ai) {
-    return { pslScore: 5.0, breakdown: 'Scan calibration failed.' };
+    return analyzeLocalPSLScan(metrics);
   }
 
   const prompt = `Perform a PSL (Physical Stature/Looks) scale analysis on this person's face. 
@@ -119,13 +150,15 @@ export const performPSLScan = async (base64Image: string): Promise<PSLAnalysis> 
     });
 
     const result = JSON.parse(response.text || '{}');
+    const pslScore = Math.max(1, Math.min(8, Number(result.pslScore) || analyzeLocalPSLScan(metrics).pslScore));
+
     return {
-      pslScore: Number(result.pslScore) || 5.0,
+      pslScore: Number(pslScore.toFixed(1)),
       breakdown: result.breakdown || 'Standard facial geometry detected.',
     };
   } catch (error) {
     console.error('PSL Scan error:', error);
-    return { pslScore: 5.0, breakdown: 'Scan calibration failed.' };
+    return analyzeLocalPSLScan(metrics);
   }
 };
 
