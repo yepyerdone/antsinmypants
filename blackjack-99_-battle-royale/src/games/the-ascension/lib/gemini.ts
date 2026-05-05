@@ -12,12 +12,23 @@ export interface PSLAnalysis {
 
 const getApiKey = () => {
   const env = import.meta.env as Record<string, string | undefined>;
-  return env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || '';
+  return env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '') || '';
 };
 
 const createClient = () => {
   const apiKey = getApiKey();
   return apiKey ? new GoogleGenAI({ apiKey }) : null;
+};
+
+const getModel = () => {
+  const env = import.meta.env as Record<string, string | undefined>;
+  return env.VITE_GEMINI_MODEL || env.GEMINI_MODEL || 'gemini-2.5-flash';
+};
+
+const parseScore = (value: unknown, fallback: number) => {
+  const score = Number(value);
+  if (!Number.isFinite(score)) return fallback;
+  return Math.max(1, Math.min(10, score));
 };
 
 export const performPSLScan = async (base64Image: string): Promise<PSLAnalysis> => {
@@ -78,16 +89,25 @@ export const performPSLScan = async (base64Image: string): Promise<PSLAnalysis> 
 };
 
 export const analyzeFace = async (base64Image: string): Promise<MogAnalysis> => {
+  return analyzeFaceScan([base64Image]);
+};
+
+export const analyzeFaceScan = async (base64Images: string[]): Promise<MogAnalysis> => {
   const ai = createClient();
-  const model = 'gemini-3-flash-preview';
+  const model = getModel();
+  const validImages = base64Images.filter(Boolean).slice(0, 6);
 
   if (!ai) {
-    return { mogScore: 1.0, analysis: 'AI could not process the face.' };
+    throw new Error('Gemini API key is missing. Add GEMINI_API_KEY or VITE_GEMINI_API_KEY to enable Ascension scoring.');
   }
 
-  const prompt = `Analyze the facial structure in this image to determine its "chadness" (physical attractiveness and dominance) based on jawline definition, facial symmetry, brow ridge, and overall aesthetic harmony. 
+  if (validImages.length === 0) {
+    throw new Error('No scan frames were captured.');
+  }
+
+  const prompt = `Analyze this 5-second scan sequence to determine its "chadness" (physical attractiveness and dominance) based on jawline definition, facial symmetry, brow ridge, facial structure, and overall aesthetic harmony.
   
-  Be objective and slightly clinical, but use "mogging" terminology if appropriate. 
+  Use all frames together, favoring clear frontal frames and ignoring motion blur. Be objective and slightly clinical, but use "mogging" terminology if appropriate.
   
   Return ONLY a raw JSON object with the following structure:
   {
@@ -102,7 +122,9 @@ export const analyzeFace = async (base64Image: string): Promise<MogAnalysis> => 
         {
           parts: [
             { text: prompt },
-            { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+            ...validImages.map((base64Image) => ({
+              inlineData: { mimeType: 'image/jpeg', data: base64Image },
+            })),
           ],
         },
       ],
@@ -112,12 +134,18 @@ export const analyzeFace = async (base64Image: string): Promise<MogAnalysis> => 
     });
 
     const result = JSON.parse(response.text || '{}');
+    const mogScore = parseScore(result.mogScore, NaN);
+
+    if (!Number.isFinite(mogScore)) {
+      throw new Error('Gemini returned an invalid Ascension score.');
+    }
+
     return {
-      mogScore: Number(result.mogScore) || 1.0,
+      mogScore: Number(mogScore.toFixed(1)),
       analysis: result.analysis || 'Analysis failed.',
     };
   } catch (error) {
     console.error('AI Analysis error:', error);
-    return { mogScore: 1.0, analysis: 'AI could not process the face.' };
+    throw error;
   }
 };

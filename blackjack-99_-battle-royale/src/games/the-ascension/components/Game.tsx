@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, RefreshCw, Trophy, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { analyzeFace } from '../lib/gemini';
+import { analyzeFaceScan } from '../lib/gemini';
 import { db } from '../lib/firebase';
 import { doc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { Match, UserProfile } from '../types';
@@ -16,10 +16,13 @@ interface GameProps {
 export default function Game({ matchId, user, onFinish }: GameProps) {
   const [match, setMatch] = useState<Match | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanMessage, setScanMessage] = useState('EXTRACTING METRICS...');
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const isPlayer1 = match?.player1Id === user.uid;
 
@@ -33,6 +36,7 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
     // Setup camera
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
       .then(stream => {
+        streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
       })
       .catch(err => {
@@ -40,28 +44,58 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
         setError("Camera access is required for The Ascension.");
       });
 
-    return () => unsub();
+    return () => {
+      unsub();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    };
   }, [matchId]);
+
+  const captureFrame = () => {
+    if (!videoRef.current || !canvasRef.current) {
+      throw new Error('Camera is not ready.');
+    }
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Camera canvas is not ready.');
+    }
+
+    canvas.width = videoRef.current.videoWidth || 960;
+    canvas.height = videoRef.current.videoHeight || 540;
+    ctx.drawImage(videoRef.current, 0, 0);
+
+    return canvas.toDataURL('image/jpeg', 0.88).split(',')[1];
+  };
+
+  const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 
   const captureAndAnalyze = async () => {
     if (!videoRef.current || !canvasRef.current || isAnalyzing) return;
 
     setIsAnalyzing(true);
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    ctx.drawImage(videoRef.current, 0, 0);
-
-    const base64 = canvas.toDataURL('image/jpeg').split(',')[1];
+    setScanProgress(0);
+    setScanMessage('LOCKING FACE TRACK...');
+    setError(null);
 
     try {
-      const result = await analyzeFace(base64);
+      const frames: string[] = [];
+
+      for (let i = 0; i < 5; i += 1) {
+        setScanProgress(i * 20);
+        setScanMessage(`SCANNING STRUCTURE ${i + 1}/5...`);
+        frames.push(captureFrame());
+        await wait(1000);
+      }
+
+      setScanProgress(100);
+      setScanMessage('CALCULATING ASCENSION SCORE...');
+      const result = await analyzeFaceScan(frames);
       
       const updateData: any = {
         updatedAt: serverTimestamp(),
+        [`${isPlayer1 ? 'player1' : 'player2'}ScanFrames`]: frames.length,
       };
 
       if (isPlayer1) {
@@ -76,9 +110,10 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
       setHasSubmitted(true);
     } catch (err) {
       console.error(err);
-      setError("Failed to analyze facial structure.");
+      setError(err instanceof Error ? err.message : "Failed to analyze facial structure.");
     } finally {
       setIsAnalyzing(false);
+      setScanProgress(0);
     }
   };
 
@@ -161,7 +196,15 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
             {isAnalyzing && (
               <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-4">
                 <RefreshCw className="animate-spin text-white" size={40} />
-                <span className="font-bold tracking-widest animate-pulse">EXTRACTING METRICS...</span>
+                <span className="font-bold tracking-widest animate-pulse">{scanMessage}</span>
+                <div className="w-64 max-w-[75%] h-2 rounded-full bg-white/10 overflow-hidden">
+                  <motion.div
+                    className="h-full bg-white"
+                    animate={{ width: `${scanProgress}%` }}
+                    transition={{ duration: 0.25 }}
+                  />
+                </div>
+                <span className="text-xs font-mono text-white/50 tracking-[0.2em]">{scanProgress}%</span>
               </div>
             )}
           </div>
