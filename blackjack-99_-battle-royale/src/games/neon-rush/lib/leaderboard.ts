@@ -1,7 +1,7 @@
 import { addDoc, collection, getDocs, limit as queryLimit, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../../lib/firebase';
 
-export type NeonRushLeaderboardEntry = {
+export type SpaceRunnerLeaderboardEntry = {
   id: string;
   name: string;
   score: number;
@@ -11,10 +11,10 @@ export type NeonRushLeaderboardEntry = {
   createdAt?: string;
 };
 
-export const NEON_RUSH_COLLECTION = 'neon_rush_leaderboard';
+export const SPACE_RUNNER_COLLECTION = 'neon_rush_leaderboard';
 
-export async function getNeonRushScores(limit = 10): Promise<NeonRushLeaderboardEntry[]> {
-  const scoresQuery = query(collection(db, NEON_RUSH_COLLECTION), orderBy('score', 'desc'), queryLimit(limit));
+export async function getSpaceRunnerScores(limit = 10): Promise<SpaceRunnerLeaderboardEntry[]> {
+  const scoresQuery = query(collection(db, SPACE_RUNNER_COLLECTION), orderBy('score', 'desc'), queryLimit(limit));
   const snapshot = await getDocs(scoresQuery);
 
   return snapshot.docs.map((scoreDoc) => {
@@ -33,14 +33,14 @@ export async function getNeonRushScores(limit = 10): Promise<NeonRushLeaderboard
   });
 }
 
-export async function addNeonRushScore(name: string, score: number, distance: number, gems: number) {
+export async function addSpaceRunnerScore(name: string, score: number, distance: number, gems: number) {
   const cleanScore = Math.floor(score);
   if (cleanScore <= 0) {
     throw new Error('Finish a run with a score before submitting.');
   }
 
-  await addDoc(collection(db, NEON_RUSH_COLLECTION), {
-    name: name.trim().slice(0, 16) || 'Runner',
+  await addDoc(collection(db, SPACE_RUNNER_COLLECTION), {
+    name: name.trim().slice(0, 16) || 'Pilot',
     score: cleanScore,
     distance: Math.floor(distance),
     gems: Math.floor(gems),

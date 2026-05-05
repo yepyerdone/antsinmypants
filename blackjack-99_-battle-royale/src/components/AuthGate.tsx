@@ -36,6 +36,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  if (location.pathname === '/space-runner' || location.pathname === '/neon-rush') {
+    return <>{children}</>;
+  }
+
   return (
     <>
       <div className="site-account-bar">

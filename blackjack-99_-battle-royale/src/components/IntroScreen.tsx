@@ -9,7 +9,7 @@ interface IntroScreenProps {
   onLaunchGame: (gameId: string) => void;
 }
 
-type PreviewType = 'blackjack' | 'neon-snake' | 'neon-rush' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs' | 'ascension';
+type PreviewType = 'blackjack' | 'neon-snake' | 'space-runner' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs' | 'ascension';
 
 type GameCardData = {
   id: string;
@@ -80,13 +80,13 @@ const games: GameCardData[] = [
     coverImage: '/snake-rush.png',
   },
   {
-    id: 'neon-rush',
-    title: 'Neon Rush',
-    description: 'Dodge drones, leap barriers, and collect gems in a bright 3D chase.',
+    id: 'space-runner',
+    title: 'Space Runner',
+    description: 'Outrun an alien across glowing orbital lanes, dodging UFO fire and collecting star crystals.',
     category: 'Runner',
     meta: 'Top 10 scores',
-    preview: 'neon-rush',
-    internalPath: '/neon-rush',
+    preview: 'space-runner',
+    internalPath: '/space-runner',
   },
   {
     id: 'molar-madness',
@@ -116,7 +116,7 @@ const gameSections = [
   },
   {
     title: 'Arcade Classics',
-    gameIds: ['molar-madness', 'snake-rush', 'neon-rush'],
+    gameIds: ['molar-madness', 'snake-rush', 'space-runner'],
   },
   {
     title: 'Multiplayer',
@@ -167,17 +167,19 @@ function GamePreview({ type, title, coverImage }: { type: PreviewType; title: st
     );
   }
 
-  if (type === 'neon-rush') {
+  if (type === 'space-runner') {
     return (
-      <div className="site-game-preview site-game-preview--neon-rush" aria-label={`${title} preview`}>
-        <span className="preview-runner-road" />
-        <span className="preview-runner-lane preview-runner-lane--left" />
-        <span className="preview-runner-lane preview-runner-lane--right" />
-        <span className="preview-runner" />
-        <span className="preview-chaser" />
-        <span className="preview-gem preview-gem--one" />
-        <span className="preview-gem preview-gem--two" />
-        <span className="preview-obstacle" />
+      <div className="site-game-preview site-game-preview--space-runner" aria-label={`${title} preview`}>
+        <span className="preview-space-planet" />
+        <span className="preview-space-road" />
+        <span className="preview-space-lane preview-space-lane--left" />
+        <span className="preview-space-lane preview-space-lane--right" />
+        <span className="preview-astronaut" />
+        <span className="preview-alien" />
+        <span className="preview-ufo" />
+        <span className="preview-crystal preview-crystal--one" />
+        <span className="preview-crystal preview-crystal--two" />
+        <span className="preview-mine" />
         <span className="preview-score">3D</span>
       </div>
     );

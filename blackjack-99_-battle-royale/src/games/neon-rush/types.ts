@@ -26,8 +26,8 @@ export interface GameObject {
   position: [number, number, number]; // x, y, z
   active: boolean;
   color?: string;
-  points?: number; // Score value for gems
-  hasFired?: boolean; // For Aliens
+  points?: number; // Score value for star crystals
+  hasFired?: boolean; // For UFOs
 }
 
 export const LANE_WIDTH = 2.2;

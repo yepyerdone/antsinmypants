@@ -6,19 +6,22 @@ import { useStore } from '../../store';
 import { GameObject, ObjectType, LANE_WIDTH, SPAWN_DISTANCE, REMOVE_DISTANCE, GameStatus } from '../../types';
 import { audio } from '../System/Audio';
 
-// Geometry Constants
 const OBSTACLE_HEIGHT = 1.0;
-const OBSTACLE_GEOMETRY = new THREE.BoxGeometry(1.6, OBSTACLE_HEIGHT, 0.5); // Road Barrier
+const ASTEROID_GEOMETRY = new THREE.DodecahedronGeometry(0.68, 1);
+const MINE_CORE_GEOMETRY = new THREE.SphereGeometry(0.36, 18, 12);
+const MINE_RING_GEOMETRY = new THREE.TorusGeometry(0.52, 0.035, 8, 32);
+const WARNING_RING_GEOMETRY = new THREE.TorusGeometry(0.88, 0.025, 8, 40);
 
-const GEM_GEOMETRY = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 16); // Coin shape
+const CRYSTAL_GEOMETRY = new THREE.OctahedronGeometry(0.34, 0);
+const CRYSTAL_RING_GEOMETRY = new THREE.TorusGeometry(0.42, 0.018, 8, 32);
 
-// Alien (Drone) Geometries
-const ALIEN_BODY_GEO = new THREE.BoxGeometry(0.8, 0.2, 0.8);
-const ALIEN_DOME_GEO = new THREE.CylinderGeometry(0.1, 0.1, 0.3, 8); // Rotors
-const ALIEN_EYE_GEO = new THREE.SphereGeometry(0.1);
+const UFO_BODY_GEO = new THREE.CylinderGeometry(0.62, 0.86, 0.22, 36);
+const UFO_DOME_GEO = new THREE.SphereGeometry(0.42, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.52);
+const UFO_LIGHT_GEO = new THREE.SphereGeometry(0.055, 10, 8);
+const UFO_BEAM_GEO = new THREE.ConeGeometry(0.34, 0.95, 24);
 
-// Missile Geometries
-const MISSILE_CORE_GEO = new THREE.SphereGeometry(0.2, 8, 8);
+const LASER_CORE_GEO = new THREE.CapsuleGeometry(0.12, 0.48, 6, 12);
+const LASER_TRAIL_GEO = new THREE.ConeGeometry(0.16, 0.5, 16);
 
 // Shadow Geometries
 const SHADOW_GEM_GEO = new THREE.CircleGeometry(0.4, 16);
@@ -26,7 +29,7 @@ const SHADOW_ALIEN_GEO = new THREE.CircleGeometry(0.6, 16);
 const SHADOW_MISSILE_GEO = new THREE.CircleGeometry(0.3, 16);
 const SHADOW_DEFAULT_GEO = new THREE.CircleGeometry(0.8, 6);
 
-const PARTICLE_COUNT = 600;
+const PARTICLE_COUNT = 700;
 
 const MISSILE_SPEED = 30; // Extra speed added to world speed
 
@@ -212,13 +215,11 @@ export const LevelManager: React.FC = () => {
         const prevZ = obj.position[2];
         obj.position[2] += moveAmount;
         
-        // Alien AI Logic
+        // UFO firing logic
         if (obj.type === ObjectType.ALIEN && obj.active && !obj.hasFired) {
-             // Fire when within range (e.g., -90 units away)
              if (obj.position[2] > -90) {
                  obj.hasFired = true;
                  
-                 // Spawn Missile
                  newSpawns.push({
                      id: uuidv4(),
                      type: ObjectType.MISSILE,
@@ -230,7 +231,7 @@ export const LevelManager: React.FC = () => {
                  
                  // Visual flare event
                  window.dispatchEvent(new CustomEvent('particle-burst', { 
-                    detail: { position: obj.position, color: '#ff00ff' } 
+                    detail: { position: obj.position, color: '#a855f7' } 
                  }));
              }
         }
@@ -247,7 +248,7 @@ export const LevelManager: React.FC = () => {
                 const dx = Math.abs(obj.position[0] - playerPos.x);
                 if (dx < 0.9) { // Slightly increased horizontal forgiveness
                      
-                     // Obstacles, Aliens, and Missiles damage player
+                     // Space hazards, UFOs, and laser bolts damage the astronaut
                      const isDamageSource = obj.type === ObjectType.OBSTACLE || obj.type === ObjectType.ALIEN || obj.type === ObjectType.MISSILE;
                      
                      if (isDamageSource) {
@@ -275,10 +276,10 @@ export const LevelManager: React.FC = () => {
                              obj.active = false; 
                              hasChanges = true;
                              
-                             // Visual burst for missile impact
+                             // Visual burst for laser impact
                              if (obj.type === ObjectType.MISSILE) {
                                 window.dispatchEvent(new CustomEvent('particle-burst', { 
-                                    detail: { position: obj.position, color: '#ff4400' } 
+                                    detail: { position: obj.position, color: '#fb7185' } 
                                 }));
                              }
                          }
@@ -343,11 +344,11 @@ export const LevelManager: React.FC = () => {
             const isObstacle = Math.random() > 0.20;
 
             if (isObstacle) {
-                // Decide between Alien or Spikes based on distance/speed. Aliens spawn more often late game.
-                const spawnAlien = (speed > 25) && Math.random() < 0.25; 
+                // UFOs enter the hazard mix once the run is moving quickly.
+                const spawnUfo = speed > 25 && Math.random() < 0.25;
 
-                if (spawnAlien) {
-                    // Multi-Lane Alien Logic
+                if (spawnUfo) {
+                    // Multi-lane UFO logic
                     const availableLanes = [];
                     const maxLane = Math.floor(laneCount / 2);
                     for (let i = -maxLane; i <= maxLane; i++) availableLanes.push(i);
@@ -355,12 +356,12 @@ export const LevelManager: React.FC = () => {
 
                     // Determine how many aliens to spawn 
                     let alienCount = 1;
-                    const pAlien = Math.random();
+                    const pUfo = Math.random();
                     
-                    if (pAlien > 0.7) {
+                    if (pUfo > 0.7) {
                         alienCount = Math.min(2, availableLanes.length);
                     }
-                    if (pAlien > 0.9 && availableLanes.length >= 3) {
+                    if (pUfo > 0.9 && availableLanes.length >= 3) {
                         alienCount = 3;
                     }
 
@@ -371,7 +372,7 @@ export const LevelManager: React.FC = () => {
                             type: ObjectType.ALIEN,
                             position: [lane * LANE_WIDTH, 1.5, spawnZ],
                             active: true,
-                            color: '#00ff00',
+                            color: '#22d3ee',
                             hasFired: false
                         });
                     }
@@ -386,13 +387,13 @@ export const LevelManager: React.FC = () => {
                     const p = Math.random();
 
                     if (p > 0.80) {
-                        // Triple Spike
+                        // Heavy asteroid field
                         countToSpawn = Math.min(3, availableLanes.length - 1); // never fill all lanes entirely
                     } else if (p > 0.50) {
-                        // Double Spike
+                        // Medium asteroid field
                         countToSpawn = Math.min(2, availableLanes.length);
                     } else {
-                        // Single Spike
+                        // Single asteroid or mine
                         countToSpawn = 1;
                     }
 
@@ -405,17 +406,17 @@ export const LevelManager: React.FC = () => {
                             type: ObjectType.OBSTACLE,
                             position: [laneX, OBSTACLE_HEIGHT / 2, spawnZ],
                             active: true,
-                            color: '#ff0054'
+                            color: Math.random() > 0.5 ? '#fb7185' : '#f97316'
                         });
 
-                        // Chance for gem on top of obstacle
+                        // Chance for crystal above a hazard
                         if (Math.random() < 0.3) {
                              keptObjects.push({
                                 id: uuidv4(),
                                 type: ObjectType.GEM,
                                 position: [laneX, OBSTACLE_HEIGHT + 1.0, spawnZ],
                                 active: true,
-                                color: '#ffd700',
+                                color: '#facc15',
                                 points: 50
                             });
                         }
@@ -423,14 +424,14 @@ export const LevelManager: React.FC = () => {
                 }
 
             } else {
-                // GROUND GEM SPAWNING
+                // Ground crystal spawning
                 const lane = getRandomLane(laneCount);
                 keptObjects.push({
                     id: uuidv4(),
                     type: ObjectType.GEM,
                     position: [lane * LANE_WIDTH, 1.2, spawnZ],
                     active: true,
-                    color: '#00ffff',
+                    color: '#22d3ee',
                     points: 50
                 });
             }
@@ -471,16 +472,15 @@ const GameEntity: React.FC<{ data: GameObject }> = React.memo(({ data }) => {
             const baseHeight = data.position[1];
             
             if (data.type === ObjectType.MISSILE) {
-                 // Missile rotation
-                 visualRef.current.rotation.z += delta * 20; // Fast spin
+                 visualRef.current.rotation.z += delta * 20;
+                 visualRef.current.rotation.x = Math.PI / 2;
                  visualRef.current.position.y = baseHeight;
             } else if (data.type === ObjectType.ALIEN) {
-                 // Alien Hover
-                 visualRef.current.position.y = baseHeight + Math.sin(state.clock.elapsedTime * 3) * 0.2;
-                 visualRef.current.rotation.y += delta;
+                 visualRef.current.position.y = baseHeight + Math.sin(state.clock.elapsedTime * 3 + data.position[0]) * 0.22;
+                 visualRef.current.rotation.y += delta * 1.35;
             } else if (data.type !== ObjectType.OBSTACLE) {
-                // Gem Bobbing
-                visualRef.current.rotation.y += delta * 3;
+                visualRef.current.rotation.y += delta * 3.4;
+                visualRef.current.rotation.z += delta * 1.2;
                 const bobOffset = Math.sin(state.clock.elapsedTime * 4 + data.position[0]) * 0.1;
                 visualRef.current.position.y = baseHeight + bobOffset;
                 
@@ -490,6 +490,7 @@ const GameEntity: React.FC<{ data: GameObject }> = React.memo(({ data }) => {
                 }
             } else {
                 visualRef.current.position.y = baseHeight;
+                visualRef.current.rotation.y += delta * 0.35;
             }
         }
     });
@@ -511,70 +512,83 @@ const GameEntity: React.FC<{ data: GameObject }> = React.memo(({ data }) => {
             )}
 
             <group ref={visualRef} position={[0, data.position[1], 0]}>
-                {/* --- OBSTACLE --- */}
+                {/* --- SPACE HAZARD --- */}
                 {data.type === ObjectType.OBSTACLE && (
                     <group>
-                        {/* Base Barrier */}
-                        <mesh geometry={OBSTACLE_GEOMETRY} castShadow receiveShadow>
-                             <meshStandardMaterial 
-                                 color="#ff2222" // Red barrier
-                                 roughness={0.7} 
-                                 metalness={0.1} 
+                        <mesh geometry={ASTEROID_GEOMETRY} castShadow receiveShadow rotation={[0.5, 0.35, 0.2]} scale={[1.05, 0.88, 0.72]}>
+                             <meshStandardMaterial
+                                 color="#8b5e3c"
+                                 emissive="#7f1d1d"
+                                 emissiveIntensity={0.16}
+                                 roughness={0.86}
+                                 metalness={0.12}
                              />
                         </mesh>
-                        {/* White Stripe Overlay */}
-                        <mesh position={[0, 0, 0.26]} castShadow receiveShadow>
-                             <planeGeometry args={[1.6, 0.3]} />
-                             <meshStandardMaterial color="#ffffff" roughness={0.9} />
+                        <mesh geometry={MINE_CORE_GEOMETRY} castShadow position={[0.38, 0.12, 0.2]} scale={[0.72, 0.72, 0.72]}>
+                            <meshStandardMaterial color="#1e293b" emissive={data.color || '#fb7185'} emissiveIntensity={0.9} roughness={0.42} metalness={0.68} />
+                        </mesh>
+                        <mesh geometry={MINE_RING_GEOMETRY} rotation={[Math.PI / 2, 0, 0]} position={[0.38, 0.12, 0.2]}>
+                            <meshBasicMaterial color={data.color || '#fb7185'} transparent opacity={0.8} toneMapped={false} />
+                        </mesh>
+                        <mesh geometry={WARNING_RING_GEOMETRY} rotation={[Math.PI / 2, 0, 0]}>
+                            <meshBasicMaterial color={data.color || '#fb7185'} transparent opacity={0.42} toneMapped={false} />
                         </mesh>
                     </group>
                 )}
 
-                {/* --- ALIEN --- */}
+                {/* --- UFO --- */}
                 {data.type === ObjectType.ALIEN && (
                     <group>
-                        {/* Drone Body */}
-                        <mesh castShadow geometry={ALIEN_BODY_GEO}>
-                            <meshStandardMaterial color="#eeeeee" metalness={0.2} roughness={0.5} />
+                        <mesh castShadow geometry={UFO_BODY_GEO}>
+                            <meshStandardMaterial color="#94a3b8" emissive="#155e75" emissiveIntensity={0.22} metalness={0.75} roughness={0.28} />
                         </mesh>
-                        {/* Rotors */}
-                        <mesh position={[0.4, 0.2, 0.4]} geometry={ALIEN_DOME_GEO}>
-                            <meshStandardMaterial color="#222222" />
+                        <mesh position={[0, 0.11, 0]} geometry={UFO_DOME_GEO}>
+                            <meshStandardMaterial color="#22d3ee" emissive="#0891b2" emissiveIntensity={0.9} transparent opacity={0.78} roughness={0.08} metalness={0.25} />
                         </mesh>
-                        <mesh position={[-0.4, 0.2, 0.4]} geometry={ALIEN_DOME_GEO}>
-                            <meshStandardMaterial color="#222222" />
+                        <mesh position={[0, -0.42, 0.18]} rotation={[Math.PI, 0, 0]} geometry={UFO_BEAM_GEO}>
+                            <meshBasicMaterial color="#a855f7" transparent opacity={0.26} toneMapped={false} />
                         </mesh>
-                        <mesh position={[0.4, 0.2, -0.4]} geometry={ALIEN_DOME_GEO}>
-                            <meshStandardMaterial color="#222222" />
+                        <mesh position={[0, -0.12, 0.46]} geometry={UFO_LIGHT_GEO}>
+                             <meshBasicMaterial color="#fb7185" toneMapped={false} />
                         </mesh>
-                        <mesh position={[-0.4, 0.2, -0.4]} geometry={ALIEN_DOME_GEO}>
-                            <meshStandardMaterial color="#222222" />
+                        <mesh position={[0.42, -0.12, 0.08]} geometry={UFO_LIGHT_GEO}>
+                             <meshBasicMaterial color="#facc15" toneMapped={false} />
                         </mesh>
-                        {/* Glowing Light */}
-                        <mesh position={[0, -0.1, 0.3]} geometry={ALIEN_EYE_GEO}>
-                             <meshBasicMaterial color="#00aaff" />
+                        <mesh position={[-0.42, -0.12, 0.08]} geometry={UFO_LIGHT_GEO}>
+                             <meshBasicMaterial color="#facc15" toneMapped={false} />
                         </mesh>
                     </group>
                 )}
 
-                {/* --- MISSILE (Drone Pellet) --- */}
+                {/* --- LASER BOLT --- */}
                 {data.type === ObjectType.MISSILE && (
-                    <group rotation={[Math.PI / 2, 0, 0]}>
-                        <mesh geometry={MISSILE_CORE_GEO}>
-                            <meshStandardMaterial color="#00aaff" emissive="#00aaff" emissiveIntensity={1} />
+                    <group>
+                        <mesh geometry={LASER_CORE_GEO}>
+                            <meshStandardMaterial color="#fb7185" emissive="#fb7185" emissiveIntensity={1.8} roughness={0.18} metalness={0.15} />
+                        </mesh>
+                        <mesh position={[0, -0.42, 0]} rotation={[Math.PI, 0, 0]} geometry={LASER_TRAIL_GEO}>
+                            <meshBasicMaterial color="#a855f7" transparent opacity={0.58} toneMapped={false} />
                         </mesh>
                     </group>
                 )}
 
-                {/* --- GEM (Coin) --- */}
+                {/* --- STAR CRYSTAL --- */}
                 {data.type === ObjectType.GEM && (
-                    <mesh rotation={[Math.PI / 2, 0, 0]} castShadow geometry={GEM_GEOMETRY}>
-                        <meshStandardMaterial 
-                            color="#ffd700" 
-                            roughness={0.2} 
-                            metalness={0.8} 
-                        />
-                    </mesh>
+                    <group>
+                        <mesh castShadow geometry={CRYSTAL_GEOMETRY}>
+                            <meshStandardMaterial
+                                color={data.color || '#22d3ee'}
+                                emissive={data.color || '#22d3ee'}
+                                emissiveIntensity={1.1}
+                                roughness={0.18}
+                                metalness={0.42}
+                            />
+                        </mesh>
+                        <mesh rotation={[Math.PI / 2, 0, 0]} geometry={CRYSTAL_RING_GEOMETRY}>
+                            <meshBasicMaterial color={data.color || '#22d3ee'} transparent opacity={0.72} toneMapped={false} />
+                        </mesh>
+                        <pointLight color={data.color || '#22d3ee'} intensity={0.8} distance={3} />
+                    </group>
                 )}
             </group>
         </group>

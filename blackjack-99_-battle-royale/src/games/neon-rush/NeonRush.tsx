@@ -16,7 +16,7 @@ import { Effects } from './components/World/Effects';
 import { HUD } from './components/UI/HUD';
 import { useStore } from './store';
 import { useAuth } from '../../context/AuthContext';
-import { addNeonRushScore, getNeonRushScores, NeonRushLeaderboardEntry } from './lib/leaderboard';
+import { addSpaceRunnerScore, getSpaceRunnerScores, SpaceRunnerLeaderboardEntry } from './lib/leaderboard';
 import { GameStatus } from './types';
 
 // Dynamic Camera Controller
@@ -90,11 +90,11 @@ function Scene() {
   );
 }
 
-function NeonRushLeaderboard() {
+function SpaceRunnerLeaderboard() {
   const { displayName } = useAuth();
   const { status, score, distance, gemsCollected } = useStore();
-  const [scores, setScores] = useState<NeonRushLeaderboardEntry[]>([]);
-  const [name, setName] = useState(displayName || 'Runner');
+  const [scores, setScores] = useState<SpaceRunnerLeaderboardEntry[]>([]);
+  const [name, setName] = useState(displayName || 'Pilot');
   const [submitting, setSubmitting] = useState(false);
   const [submittedScore, setSubmittedScore] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -103,11 +103,11 @@ function NeonRushLeaderboard() {
   const canSubmit = status === GameStatus.GAME_OVER && finalScore > 0 && submittedScore !== finalScore;
 
   const refreshScores = () => {
-    getNeonRushScores(10)
+    getSpaceRunnerScores(10)
       .then(setScores)
       .catch((err) => {
-        console.error('Failed to load Neon Rush leaderboard:', err);
-        setError('Leaderboard is warming up. Try again in a moment.');
+        console.error('Failed to load Space Runner leaderboard:', err);
+        setError('Orbital leaderboard is warming up. Try again in a moment.');
       });
   };
 
@@ -129,11 +129,11 @@ function NeonRushLeaderboard() {
     setSubmitting(true);
     setError(null);
     try {
-      await addNeonRushScore(name, finalScore, distance, gemsCollected);
+      await addSpaceRunnerScore(name, finalScore, distance, gemsCollected);
       setSubmittedScore(finalScore);
       refreshScores();
     } catch (err) {
-      console.error('Failed to submit Neon Rush score:', err);
+      console.error('Failed to submit Space Runner score:', err);
       setError(err instanceof Error ? err.message : 'Score submit failed.');
     } finally {
       setSubmitting(false);
@@ -141,23 +141,23 @@ function NeonRushLeaderboard() {
   };
 
   return (
-    <aside className="neon-rush-panel">
-      <div className="neon-rush-panel__header">
+    <aside className="space-runner-panel">
+      <div className="space-runner-panel__header">
         <div>
           <p>Leaderboard</p>
-          <h2>Top Runners</h2>
+          <h2>Top Pilots</h2>
         </div>
         <Trophy size={22} />
       </div>
 
       {status === GameStatus.GAME_OVER && (
-        <form className="neon-rush-submit" onSubmit={submitScore}>
-          <div className="neon-rush-submit__score">
-            <span>Final Score</span>
+        <form className="space-runner-submit" onSubmit={submitScore}>
+          <div className="space-runner-submit__score">
+            <span>Mission Score</span>
             <strong>{finalScore.toLocaleString()}</strong>
           </div>
           <label>
-            <span>Name</span>
+            <span>Pilot Name</span>
             <input value={name} maxLength={16} onChange={(event) => setName(event.target.value)} />
           </label>
           <button type="submit" disabled={!canSubmit || submitting}>
@@ -166,15 +166,15 @@ function NeonRushLeaderboard() {
         </form>
       )}
 
-      {error && <p className="neon-rush-error">{error}</p>}
+      {error && <p className="space-runner-error">{error}</p>}
 
-      <div className="neon-rush-list">
+      <div className="space-runner-list">
         {scores.length === 0 ? (
-          <div className="neon-rush-empty">No scores yet. Set the pace.</div>
+          <div className="space-runner-empty">No scores yet. Claim the first orbit.</div>
         ) : (
           scores.map((entry, index) => (
-            <div key={entry.id} className="neon-rush-score-row">
-              <span className="neon-rush-rank">{index + 1}</span>
+            <div key={entry.id} className="space-runner-score-row">
+              <span className="space-runner-rank">{index + 1}</span>
               <div>
                 <strong>{entry.name}</strong>
                 <small>
@@ -190,7 +190,7 @@ function NeonRushLeaderboard() {
         )}
       </div>
 
-      <button type="button" className="neon-rush-refresh" onClick={refreshScores}>
+      <button type="button" className="space-runner-refresh" onClick={refreshScores}>
         <RefreshCcw size={14} />
         Refresh Scores
       </button>
@@ -198,26 +198,34 @@ function NeonRushLeaderboard() {
   );
 }
 
-type NeonRushProps = {
+type SpaceRunnerProps = {
   onBack?: () => void;
 };
 
-function NeonRush({ onBack }: NeonRushProps) {
+function SpaceRunner({ onBack }: SpaceRunnerProps) {
+  useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'Space Runner | Honor Roll Arcade';
+    return () => {
+      document.title = previousTitle;
+    };
+  }, []);
+
   return (
-    <div className="neon-rush-page">
-      <header className="neon-rush-header">
-        <button type="button" onClick={onBack} className="neon-rush-back">
+    <div className="space-runner-page">
+      <header className="space-runner-header">
+        <button type="button" onClick={onBack} className="space-runner-back">
           <ArrowLeft size={16} />
           Back to Games
         </button>
         <div>
-          <p>Arcade runner</p>
-          <h1>Neon Rush</h1>
+          <p>Orbital arcade runner</p>
+          <h1>Space Runner</h1>
         </div>
       </header>
 
-      <main className="neon-rush-layout">
-        <section className="neon-rush-stage" aria-label="Neon Rush game">
+      <main className="space-runner-layout">
+        <section className="space-runner-stage" aria-label="Space Runner game">
           <HUD />
           <Canvas
             shadows
@@ -232,10 +240,10 @@ function NeonRush({ onBack }: NeonRushProps) {
           </Canvas>
         </section>
 
-        <NeonRushLeaderboard />
+        <SpaceRunnerLeaderboard />
       </main>
     </div>
   );
 }
 
-export default NeonRush;
+export default SpaceRunner;

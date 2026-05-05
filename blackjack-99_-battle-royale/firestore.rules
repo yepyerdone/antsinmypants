@@ -110,7 +110,7 @@ service cloud.firestore {
         && incoming().gameMode is string;
     }
 
-    // Neon Rush Leaderboard Rules
+    // Space Runner Leaderboard Rules
     match /neon_rush_leaderboard/{entryId} {
       allow list, get: if true;
       allow create: if isSignedIn()

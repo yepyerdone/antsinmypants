@@ -7,6 +7,10 @@
 import { create } from 'zustand';
 import { GameStatus, RUN_SPEED_BASE } from './types';
 
+const HIGH_SCORE_KEY = 'space-runner-high-score';
+const LEGACY_HIGH_SCORE_KEY = 'neon-rush-high-score';
+const getStoredHighScore = () => Number(localStorage.getItem(HIGH_SCORE_KEY) || localStorage.getItem(LEGACY_HIGH_SCORE_KEY)) || 0;
+
 interface GameState {
   status: GameStatus;
   score: number;
@@ -44,7 +48,7 @@ export const useStore = create<GameState>((set, get) => ({
   laneCount: 5, // Start with a wider lane setup for endless mode
   gemsCollected: 0,
   distance: 0,
-  highestScore: Number(localStorage.getItem('neon-rush-high-score')) || 0,
+  highestScore: getStoredHighScore(),
   
   hasDoubleJump: false,
   hasImmortality: false,
@@ -79,7 +83,7 @@ export const useStore = create<GameState>((set, get) => ({
     if (isImmortalityActive) return; // No damage if skill is active
 
     const newHighScore = Math.max(score, highestScore);
-    localStorage.setItem('neon-rush-high-score', newHighScore.toString());
+    localStorage.setItem(HIGH_SCORE_KEY, newHighScore.toString());
     set({ status: GameStatus.GAME_OVER, speed: 0, highestScore: newHighScore });
   },
 

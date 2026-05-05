@@ -26,7 +26,7 @@ import { IntroScreen } from './components/IntroScreen';
 import { Game as MolarMadness } from './games/molar-madness/MolarMadness';
 import SnakeRushApp from './games/snake-rush/SnakeRushApp';
 import ChairsApp from './games/chairs-io/App';
-import NeonRush from './games/neon-rush/NeonRush';
+import SpaceRunner from './games/neon-rush/NeonRush';
 import TheAscension from './games/the-ascension/TheAscension';
 
 const TURN_TIME_LIMIT = 15;
@@ -58,8 +58,8 @@ export default function App() {
     } else if (location.pathname === '/chairs-io') {
       setSelectedGame('chairs-io');
       setShowIntro(false);
-    } else if (location.pathname === '/neon-rush') {
-      setSelectedGame('neon-rush');
+    } else if (location.pathname === '/space-runner' || location.pathname === '/neon-rush') {
+      setSelectedGame('space-runner');
       setShowIntro(false);
     } else if (location.pathname === '/the-ascension') {
       setSelectedGame('the-ascension');
@@ -567,9 +567,9 @@ export default function App() {
     );
   }
 
-  if (selectedGame === 'neon-rush') {
+  if (selectedGame === 'space-runner') {
     return (
-      <NeonRush
+      <SpaceRunner
         onBack={() => {
           setSelectedGame(null);
           setShowIntro(true);
@@ -601,8 +601,8 @@ export default function App() {
                   setSelectedGame('molar-madness');
                 } else if (gameId === 'snake-rush') {
                   setSelectedGame('snake-rush');
-                } else if (gameId === 'neon-rush') {
-                  setSelectedGame('neon-rush');
+                } else if (gameId === 'space-runner') {
+                  setSelectedGame('space-runner');
                 } else if (gameId === 'the-ascension') {
                   setSelectedGame('the-ascension');
                 } else {
