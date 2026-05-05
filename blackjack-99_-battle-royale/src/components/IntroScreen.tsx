@@ -50,10 +50,20 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       internalPath: '/friend-chess',
     },
     {
+      id: 'snake-rush',
+      title: 'Snake Rush',
+      description: 'Fast arcade snake with multiple board sizes and a live leaderboard.',
+      image: 'https://images.unsplash.com/photo-1519241047957-be31d7379a5d?auto=format&fit=crop&q=80&w=400',
+      category: 'Arcade',
+      rating: 4.8,
+      players: '1 Player',
+      internalPath: '/snake-rush',
+    },
+    {
       id: 'molar-madness',
       title: 'Molar Madness',
       description: 'Familiarly-styled arcade game with cavitites, candy, and hygeine',
-  image: '/molar-madness-cover.png',
+      image: '/molar-madness-cover.png',
       category: 'Arcade',
       rating: 4.7,
       players: '1 Player'
