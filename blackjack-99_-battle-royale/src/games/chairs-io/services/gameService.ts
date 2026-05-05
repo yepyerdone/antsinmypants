@@ -275,6 +275,40 @@ export const gameService = {
     }
   },
 
+  async rematchGame(gameId: string) {
+    const path = `games/${gameId}`;
+    try {
+      const batch = writeBatch(db);
+      const gameRef = doc(db, 'games', gameId);
+
+      const chairsSnap = await getDocs(collection(db, 'games', gameId, 'chairs'));
+      chairsSnap.docs.forEach(d => batch.delete(d.ref));
+
+      const playersSnap = await getDocs(collection(db, 'games', gameId, 'players'));
+      playersSnap.docs.forEach(d => {
+        batch.update(d.ref, {
+          isEliminated: false,
+          isReady: false,
+          chairId: null
+        });
+      });
+
+      batch.update(gameRef, {
+        status: 'lobby',
+        currentRound: 1,
+        timerValue: 0,
+        timerStartTime: null,
+        winnerId: null,
+        lastEliminatedId: null,
+        updatedAt: Date.now()
+      });
+
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
   subscribeToGame(gameId: string, callback: (game: Game) => void) {
     return onSnapshot(doc(db, 'games', gameId), (snap) => {
       if (snap.exists()) {

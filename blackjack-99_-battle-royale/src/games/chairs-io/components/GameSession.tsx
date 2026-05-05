@@ -136,6 +136,8 @@ export function GameSession({ gameId, onExit }: GameSessionProps) {
             {game.status === 'ended' && (
               <WinnerView
                  winner={players.find(p => p.uid === game.winnerId)}
+                 isHost={isHost}
+                 onRematch={() => gameService.rematchGame(game.id)}
                  onExit={onExit}
               />
             )}
@@ -431,7 +433,17 @@ function GameBoard({ game, players, chairs, timeLeft, me, isHost, onClaim }: {
   );
 }
 
-function WinnerView({ winner, onExit }: { winner?: Player, onExit: () => void }) {
+function WinnerView({
+  winner,
+  isHost,
+  onRematch,
+  onExit
+}: {
+  winner?: Player,
+  isHost: boolean,
+  onRematch: () => void,
+  onExit: () => void
+}) {
   return (
     <motion.div 
       initial={{ opacity: 0, scale: 0.9 }}
@@ -460,12 +472,27 @@ function WinnerView({ winner, onExit }: { winner?: Player, onExit: () => void })
          <p className="label-micro !text-indigo-400">The Ultimate Survivor</p>
       </div>
 
-      <button
-        onClick={onExit}
-        className="px-16 py-6 bg-game-pop text-white rounded-3xl btn-tactile border-pink-700 text-2xl shadow-2xl"
-      >
-        Return To Safety
-      </button>
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        {isHost ? (
+          <button
+            onClick={onRematch}
+            className="px-16 py-6 bg-game-accent text-game-void rounded-3xl btn-tactile border-yellow-600 text-2xl shadow-2xl"
+          >
+            Rematch
+          </button>
+        ) : (
+          <div className="px-8 py-5 bg-game-void/50 border border-white/10 rounded-3xl">
+            <p className="label-micro !text-game-accent mb-0">Waiting for host to start a rematch...</p>
+          </div>
+        )}
+
+        <button
+          onClick={onExit}
+          className="px-16 py-6 bg-game-pop text-white rounded-3xl btn-tactile border-pink-700 text-2xl shadow-2xl"
+        >
+          Return To Safety
+        </button>
+      </div>
     </motion.div>
   );
 }
