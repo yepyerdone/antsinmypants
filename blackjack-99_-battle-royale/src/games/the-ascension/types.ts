@@ -7,6 +7,7 @@ export interface UserProfile {
   rank: Rank;
   wins: number;
   losses: number;
+  winStreak?: number;
   createdAt: any;
   pslScore?: number;
   isVerified?: boolean;
@@ -29,17 +30,15 @@ export interface Match {
 }
 
 export const getRank = (elo: number): Rank => {
-  if (elo < 200) return 'CHUD';
-  if (elo < 500) return 'LTN';
-  if (elo < 750) return 'MTN';
-  if (elo < 1000) return 'HTN';
-  if (elo < 1500) return 'CHADLITE';
+  if (elo < 100) return 'CHUD';
+  if (elo < 250) return 'LTN';
+  if (elo < 500) return 'MTN';
+  if (elo < 750) return 'HTN';
+  if (elo < 1000) return 'CHADLITE';
   return 'CHAD';
 };
 
-export const calculateEloChange = (playerElo: number, opponentElo: number, win: boolean) => {
-  const K = 32;
-  const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
-  const actual = win ? 1 : 0;
-  return Math.round(K * (actual - expected));
+export const calculateAscensionEloChange = (win: boolean, currentWinStreak = 0) => {
+  if (!win) return -50;
+  return 50 * Math.max(1, currentWinStreak + 1);
 };

@@ -148,6 +148,10 @@ export default function Home({ user, onPlay }: HomeProps) {
                         <p className="text-white/30 text-[10px] font-mono tracking-widest uppercase">Metric Score</p>
                         <p className="text-4xl font-bold font-mono">{user.elo}</p>
                       </div>
+                      <div className="space-y-1">
+                        <p className="text-white/30 text-[10px] font-mono tracking-widest uppercase">Win Streak</p>
+                        <p className="text-4xl font-bold font-mono text-white/60">{user.winStreak || 0}x</p>
+                      </div>
                       {user.pslScore && (
                         <div className="space-y-1">
                           <p className="text-white/30 text-[10px] font-mono tracking-widest uppercase">Base PSL</p>
@@ -200,12 +204,12 @@ export default function Home({ user, onPlay }: HomeProps) {
                     Rank Boundaries
                  </div>
                  <div className="mog-card p-8 space-y-4">
-                    <RankTier label="CHAD" range="1500+" color="text-white font-black" active={user.rank === 'CHAD'} />
-                    <RankTier label="CHADLITE" range="1000-1500" color="text-white font-bold" active={user.rank === 'CHADLITE'} />
-                    <RankTier label="HTN" range="750-1000" color="text-white/80" active={user.rank === 'HTN'} />
-                    <RankTier label="MTN" range="500-750" color="text-white/60" active={user.rank === 'MTN'} />
-                    <RankTier label="LTN" range="200-500" color="text-white/40" active={user.rank === 'LTN'} />
-                    <RankTier label="CHUD" range="0-200" color="text-white/20" active={user.rank === 'CHUD'} />
+                    <RankTier label="CHAD" range="1000+" color="text-white font-black" active={user.rank === 'CHAD'} />
+                    <RankTier label="CHADLITE" range="750-1000" color="text-white font-bold" active={user.rank === 'CHADLITE'} />
+                    <RankTier label="HTN" range="500-750" color="text-white/80" active={user.rank === 'HTN'} />
+                    <RankTier label="MTN" range="250-500" color="text-white/60" active={user.rank === 'MTN'} />
+                    <RankTier label="LTN" range="100-250" color="text-white/40" active={user.rank === 'LTN'} />
+                    <RankTier label="CHUD" range="<100" color="text-white/20" active={user.rank === 'CHUD'} />
                  </div>
               </div>
             </motion.div>

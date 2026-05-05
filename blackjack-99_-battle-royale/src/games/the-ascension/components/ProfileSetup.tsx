@@ -23,10 +23,11 @@ export default function ProfileSetup({ uid, defaultUsername = '', onComplete }: 
       await setDoc(doc(db, ASCENSION_USERS_COLLECTION, uid), {
         uid,
         username,
-        elo: 1000,
-        rank: 'HTN', // 1000 is HTN/Chadlite boundary
+        elo: 0,
+        rank: 'CHUD',
         wins: 0,
         losses: 0,
+        winStreak: 0,
         createdAt: serverTimestamp(),
       });
       onComplete();

@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { db } from './lib/firebase';
 import { ASCENSION_MATCHES_COLLECTION, ASCENSION_USERS_COLLECTION } from './collections';
-import { UserProfile, getRank, calculateEloChange } from './types';
+import { UserProfile, getRank, calculateAscensionEloChange } from './types';
 import ProfileSetup from './components/ProfileSetup';
 import Verification from './components/Verification';
 import Home from './components/Home';
@@ -33,7 +33,16 @@ export default function TheAscension() {
 
     const unsubProfile = onSnapshot(doc(db, ASCENSION_USERS_COLLECTION, user.uid), (snap) => {
       if (snap.exists()) {
-        setProfile(snap.data() as UserProfile);
+        const nextProfile = snap.data() as UserProfile;
+        setProfile(nextProfile);
+
+        if (nextProfile.winStreak === undefined) {
+          void updateDoc(doc(db, ASCENSION_USERS_COLLECTION, user.uid), {
+            elo: 0,
+            rank: 'CHUD',
+            winStreak: 0,
+          });
+        }
       } else {
         setProfile(null);
       }
@@ -59,17 +68,18 @@ export default function TheAscension() {
           const isWinner = match.winnerId === user.uid;
           const isDraw = match.winnerId === null;
           const myElo = profile.elo;
-          const opponentElo = match.player1Id === user.uid ? match.player2Elo : match.player1Elo;
-          const eloChange = calculateEloChange(myElo, opponentElo, isWinner);
-          const finalChange = isDraw ? 0 : eloChange;
+          const currentWinStreak = profile.winStreak || 0;
+          const finalChange = isDraw ? 0 : calculateAscensionEloChange(isWinner, currentWinStreak);
           const newElo = myElo + finalChange;
           const newRank = getRank(newElo);
+          const nextWinStreak = isDraw ? currentWinStreak : isWinner ? currentWinStreak + 1 : 0;
 
           await updateDoc(doc(db, ASCENSION_USERS_COLLECTION, user.uid), {
             elo: newElo,
             rank: newRank,
             wins: profile.wins + (isWinner ? 1 : 0),
             losses: profile.losses + (!isWinner && !isDraw ? 1 : 0),
+            winStreak: nextWinStreak,
           });
 
           await updateDoc(doc(db, ASCENSION_MATCHES_COLLECTION, activeMatchId), {
