@@ -137,6 +137,37 @@ service cloud.firestore {
         && (!incoming().keys().hasAny(['uid']) || incoming().uid == null || incoming().uid == request.auth.uid);
     }
 
+    // The Ascension Game Rules
+    match /theAscensionUsers/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId)
+        && incoming().uid == userId
+        && incoming().username is string
+        && incoming().username.size() >= 3
+        && incoming().username.size() <= 20
+        && incoming().elo is number
+        && incoming().rank is string
+        && incoming().wins is number
+        && incoming().losses is number;
+    }
+
+    match /theAscensionMatches/{matchId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && incoming().player1Id == request.auth.uid
+        && incoming().player1Username is string
+        && incoming().player1Elo is number
+        && incoming().status == 'searching';
+      allow update: if isSignedIn()
+        && existing().status in ['searching', 'in_progress', 'finished']
+        && incoming().status in ['searching', 'in_progress', 'finished']
+        && (
+          existing().player1Id == request.auth.uid ||
+          existing().player2Id == request.auth.uid ||
+          incoming().player2Id == request.auth.uid
+        );
+    }
+
     // Chairs.io Rules
     function getChairsGame(gameId) {
       return get(/databases/$(database)/documents/games/$(gameId)).data;

@@ -1,40 +1,62 @@
 import { GoogleGenAI } from '@google/genai';
 
-export interface AscensionAnalysis {
-  score: number;
+export interface MogAnalysis {
+  mogScore: number;
   analysis: string;
 }
 
-const clampScore = (value: number) => Math.max(1, Math.min(10, value));
+export interface PSLAnalysis {
+  pslScore: number;
+  breakdown: string;
+}
 
-const getFallbackAnalysis = (base64Image: string): AscensionAnalysis => {
-  const score = clampScore(4.8 + ((base64Image.length % 360) / 100));
-
-  return {
-    score: Number(score.toFixed(1)),
-    analysis: 'Offline calibration completed. Lighting, framing, and confidence were converted into a provisional score.',
-  };
+const getApiKey = () => {
+  const env = import.meta.env as Record<string, string | undefined>;
+  return env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || '';
 };
 
-export async function analyzeAscensionImage(base64Image: string): Promise<AscensionAnalysis> {
-  const env = import.meta.env as Record<string, string | undefined>;
-  const apiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || '';
+const createClient = () => {
+  const apiKey = getApiKey();
+  return apiKey ? new GoogleGenAI({ apiKey }) : null;
+};
 
-  if (!apiKey) {
-    return getFallbackAnalysis(base64Image);
+export const performPSLScan = async (base64Image: string): Promise<PSLAnalysis> => {
+  const ai = createClient();
+  const model = 'gemini-3-flash-preview';
+
+  if (!ai) {
+    return { pslScore: 5.0, breakdown: 'Scan calibration failed.' };
   }
 
+  const prompt = `Perform a PSL (Physical Stature/Looks) scale analysis on this person's face. 
+  The PSL scale ranges from 1 to 8:
+  - 1-2: Significantly below average
+  - 3-4: Below average to average
+  - 5: True average
+  - 6: Above average / "Pretty"
+  - 7: Model-tier
+  - 8: God-tier / Peak human aesthetics
+
+  Evaluate based on:
+  - Canthal tilt (positive is better)
+  - Midface ratio
+  - Lower third development
+  - Eye spacing and shape
+  - Overall facial harmony
+
+  Return ONLY a raw JSON object:
+  {
+    "pslScore": number (float between 1.0 and 8.0),
+    "breakdown": string (one concise sentence about the primary features contributing to the score)
+  }`;
+
   try {
-    const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model,
       contents: [
         {
           parts: [
-            {
-              text:
-                'Analyze this game selfie as an arcade ranking challenge. Score the image from 1.0 to 10.0 using overall camera clarity, centered framing, expression confidence, and dramatic presentation. Return only raw JSON shaped like {"score": number, "analysis": "one concise sentence"}.',
-            },
+            { text: prompt },
             { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
           ],
         },
@@ -44,15 +66,58 @@ export async function analyzeAscensionImage(base64Image: string): Promise<Ascens
       },
     });
 
-    const parsed = JSON.parse(response.text || '{}') as Partial<AscensionAnalysis>;
-    const score = clampScore(Number(parsed.score) || 1);
-
+    const result = JSON.parse(response.text || '{}');
     return {
-      score: Number(score.toFixed(1)),
-      analysis: parsed.analysis || 'Evaluation completed.',
+      pslScore: Number(result.pslScore) || 5.0,
+      breakdown: result.breakdown || 'Standard facial geometry detected.',
     };
   } catch (error) {
-    console.error('The Ascension analysis failed:', error);
-    return getFallbackAnalysis(base64Image);
+    console.error('PSL Scan error:', error);
+    return { pslScore: 5.0, breakdown: 'Scan calibration failed.' };
   }
-}
+};
+
+export const analyzeFace = async (base64Image: string): Promise<MogAnalysis> => {
+  const ai = createClient();
+  const model = 'gemini-3-flash-preview';
+
+  if (!ai) {
+    return { mogScore: 1.0, analysis: 'AI could not process the face.' };
+  }
+
+  const prompt = `Analyze the facial structure in this image to determine its "chadness" (physical attractiveness and dominance) based on jawline definition, facial symmetry, brow ridge, and overall aesthetic harmony. 
+  
+  Be objective and slightly clinical, but use "mogging" terminology if appropriate. 
+  
+  Return ONLY a raw JSON object with the following structure:
+  {
+    "mogScore": number (float between 1.0 and 10.0),
+    "analysis": string (short 2-sentence breakdown)
+  }`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: [
+        {
+          parts: [
+            { text: prompt },
+            { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+          ],
+        },
+      ],
+      config: {
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const result = JSON.parse(response.text || '{}');
+    return {
+      mogScore: Number(result.mogScore) || 1.0,
+      analysis: result.analysis || 'Analysis failed.',
+    };
+  } catch (error) {
+    console.error('AI Analysis error:', error);
+    return { mogScore: 1.0, analysis: 'AI could not process the face.' };
+  }
+};
