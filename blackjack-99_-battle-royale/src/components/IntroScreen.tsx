@@ -69,17 +69,6 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       players: '1 Player',
       internalPath: '/molar-madness',
     }
-    ,
-    {
-      id: 'chairs-io',
-      title: 'chairs.io',
-      description: 'A playful musical chairs elimination mini-game',
-      image: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=400',
-      category: 'Party',
-      rating: 4.5,
-      players: '1-8',
-      internalPath: '/chairs-io',
-    }
   ];
 
   return (
