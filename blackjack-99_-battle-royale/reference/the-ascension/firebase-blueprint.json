@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Information about a player, including their rank and ELO.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "elo": { "type": "integer" },
+        "rank": { "type": "string" },
+        "wins": { "type": "integer" },
+        "losses": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "pslScore": { "type": "number" },
+        "isVerified": { "type": "boolean" }
+      },
+      "required": ["uid", "username", "elo", "rank", "wins", "losses"]
+    },
+    "Match": {
+      "title": "Match",
+      "description": "A 1v1 match between two players.",
+      "type": "object",
+      "properties": {
+        "matchId": { "type": "string" },
+        "player1Id": { "type": "string" },
+        "player2Id": { "type": "string" },
+        "player1Username": { "type": "string" },
+        "player2Username": { "type": "string" },
+        "player1Score": { "type": "number" },
+        "player2Score": { "type": "number" },
+        "player1Analysis": { "type": "string" },
+        "player2Analysis": { "type": "string" },
+        "status": { "type": "string", "enum": ["searching", "in_progress", "finished"] },
+        "winnerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["player1Id", "player2Id", "status", "createdAt"]
+    },
+    "QueueEntry": {
+      "title": "Queue Entry",
+      "description": "A player waiting in the matchmaking queue.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "elo": { "type": "integer" },
+        "username": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "elo", "username", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profiles and stats."
+    },
+    "matches/{matchId}": {
+      "schema": "Match",
+      "description": "Recorded matches and current live matches."
+    },
+    "queue/{userId}": {
+      "schema": "QueueEntry",
+      "description": "Players currently looking for a match."
+    }
+  }
+}

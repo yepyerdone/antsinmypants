@@ -1,0 +1,6 @@
+{
+  "name": "The Ascension",
+  "description": "A competitive 1v1 matchmaking game where facial structure analysis determines your score. Ascend the ranks from Chud to CHAD.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}
