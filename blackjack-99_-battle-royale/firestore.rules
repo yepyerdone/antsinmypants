@@ -125,6 +125,18 @@ service cloud.firestore {
         && incoming().gems >= 0;
     }
 
+    // The Ascension Leaderboard Rules
+    match /the_ascension_scores/{entryId} {
+      allow list, get: if true;
+      allow create: if isSignedIn()
+        && incoming().name is string
+        && incoming().name.size() >= 1
+        && incoming().name.size() <= 16
+        && incoming().score is number
+        && incoming().score > 0
+        && (!incoming().keys().hasAny(['uid']) || incoming().uid == null || incoming().uid == request.auth.uid);
+    }
+
     // Chairs.io Rules
     function getChairsGame(gameId) {
       return get(/databases/$(database)/documents/games/$(gameId)).data;

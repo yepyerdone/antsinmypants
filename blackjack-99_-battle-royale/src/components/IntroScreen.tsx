@@ -9,7 +9,7 @@ interface IntroScreenProps {
   onLaunchGame: (gameId: string) => void;
 }
 
-type PreviewType = 'blackjack' | 'neon-snake' | 'neon-rush' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs';
+type PreviewType = 'blackjack' | 'neon-snake' | 'neon-rush' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs' | 'ascension';
 
 type GameCardData = {
   id: string;
@@ -50,6 +50,15 @@ const games: GameCardData[] = [
     meta: 'External game',
     preview: 'punchy',
     externalUrl: 'https://fishfolk.github.io/punchy/player/latest/',
+  },
+  {
+    id: 'the-ascension',
+    title: 'The Ascension',
+    description: 'A cinematic camera challenge with instant rankings and a dedicated top-score board.',
+    category: 'Challenge',
+    meta: 'Top 10 scores',
+    preview: 'ascension',
+    internalPath: '/the-ascension',
   },
   {
     id: 'friend-chess',
@@ -103,7 +112,7 @@ const games: GameCardData[] = [
 const gameSections = [
   {
     title: 'Featured Games',
-    gameIds: ['blackjack-99', 'punchy'],
+    gameIds: ['blackjack-99', 'punchy', 'the-ascension'],
   },
   {
     title: 'Arcade Classics',
@@ -207,6 +216,18 @@ function GamePreview({ type, title, coverImage }: { type: PreviewType; title: st
         <span className="preview-chair preview-chair--three" />
         <span className="preview-player preview-player--one" />
         <span className="preview-player preview-player--two" />
+      </div>
+    );
+  }
+
+  if (type === 'ascension') {
+    return (
+      <div className="site-game-preview site-game-preview--ascension" aria-label={`${title} preview`}>
+        <span className="preview-ascension-scan" />
+        <span className="preview-ascension-face" />
+        <span className="preview-ascension-ring preview-ascension-ring--one" />
+        <span className="preview-ascension-ring preview-ascension-ring--two" />
+        <span className="preview-score">9.1</span>
       </div>
     );
   }
