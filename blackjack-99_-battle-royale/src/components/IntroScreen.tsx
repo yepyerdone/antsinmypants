@@ -66,7 +66,8 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       image: '/molar-madness-cover.png',
       category: 'Arcade',
       rating: 4.7,
-      players: '1 Player'
+      players: '1 Player',
+      internalPath: '/molar-madness',
     }
   ];
 

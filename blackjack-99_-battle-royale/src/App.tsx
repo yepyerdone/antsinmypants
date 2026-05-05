@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, Player, GameState, PlayerStatus } from './types';
 import { createDeck, calculateScore } from './lib/blackjack';
 import { CardComponent } from './components/CardComponent';
@@ -31,6 +31,7 @@ const TURN_TIME_LIMIT = 15;
 
 export default function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [mode, setMode] = useState<'online' | 'offline' | null>(null);
   const [onlineRoom, setOnlineRoom] = useState<{ id: string; isHost: boolean } | null>(null);
@@ -48,8 +49,8 @@ export default function App() {
     if (location.pathname === '/snake-rush') {
       setSelectedGame('snake-rush');
       setShowIntro(false);
-    } else if (location.pathname === '/friend-chess') {
-      setSelectedGame('friend-chess');
+    } else if (location.pathname === '/molar-madness') {
+      setSelectedGame('molar-madness');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -555,6 +556,8 @@ export default function App() {
               onLaunchGame={(gameId?: string) => {
                 if (gameId === 'molar-madness') {
                   setSelectedGame('molar-madness');
+                } else if (gameId === 'snake-rush') {
+                  setSelectedGame('snake-rush');
                 } else {
                   setShowIntro(false);
                 }
