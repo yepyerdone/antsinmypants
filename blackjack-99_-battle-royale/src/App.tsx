@@ -511,6 +511,7 @@ export default function App() {
           onClick={() => {
             setSelectedGame(null);
             setShowIntro(true);
+            navigate('/');
           }}
           className="fixed top-4 left-4 z-50 bg-white text-bg-dark px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest"
         >
@@ -529,6 +530,7 @@ export default function App() {
           onClick={() => {
             setSelectedGame(null);
             setShowIntro(true);
+            navigate('/');
           }}
           className="fixed top-4 left-4 z-50 bg-white text-slate-900 px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest"
         >
