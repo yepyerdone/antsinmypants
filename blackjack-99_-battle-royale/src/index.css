@@ -921,6 +921,26 @@ body {
   padding-top: 3rem;
 }
 
+.site-games-rows {
+  display: grid;
+  gap: 2.25rem;
+}
+
+.site-game-row {
+  display: grid;
+  gap: 1rem;
+}
+
+.site-game-row h3 {
+  margin: 0;
+  color: #fed7aa;
+  font-size: 1rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
 .site-section-heading {
   display: flex;
   justify-content: space-between;

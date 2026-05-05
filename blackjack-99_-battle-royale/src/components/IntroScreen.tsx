@@ -90,6 +90,29 @@ const games: GameCardData[] = [
   },
 ];
 
+const gameSections = [
+  {
+    title: 'Featured Games',
+    gameIds: ['blackjack-99', 'punchy'],
+  },
+  {
+    title: 'Arcade Classics',
+    gameIds: ['molar-madness', 'snake-rush'],
+  },
+  {
+    title: 'Multiplayer',
+    gameIds: ['friend-chess', 'neon-snake', 'chairs-io'],
+  },
+];
+
+const gamesById = new Map(games.map((game) => [game.id, game]));
+
+const getSectionGames = (gameIds: string[]) =>
+  gameIds.reduce<GameCardData[]>((sectionGames, gameId) => {
+    const game = gamesById.get(gameId);
+    return game ? [...sectionGames, game] : sectionGames;
+  }, []);
+
 function GamePreview({ type, title, coverImage }: { type: PreviewType; title: string; coverImage?: string }) {
   if (coverImage) {
     return (
@@ -287,32 +310,40 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
             <p>Tap a card to jump straight into the correct route or game arena.</p>
           </div>
 
-          <div className="site-games-grid">
-            {games.map((game, index) => (
-              <motion.button
-                key={game.id}
-                type="button"
-                onClick={() => launchGame(game)}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.28, delay: index * 0.035 }}
-                className="site-game-card"
-              >
-                <GamePreview type={game.preview} title={game.title} coverImage={game.coverImage} />
+          <div className="site-games-rows">
+            {gameSections.map((section) => (
+              <section key={section.title} className="site-game-row" aria-labelledby={`site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                <h3 id={`site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`}>{section.title}</h3>
 
-                <span className="site-game-card__body">
-                  <span className="site-game-card__meta">
-                    <span>{game.category}</span>
-                    <span>{game.meta}</span>
-                  </span>
-                  <strong>{game.title}</strong>
-                  <span className="site-game-card__description">{game.description}</span>
-                  <span className="site-game-card__cta">
-                    <span>{game.externalUrl ? 'Open Game' : 'Play Now'}</span>
-                    {game.externalUrl ? <ExternalLink size={15} /> : <Play size={15} fill="currentColor" />}
-                  </span>
-                </span>
-              </motion.button>
+                <div className="site-games-grid">
+                  {getSectionGames(section.gameIds).map((game, index) => (
+                    <motion.button
+                      key={game.id}
+                      type="button"
+                      onClick={() => launchGame(game)}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.28, delay: index * 0.035 }}
+                      className="site-game-card"
+                    >
+                      <GamePreview type={game.preview} title={game.title} coverImage={game.coverImage} />
+
+                      <span className="site-game-card__body">
+                        <span className="site-game-card__meta">
+                          <span>{game.category}</span>
+                          <span>{game.meta}</span>
+                        </span>
+                        <strong>{game.title}</strong>
+                        <span className="site-game-card__description">{game.description}</span>
+                        <span className="site-game-card__cta">
+                          <span>{game.externalUrl ? 'Open Game' : 'Play Now'}</span>
+                          {game.externalUrl ? <ExternalLink size={15} /> : <Play size={15} fill="currentColor" />}
+                        </span>
+                      </span>
+                    </motion.button>
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </section>
