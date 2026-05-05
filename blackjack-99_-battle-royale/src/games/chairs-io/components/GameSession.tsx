@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { Game, Player, Chair } from '../types';
 import { gameService } from '../services/gameService';
 import { auth } from '../lib/firebase';
@@ -403,7 +404,7 @@ function GameBoard({ game, players, chairs, timeLeft, me, isHost, onClaim }: {
                  >
                     <div 
                       className="w-14 h-14 rounded-full border-4 border-white shadow-[0_10px_20px_rgba(0,0,0,0.5)] ring-8 flex items-center justify-center font-black text-xl italic text-white"
-                      style={{ backgroundColor: player.color, ringColor: `${player.color}33` }}
+                      style={{ backgroundColor: player.color, '--tw-ring-color': `${player.color}33` } as CSSProperties}
                     >
                       {player.displayName[0].toUpperCase()}
                     </div>

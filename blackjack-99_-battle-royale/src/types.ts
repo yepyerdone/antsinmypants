@@ -11,6 +11,7 @@ export type PlayerStatus = 'playing' | 'standing' | 'busted' | 'eliminated' | 'w
 
 export interface Player {
   id: string;
+  userId?: string;
   name: string;
   hand: Card[];
   status: PlayerStatus;
@@ -32,4 +33,5 @@ export interface GameState {
   currentPlayerIndex: number;
   timeLeft: number;
   winnerId: string | null;
+  gameOver?: boolean;
 }

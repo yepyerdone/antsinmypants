@@ -21,6 +21,7 @@ interface Entity {
   nextDir: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'NONE';
   speed: number;
   type?: string;
+  isDead?: boolean;
 }
 
 export const Game: React.FC = () => {

@@ -9,7 +9,7 @@ interface IntroScreenProps {
   onLaunchGame: (gameId: string) => void;
 }
 
-type PreviewType = 'blackjack' | 'neon-snake' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs';
+type PreviewType = 'blackjack' | 'neon-snake' | 'neon-rush' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs';
 
 type GameCardData = {
   id: string;
@@ -71,6 +71,15 @@ const games: GameCardData[] = [
     coverImage: '/snake-rush.png',
   },
   {
+    id: 'neon-rush',
+    title: 'Neon Rush',
+    description: 'Dodge drones, leap barriers, and collect gems in a bright 3D chase.',
+    category: 'Runner',
+    meta: 'Top 10 scores',
+    preview: 'neon-rush',
+    internalPath: '/neon-rush',
+  },
+  {
     id: 'molar-madness',
     title: 'Molar Madness',
     description: 'Dodge, chomp, and defend the enamel in a retro maze challenge.',
@@ -98,7 +107,7 @@ const gameSections = [
   },
   {
     title: 'Arcade Classics',
-    gameIds: ['molar-madness', 'snake-rush'],
+    gameIds: ['molar-madness', 'snake-rush', 'neon-rush'],
   },
   {
     title: 'Multiplayer',
@@ -145,6 +154,22 @@ function GamePreview({ type, title, coverImage }: { type: PreviewType; title: st
         <span className="preview-snake-cell preview-snake-cell--body-c" />
         <span className="preview-food" />
         <span className="preview-score">420</span>
+      </div>
+    );
+  }
+
+  if (type === 'neon-rush') {
+    return (
+      <div className="site-game-preview site-game-preview--neon-rush" aria-label={`${title} preview`}>
+        <span className="preview-runner-road" />
+        <span className="preview-runner-lane preview-runner-lane--left" />
+        <span className="preview-runner-lane preview-runner-lane--right" />
+        <span className="preview-runner" />
+        <span className="preview-chaser" />
+        <span className="preview-gem preview-gem--one" />
+        <span className="preview-gem preview-gem--two" />
+        <span className="preview-obstacle" />
+        <span className="preview-score">3D</span>
       </div>
     );
   }

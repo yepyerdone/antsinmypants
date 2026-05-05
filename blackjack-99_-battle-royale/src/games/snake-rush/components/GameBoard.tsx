@@ -27,7 +27,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const prevSnakeRef = useRef<Position[]>(snake);
   const lastSnakeRef = useRef<Position[]>(snake);
   const lastTickTimeRef = useRef<number>(performance.now());
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
   const eatPopTimeRef = useRef<number>(0);
   const prevScoreRef = useRef<number>(score);
 
@@ -356,7 +356,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     };
 
     animationRef.current = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationRef.current!);
+    return () => {
+      if (animationRef.current !== null) cancelAnimationFrame(animationRef.current);
+    };
   }, [snake, food, config, gameState, currentSpeed, direction]);
   
   // Keep the high-DPI canvas aligned with the responsive frame.

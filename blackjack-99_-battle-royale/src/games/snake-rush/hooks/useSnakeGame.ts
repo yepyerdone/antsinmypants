@@ -51,7 +51,7 @@ export const useSnakeGame = (
 
   const speedRef = useRef(INITIAL_SPEED[mode]);
   const lastUpdateRef = useRef(0);
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number | null>(null);
 
   const initGame = useCallback(() => {
     setSnake(getInitialSnake());

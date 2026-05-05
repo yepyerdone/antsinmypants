@@ -110,6 +110,21 @@ service cloud.firestore {
         && incoming().gameMode is string;
     }
 
+    // Neon Rush Leaderboard Rules
+    match /neon_rush_leaderboard/{entryId} {
+      allow list, get: if true;
+      allow create: if isSignedIn()
+        && incoming().name is string
+        && incoming().name.size() >= 1
+        && incoming().name.size() <= 16
+        && incoming().score is number
+        && incoming().score > 0
+        && incoming().distance is number
+        && incoming().distance >= 0
+        && incoming().gems is number
+        && incoming().gems >= 0;
+    }
+
     // Chairs.io Rules
     function getChairsGame(gameId) {
       return get(/databases/$(database)/documents/games/$(gameId)).data;

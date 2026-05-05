@@ -26,6 +26,7 @@ import { IntroScreen } from './components/IntroScreen';
 import { Game as MolarMadness } from './games/molar-madness/MolarMadness';
 import SnakeRushApp from './games/snake-rush/SnakeRushApp';
 import ChairsApp from './games/chairs-io/App';
+import NeonRush from './games/neon-rush/NeonRush';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -55,6 +56,9 @@ export default function App() {
       setShowIntro(false);
     } else if (location.pathname === '/chairs-io') {
       setSelectedGame('chairs-io');
+      setShowIntro(false);
+    } else if (location.pathname === '/neon-rush') {
+      setSelectedGame('neon-rush');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -559,6 +563,18 @@ export default function App() {
     );
   }
 
+  if (selectedGame === 'neon-rush') {
+    return (
+      <NeonRush
+        onBack={() => {
+          setSelectedGame(null);
+          setShowIntro(true);
+          navigate('/');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-bg-dark text-white font-sans selection:bg-stake-green selection:text-bg-dark overflow-hidden flex flex-col">
       <AnimatePresence mode="wait">
@@ -577,6 +593,8 @@ export default function App() {
                   setSelectedGame('molar-madness');
                 } else if (gameId === 'snake-rush') {
                   setSelectedGame('snake-rush');
+                } else if (gameId === 'neon-rush') {
+                  setSelectedGame('neon-rush');
                 } else {
                   setShowIntro(false);
                 }
