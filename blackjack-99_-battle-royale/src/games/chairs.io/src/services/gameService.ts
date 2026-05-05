@@ -8,7 +8,6 @@ import {
   onSnapshot, 
   query, 
   where, 
-  serverTimestamp,
   type DocumentData,
   deleteDoc,
   writeBatch
@@ -203,6 +202,9 @@ export const gameService = {
     const path = `games/${gameId}`;
     try {
       const batch = writeBatch(db);
+      const gameRef = doc(db, 'games', gameId);
+      const gameSnap = await getDoc(gameRef);
+      const currentRound = gameSnap.data()?.currentRound;
       
       // Delete old chairs
       const chairsSnap = await getDocs(collection(db, 'games', gameId, 'chairs'));
@@ -229,9 +231,9 @@ export const gameService = {
         });
       }
 
-      batch.update(doc(db, 'games', gameId), {
+      batch.update(gameRef, {
         status: 'playing',
-        currentRound: serverTimestamp(), // Placeholder to trigger round count or just increment manually
+        currentRound: typeof currentRound === 'number' ? currentRound + 1 : 1,
         timerValue: 10 + Math.floor(Math.random() * 8),
         timerStartTime: Date.now(),
         updatedAt: Date.now()

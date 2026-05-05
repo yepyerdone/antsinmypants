@@ -61,6 +61,107 @@ service cloud.firestore {
         && incoming().score >= 0;
     }
 
+    // Chairs.io Rules
+    function getChairsGame(gameId) {
+      return get(/databases/$(database)/documents/games/$(gameId)).data;
+    }
+
+    function isChairsGameHost(gameId) {
+      return isSignedIn() && getChairsGame(gameId).hostId == request.auth.uid;
+    }
+
+    function isChairsGameMember(gameId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/games/$(gameId)/players/$(request.auth.uid));
+    }
+
+    function isValidChairsGame(data) {
+      return data.status in ['lobby', 'playing', 'elimination', 'ended']
+        && data.hostId is string
+        && data.isPublic is bool
+        && data.currentRound is int
+        && data.timerValue is int
+        && (data.timerStartTime == null || data.timerStartTime is number)
+        && (data.winnerId == null || data.winnerId is string)
+        && (data.lastEliminatedId == null || data.lastEliminatedId is string)
+        && data.createdAt is number
+        && data.updatedAt is number;
+    }
+
+    function isValidChairsPlayer(data, playerId) {
+      return data.uid == playerId
+        && data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 50
+        && data.isEliminated is bool
+        && data.isReady is bool
+        && (data.chairId == null || data.chairId is string)
+        && data.color is string
+        && data.joinedAt is number;
+    }
+
+    function isValidChair(data) {
+      return data.id is string
+        && (data.claimedBy == null || data.claimedBy is string)
+        && data.angle is number;
+    }
+
+    match /games/{gameId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && (existing().isPublic == true || existing().status == 'lobby');
+
+      allow create: if isSignedIn()
+        && isValidId(gameId)
+        && isValidChairsGame(incoming())
+        && incoming().hostId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && isValidChairsGame(incoming())
+        && incoming().hostId == existing().hostId
+        && (
+          existing().hostId == request.auth.uid ||
+          isChairsGameMember(gameId)
+        );
+
+      allow delete: if isChairsGameHost(gameId);
+
+      match /players/{playerId} {
+        allow read: if isSignedIn();
+
+        allow create: if isSignedIn()
+          && playerId == request.auth.uid
+          && isValidChairsPlayer(incoming(), playerId);
+
+        allow update: if isSignedIn()
+          && isValidChairsPlayer(incoming(), playerId)
+          && incoming().uid == existing().uid
+          && incoming().joinedAt == existing().joinedAt
+          && (
+            playerId == request.auth.uid ||
+            isChairsGameHost(gameId)
+          );
+
+        allow delete: if playerId == request.auth.uid || isChairsGameHost(gameId);
+      }
+
+      match /chairs/{chairId} {
+        allow read: if isSignedIn();
+
+        allow create: if isChairsGameHost(gameId) && isValidChair(incoming());
+        allow delete: if isChairsGameHost(gameId);
+        allow update: if isSignedIn()
+          && isValidChair(incoming())
+          && (
+            isChairsGameHost(gameId) ||
+            (
+              isChairsGameMember(gameId)
+              && getChairsGame(gameId).status == 'playing'
+              && existing().claimedBy == null
+              && incoming().claimedBy == request.auth.uid
+            )
+          );
+      }
+    }
+
     // User Rules
     match /users/{userId} {
       allow get: if isOwner(userId);
@@ -77,10 +178,10 @@ service cloud.firestore {
     }
 
     function isValidPlayer(data) {
-      return data.userId == request.auth.uid
+        return data.userId == request.auth.uid
         && data.status in ['playing', 'standing', 'busted', 'eliminated', 'winner']
-        && (!data.keys().contains('name') || (data.name is string && data.name.size() <= 32))
-        && (!data.keys().contains('hand') || data.hand is list);
+        && (!data.keys().hasAny(['name']) || (data.name is string && data.name.size() <= 32))
+        && (!data.keys().hasAny(['hand']) || data.hand is list);
     }
 
     // Room Rules

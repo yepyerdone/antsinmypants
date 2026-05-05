@@ -1,12 +1,7 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
-import firebaseConfig from '../../firebase-applet-config.json';
+import { doc, getDocFromServer } from 'firebase/firestore';
+import { auth, db, googleProvider, signInWithPopup } from '../../../../lib/firebase';
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
+export { auth, db, googleProvider };
 
 export const signIn = () => signInWithPopup(auth, googleProvider);
 export const signOut = () => auth.signOut();
