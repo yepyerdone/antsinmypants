@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
-import { doc, onSnapshot, updateDoc, serverTimestamp, collection, addDoc, increment } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp, collection, runTransaction } from 'firebase/firestore';
 import { getFriendChessFirebase } from '../lib/friendChessFirebase';
 import type { LobbyData } from '../types';
 import { BOARD_THEMES, DEFAULT_THEME, FC_COLLECTIONS } from '../constants';
@@ -23,6 +23,7 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
   const [moveFrom, setMoveFrom] = useState<string | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({});
   const [localClocks, setLocalClocks] = useState<{ w: number; b: number }>({ w: 600, b: 600 });
+  const [pendingMove, setPendingMove] = useState(false);
 
   useEffect(() => {
     return auth.onAuthStateChanged((u) => setUser(u));
@@ -106,11 +107,11 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
     }
   };
 
-  const onDrop = useCallback(
-    (args: { piece: unknown; sourceSquare: string; targetSquare: string | null }) => {
-      const { sourceSquare, targetSquare } = args;
+  const submitMove = useCallback(
+    async (sourceSquare: string, targetSquare: string) => {
+      if (pendingMove) return false;
 
-      if (!lobby || !user || !targetSquare) return false;
+      if (!lobby || !user) return false;
 
       const isPlayerW = user.uid === lobby.playerW;
       const isPlayerB = user.uid === lobby.playerB;
@@ -120,76 +121,104 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
         return false;
       }
 
+      setPendingMove(true);
+      setMoveFrom(null);
+      setOptionSquares({});
+      setErrorMsg(null);
+
       try {
-        const g = new Chess(game.fen());
-        const move = g.move({
-          from: sourceSquare as never,
-          to: targetSquare as never,
-          promotion: 'q',
-        });
-
-        if (move === null) return false;
-
-        setMoveFrom(null);
-        setOptionSquares({});
-
-        setGame(g);
-        setErrorMsg(null);
-
-        const status = g.isGameOver() ? 'finished' : 'playing';
-        let winner: string | null = null;
-        if (g.isCheckmate()) winner = g.turn() === 'w' ? 'Black' : 'White';
-        else if (g.isDraw() || g.isGameOver()) winner = 'Draw';
-
         const lobbyRef = doc(db, FC_COLLECTIONS.lobbies, lobbyId);
-        const movesRef = collection(db, FC_COLLECTIONS.lobbies, lobbyId, 'moves');
+        const moveRef = doc(collection(db, FC_COLLECTIONS.lobbies, lobbyId, 'moves'));
 
-        const moveIndex = lobby.moveCount || 0;
+        await runTransaction(db, async (transaction) => {
+          const lobbySnap = await transaction.get(lobbyRef);
+          if (!lobbySnap.exists()) {
+            throw new Error('Match session no longer exists.');
+          }
 
-        const newClocks = { ...lobby.clocks } as {
-          w: number;
-          b: number;
-          lastTickAt?: unknown;
-        };
-        if (lobby.clocks?.lastTickAt && typeof (lobby.clocks.lastTickAt as { toDate?: () => Date }).toDate === 'function') {
-          const lastTick = (lobby.clocks.lastTickAt as { toDate: () => Date }).toDate().getTime();
-          const now = Date.now();
-          const elapsed = Math.max(0, Math.floor((now - lastTick) / 1000));
+          const latestLobby = { id: lobbySnap.id, ...lobbySnap.data() } as LobbyData;
+          const latestIsPlayerW = user.uid === latestLobby.playerW;
+          const latestIsPlayerB = user.uid === latestLobby.playerB;
+          const latestColor = latestIsPlayerW ? 'w' : latestIsPlayerB ? 'b' : null;
 
-          if (lobby.turn === 'w') newClocks.w = Math.max(0, newClocks.w - elapsed);
-          else newClocks.b = Math.max(0, newClocks.b - elapsed);
+          if (latestLobby.status !== 'playing' || !latestColor || latestLobby.turn !== latestColor) {
+            throw new Error('That move is out of sync. Wait for the board to refresh.');
+          }
 
-          setLocalClocks({ w: newClocks.w, b: newClocks.b });
-        }
-        newClocks.lastTickAt = serverTimestamp();
+          const g = new Chess(latestLobby.fen);
+          const move = g.move({
+            from: sourceSquare as never,
+            to: targetSquare as never,
+            promotion: 'q',
+          });
 
-        updateDoc(lobbyRef, {
-          fen: g.fen(),
-          turn: g.turn(),
-          status,
-          winner,
-          moveCount: increment(1),
-          clocks: newClocks,
-          updatedAt: serverTimestamp(),
-        }).catch((err) => {
-          console.error('Firestore Update Failed:', err);
-          setErrorMsg('Failed to sync move with server.');
-        });
+          if (move === null) {
+            throw new Error('Illegal move.');
+          }
 
-        addDoc(movesRef, {
-          move: move.san,
-          index: moveIndex,
-          player: user.uid,
-          timestamp: serverTimestamp(),
+          const status = g.isGameOver() ? 'finished' : 'playing';
+          let winner: string | null = null;
+          if (g.isCheckmate()) winner = g.turn() === 'w' ? 'Black' : 'White';
+          else if (g.isDraw() || g.isGameOver()) winner = 'Draw';
+
+          const newClocks = {
+            w: latestLobby.clocks?.w ?? 600,
+            b: latestLobby.clocks?.b ?? 600,
+            lastTickAt: serverTimestamp(),
+          };
+
+          if (
+            latestLobby.clocks?.lastTickAt &&
+            typeof (latestLobby.clocks.lastTickAt as { toDate?: () => Date }).toDate === 'function'
+          ) {
+            const lastTick = (latestLobby.clocks.lastTickAt as { toDate: () => Date }).toDate().getTime();
+            const elapsed = Math.max(0, Math.floor((Date.now() - lastTick) / 1000));
+
+            if (latestLobby.turn === 'w') newClocks.w = Math.max(0, newClocks.w - elapsed);
+            else newClocks.b = Math.max(0, newClocks.b - elapsed);
+          }
+
+          const moveIndex = latestLobby.moveCount || 0;
+
+          transaction.update(lobbyRef, {
+            fen: g.fen(),
+            turn: g.turn(),
+            status,
+            winner,
+            moveCount: moveIndex + 1,
+            clocks: newClocks,
+            updatedAt: serverTimestamp(),
+          });
+
+          transaction.set(moveRef, {
+            move: move.san,
+            index: moveIndex,
+            player: user.uid,
+            timestamp: serverTimestamp(),
+          });
         });
 
         return true;
-      } catch (e) {
-        console.error(e);
+      } catch (err) {
+        console.error('Move sync failed:', err);
+        const message = err instanceof Error ? err.message : '';
+        setErrorMsg(message || 'Failed to sync move with server.');
         return false;
+      } finally {
+        setPendingMove(false);
       }
     },
-    [game, lobby, lobbyId, user, db],
+    [db, lobby, lobbyId, pendingMove, user],
+  );
+
+  const onDrop = useCallback(
+    (args: { piece: unknown; sourceSquare: string; targetSquare: string | null }) => {
+      const { sourceSquare, targetSquare } = args;
+      if (!targetSquare) return false;
+      void submitMove(sourceSquare, targetSquare);
+      return false;
+    },
+    [submitMove],
   );
 
   const getMoveOptions = (square: string) => {
@@ -238,17 +267,8 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
     }
 
     if (moveFrom) {
-      const result = onDrop({
-        piece: null,
-        sourceSquare: moveFrom,
-        targetSquare: square,
-      });
-
-      if (result) {
-        setMoveFrom(null);
-        setOptionSquares({});
-        return;
-      }
+      void submitMove(moveFrom, square);
+      return;
     }
 
     const piece = game.get(square as never);
@@ -453,7 +473,7 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
                 onPieceDrop: onDrop,
                 onSquareClick: onSquareClick,
                 boardOrientation: orientation,
-                allowDragging: isMyTurn && lobby.status === 'playing',
+                allowDragging: isMyTurn && lobby.status === 'playing' && !pendingMove,
                 darkSquareStyle: { backgroundColor: activeTheme.dark },
                 lightSquareStyle: { backgroundColor: activeTheme.light },
                 squareStyles: optionSquares,
