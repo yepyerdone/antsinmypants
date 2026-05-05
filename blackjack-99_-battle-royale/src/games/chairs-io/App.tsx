@@ -8,13 +8,15 @@ import { auth, signIn, signOut } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { LandingPage } from './components/LandingPage';
 import { GameSession } from './components/GameSession';
-import { LogOut, Music } from 'lucide-react';
+import { AlertCircle, Loader2, LogOut, Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentGameId, setCurrentGameId] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
     return onAuthStateChanged(auth, (u) => {
@@ -22,6 +24,29 @@ export default function App() {
       setLoading(false);
     });
   }, []);
+
+  const handleSignIn = async () => {
+    setAuthError(null);
+    setAuthLoading(true);
+
+    try {
+      await signIn();
+    } catch (error: any) {
+      let message = error?.message || 'Google sign-in failed. Please try again.';
+
+      if (error?.code === 'auth/operation-not-allowed') {
+        message = 'Google sign-in is not enabled for this Firebase project.';
+      } else if (error?.code === 'auth/unauthorized-domain') {
+        message = 'This website domain is not authorized for Firebase Google sign-in.';
+      } else if (error?.code === 'auth/network-request-failed') {
+        message = 'Network error. Check your connection or disable blockers that may be blocking Firebase.';
+      }
+
+      setAuthError(message);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -84,11 +109,25 @@ export default function App() {
               <h1 className="text-5xl font-black italic uppercase tracking-tighter mb-4">Ready to Play?</h1>
               <p className="text-indigo-200/60 mb-8 font-medium">One set of chairs. One crown. Don't be the last one standing without a seat.</p>
               <button
-                onClick={signIn}
-                className="w-full bg-game-pop text-white py-5 rounded-2xl btn-tactile border-pink-700 shadow-xl shadow-pink-500/20 text-xl"
+                onClick={handleSignIn}
+                disabled={authLoading}
+                className="w-full bg-game-pop text-white py-5 rounded-2xl btn-tactile border-pink-700 shadow-xl shadow-pink-500/20 text-xl disabled:opacity-60 disabled:translate-y-0"
               >
-                Sign in with Google
+                {authLoading ? (
+                  <span className="inline-flex items-center justify-center gap-3">
+                    <Loader2 className="animate-spin" size={22} />
+                    Signing in...
+                  </span>
+                ) : (
+                  'Sign in with Google'
+                )}
               </button>
+              {authError && (
+                <div className="mt-6 flex items-start gap-3 rounded-2xl border border-red-300/30 bg-red-500/15 p-4 text-left text-sm font-bold text-red-100">
+                  <AlertCircle className="mt-0.5 shrink-0" size={18} />
+                  <span>{authError}</span>
+                </div>
+              )}
             </motion.div>
           ) : !currentGameId ? (
             <LandingPage key="landing" onJoinGame={(id) => setCurrentGameId(id)} />
