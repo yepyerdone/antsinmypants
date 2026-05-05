@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, RefreshCw, Trophy, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { analyzeFaceScan } from '../lib/gemini';
+import { analyzeFaceScan, type ScanFrameMetrics } from '../lib/gemini';
 import { db } from '../lib/firebase';
 import { doc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { Match, UserProfile } from '../types';
@@ -51,6 +51,64 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
     };
   }, [matchId]);
 
+  const getFrameMetrics = (imageData: ImageData): ScanFrameMetrics => {
+    const { data, width, height } = imageData;
+    const sampleStep = 8;
+    let symmetryDiff = 0;
+    let symmetrySamples = 0;
+    let contrastTotal = 0;
+    let contrastSamples = 0;
+    let sharpnessTotal = 0;
+    let sharpnessSamples = 0;
+    let lowerContrast = 0;
+    let lowerSamples = 0;
+    let exposureTotal = 0;
+    let exposureSamples = 0;
+
+    const brightnessAt = (x: number, y: number) => {
+      const index = (y * width + x) * 4;
+      return (data[index] + data[index + 1] + data[index + 2]) / 765;
+    };
+
+    for (let y = Math.floor(height * 0.18); y < Math.floor(height * 0.88); y += sampleStep) {
+      for (let x = Math.floor(width * 0.18); x < Math.floor(width * 0.82); x += sampleStep) {
+        const brightness = brightnessAt(x, y);
+        exposureTotal += 1 - Math.min(1, Math.abs(brightness - 0.52) * 2);
+        exposureSamples += 1;
+
+        if (x < width / 2) {
+          symmetryDiff += Math.abs(brightness - brightnessAt(width - x - 1, y));
+          symmetrySamples += 1;
+        }
+
+        if (x + sampleStep < width && y + sampleStep < height) {
+          const right = brightnessAt(x + sampleStep, y);
+          const down = brightnessAt(x, y + sampleStep);
+          const edge = Math.abs(brightness - right) + Math.abs(brightness - down);
+          sharpnessTotal += edge;
+          sharpnessSamples += 1;
+
+          const contrast = Math.abs(brightness - 0.5) * 2;
+          contrastTotal += contrast;
+          contrastSamples += 1;
+
+          if (y > height * 0.56 && y < height * 0.86 && x > width * 0.22 && x < width * 0.78) {
+            lowerContrast += edge + contrast * 0.4;
+            lowerSamples += 1;
+          }
+        }
+      }
+    }
+
+    const symmetry = 1 - Math.min(1, (symmetryDiff / Math.max(1, symmetrySamples)) * 2.8);
+    const contrast = Math.min(1, (contrastTotal / Math.max(1, contrastSamples)) * 1.75);
+    const sharpness = Math.min(1, (sharpnessTotal / Math.max(1, sharpnessSamples)) * 3.8);
+    const lowerThird = Math.min(1, (lowerContrast / Math.max(1, lowerSamples)) * 3.2);
+    const exposure = exposureTotal / Math.max(1, exposureSamples);
+
+    return { symmetry, contrast, sharpness, lowerThird, exposure };
+  };
+
   const captureFrame = () => {
     if (!videoRef.current || !canvasRef.current) {
       throw new Error('Camera is not ready.');
@@ -66,7 +124,10 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
     canvas.height = videoRef.current.videoHeight || 540;
     ctx.drawImage(videoRef.current, 0, 0);
 
-    return canvas.toDataURL('image/jpeg', 0.88).split(',')[1];
+    return {
+      image: canvas.toDataURL('image/jpeg', 0.88).split(',')[1],
+      metrics: getFrameMetrics(ctx.getImageData(0, 0, canvas.width, canvas.height)),
+    };
   };
 
   const wait = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -81,17 +142,20 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
 
     try {
       const frames: string[] = [];
+      const metrics: ScanFrameMetrics[] = [];
 
       for (let i = 0; i < 5; i += 1) {
         setScanProgress(i * 20);
         setScanMessage(`SCANNING STRUCTURE ${i + 1}/5...`);
-        frames.push(captureFrame());
+        const frame = captureFrame();
+        frames.push(frame.image);
+        metrics.push(frame.metrics);
         await wait(1000);
       }
 
       setScanProgress(100);
       setScanMessage('CALCULATING ASCENSION SCORE...');
-      const result = await analyzeFaceScan(frames);
+      const result = await analyzeFaceScan(frames, metrics);
       
       const updateData: any = {
         updatedAt: serverTimestamp(),

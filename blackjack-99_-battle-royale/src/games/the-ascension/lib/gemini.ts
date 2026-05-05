@@ -10,6 +10,14 @@ export interface PSLAnalysis {
   breakdown: string;
 }
 
+export interface ScanFrameMetrics {
+  symmetry: number;
+  contrast: number;
+  sharpness: number;
+  lowerThird: number;
+  exposure: number;
+}
+
 const getApiKey = () => {
   const env = import.meta.env as Record<string, string | undefined>;
   return env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '') || '';
@@ -29,6 +37,39 @@ const parseScore = (value: unknown, fallback: number) => {
   const score = Number(value);
   if (!Number.isFinite(score)) return fallback;
   return Math.max(1, Math.min(10, score));
+};
+
+const averageMetric = (metrics: ScanFrameMetrics[], key: keyof ScanFrameMetrics) => {
+  if (metrics.length === 0) return 0.5;
+  return metrics.reduce((sum, frame) => sum + frame[key], 0) / metrics.length;
+};
+
+const analyzeLocalScan = (metrics: ScanFrameMetrics[]): MogAnalysis => {
+  const symmetry = averageMetric(metrics, 'symmetry');
+  const contrast = averageMetric(metrics, 'contrast');
+  const sharpness = averageMetric(metrics, 'sharpness');
+  const lowerThird = averageMetric(metrics, 'lowerThird');
+  const exposure = averageMetric(metrics, 'exposure');
+
+  const score =
+    2.2 +
+    symmetry * 2.3 +
+    contrast * 1.45 +
+    sharpness * 1.65 +
+    lowerThird * 1.35 +
+    exposure * 1.05;
+  const mogScore = Number(parseScore(score, 5).toFixed(1));
+
+  const strongest = [
+    { label: 'symmetry', value: symmetry },
+    { label: 'jawline contrast', value: lowerThird },
+    { label: 'facial structure definition', value: sharpness },
+  ].sort((a, b) => b.value - a.value)[0].label;
+
+  return {
+    mogScore,
+    analysis: `Local 5-second scan completed. Strongest measured signal: ${strongest}; score is based on symmetry, lower-third definition, contrast, exposure, and scan sharpness.`,
+  };
 };
 
 export const performPSLScan = async (base64Image: string): Promise<PSLAnalysis> => {
@@ -88,17 +129,17 @@ export const performPSLScan = async (base64Image: string): Promise<PSLAnalysis> 
   }
 };
 
-export const analyzeFace = async (base64Image: string): Promise<MogAnalysis> => {
-  return analyzeFaceScan([base64Image]);
+export const analyzeFace = async (base64Image: string, metrics: ScanFrameMetrics[] = []): Promise<MogAnalysis> => {
+  return analyzeFaceScan([base64Image], metrics);
 };
 
-export const analyzeFaceScan = async (base64Images: string[]): Promise<MogAnalysis> => {
+export const analyzeFaceScan = async (base64Images: string[], metrics: ScanFrameMetrics[] = []): Promise<MogAnalysis> => {
   const ai = createClient();
   const model = getModel();
   const validImages = base64Images.filter(Boolean).slice(0, 6);
 
   if (!ai) {
-    throw new Error('Gemini API key is missing. Add GEMINI_API_KEY or VITE_GEMINI_API_KEY to enable Ascension scoring.');
+    return analyzeLocalScan(metrics);
   }
 
   if (validImages.length === 0) {
@@ -146,6 +187,6 @@ export const analyzeFaceScan = async (base64Images: string[]): Promise<MogAnalys
     };
   } catch (error) {
     console.error('AI Analysis error:', error);
-    throw error;
+    return analyzeLocalScan(metrics);
   }
 };
