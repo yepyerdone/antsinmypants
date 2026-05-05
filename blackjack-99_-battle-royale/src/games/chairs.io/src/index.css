@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  
+  --color-game-bg: #4f46e5; /* indigo-600 */
+  --color-game-dark: #312e81; /* indigo-900 */
+  --color-game-void: #1e1b4b; /* indigo-950 */
+  --color-game-accent: #facc15; /* yellow-400 */
+  --color-game-pop: #ec4899; /* pink-500 */
+  --color-game-success: #34d399; /* emerald-400 */
+}
+
+@layer base {
+  body {
+    @apply bg-game-bg text-white antialiased selection:bg-game-accent selection:text-game-void;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+@layer components {
+  .btn-tactile {
+    @apply transition-all duration-150 active:translate-y-1 active:border-b-0 border-b-4 uppercase font-black italic tracking-tight;
+  }
+  
+  .game-card {
+    @apply bg-game-dark/40 backdrop-blur-md border-4 border-indigo-400/20 rounded-[48px];
+  }
+
+  .label-micro {
+    @apply text-[10px] uppercase font-bold tracking-[0.2em] text-indigo-200/60;
+  }
+}

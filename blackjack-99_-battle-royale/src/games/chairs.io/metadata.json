@@ -1,0 +1,6 @@
+{
+  "name": "Chairs.io",
+  "description": "A real-time multiplayer musical chairs game with private lobbies and online play.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
