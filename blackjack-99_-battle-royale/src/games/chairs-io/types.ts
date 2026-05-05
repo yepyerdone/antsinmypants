@@ -6,6 +6,7 @@ export interface Game {
   hostId: string;
   isPublic: boolean;
   currentRound: number;
+  chairCount: number;
   timerValue: number;
   timerStartTime: number | null;
   winnerId: string | null;

@@ -19,6 +19,7 @@ export function GameSession({ gameId, onExit }: GameSessionProps) {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null); // For future music support
   const endRoundTriggeredRef = useRef<string | null>(null);
+  const chairSyncTriggeredRef = useRef<string | null>(null);
 
   const isHost = game?.hostId === auth.currentUser?.uid;
   const me = players.find(p => p.uid === auth.currentUser?.uid);
@@ -64,14 +65,28 @@ export function GameSession({ gameId, onExit }: GameSessionProps) {
     if (endRoundTriggeredRef.current === roundKey) return;
 
     const activePlayerCount = players.filter(p => !p.isEliminated).length;
+    const expectedChairCount = game.chairCount || Math.max(0, activePlayerCount - 1);
     const claimedChairCount = chairs.filter(chair => chair.claimedBy).length;
-    const expectedClaimCount = Math.max(0, activePlayerCount - 1);
 
-    if (expectedClaimCount > 0 && claimedChairCount >= expectedClaimCount) {
+    if (expectedChairCount > 0 && chairs.length >= expectedChairCount && claimedChairCount >= expectedChairCount) {
       endRoundTriggeredRef.current = roundKey;
       gameService.endRound(game.id);
     }
   }, [chairs, game, isHost, players, timeLeft]);
+
+  useEffect(() => {
+    if (!game || !isHost || game.status !== 'playing') return;
+
+    const activePlayerCount = players.filter(p => !p.isEliminated).length;
+    const expectedChairCount = game.chairCount || Math.max(0, activePlayerCount - 1);
+    if (expectedChairCount <= 0 || chairs.length >= expectedChairCount) return;
+
+    const syncKey = `${game.id}:${game.currentRound}:${chairs.length}:${expectedChairCount}`;
+    if (chairSyncTriggeredRef.current === syncKey) return;
+
+    chairSyncTriggeredRef.current = syncKey;
+    gameService.syncRoundChairs(game.id, expectedChairCount);
+  }, [chairs.length, game, isHost, players]);
 
   const handleStart = () => {
     if (players.length < 2) {

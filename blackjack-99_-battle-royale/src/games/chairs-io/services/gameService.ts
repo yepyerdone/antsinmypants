@@ -48,6 +48,16 @@ const COLORS = [
   '#d946ef', '#f43f5e'
 ];
 
+function buildChairData(chairCount: number) {
+  const angleOffset = Math.random() * 360;
+
+  return Array.from({ length: chairCount }, (_, index) => ({
+    id: nanoid(5),
+    claimedBy: null,
+    angle: angleOffset + (index / chairCount) * 360
+  }));
+}
+
 export const gameService = {
   async createGame(isPublic: boolean = true) {
     if (!auth.currentUser) throw new Error('Must be signed in');
@@ -61,6 +71,7 @@ export const gameService = {
         hostId: auth.currentUser.uid,
         isPublic,
         currentRound: 1,
+        chairCount: 0,
         timerValue: 0,
         timerStartTime: null,
         winnerId: null,
@@ -123,6 +134,7 @@ export const gameService = {
       const playersSnap = await getDocs(collection(db, 'games', gameId, 'players'));
       const players = playersSnap.docs.map(d => d.data() as Player);
       const playerCount = players.length;
+      const chairCount = playerCount - 1;
 
       if (playerCount < 2) throw new Error('Need at least 2 players to start');
       
@@ -130,6 +142,7 @@ export const gameService = {
       batch.update(doc(db, 'games', gameId), {
         status: 'playing',
         currentRound: 1,
+        chairCount,
         timerValue: 15 + Math.floor(Math.random() * 10), // Random starting music duration
         timerStartTime: Date.now(),
         updatedAt: Date.now()
@@ -144,16 +157,16 @@ export const gameService = {
       });
 
       // Create chairs (playerCount - 1)
-      const chairCount = playerCount - 1;
-      const angleOffset = Math.random() * 360;
-      for (let i = 0; i < chairCount; i++) {
-        const chairId = nanoid(5);
-        batch.set(doc(db, 'games', gameId, 'chairs', chairId), {
-          id: chairId,
-          claimedBy: null,
-          angle: angleOffset + (i / chairCount) * 360
+      const oldChairsSnap = await getDocs(collection(db, 'games', gameId, 'chairs'));
+      oldChairsSnap.docs.forEach(d => batch.delete(d.ref));
+
+      buildChairData(chairCount).forEach((chair) => {
+        batch.set(doc(db, 'games', gameId, 'chairs', chair.id), {
+          id: chair.id,
+          claimedBy: chair.claimedBy,
+          angle: chair.angle
         });
-      }
+      });
 
       await batch.commit();
     } catch (error) {
@@ -264,8 +277,46 @@ export const gameService = {
       batch.update(gameRef, {
         status: 'playing',
         currentRound: typeof currentRound === 'number' ? currentRound + 1 : 1,
+        chairCount: nextChairCount,
         timerValue: 10 + Math.floor(Math.random() * 8),
         timerStartTime: Date.now(),
+        updatedAt: Date.now()
+      });
+
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, path);
+    }
+  },
+
+  async syncRoundChairs(gameId: string, expectedChairCount: number) {
+    const path = `games/${gameId}/chairs`;
+    try {
+      const batch = writeBatch(db);
+      const chairsSnap = await getDocs(collection(db, 'games', gameId, 'chairs'));
+      const chairs = chairsSnap.docs.map(d => d.data() as Chair);
+
+      if (chairs.length === expectedChairCount) return;
+
+      if (chairs.length < expectedChairCount) {
+        const missingChairCount = expectedChairCount - chairs.length;
+        buildChairData(missingChairCount).forEach((chair) => {
+          batch.set(doc(db, 'games', gameId, 'chairs', chair.id), {
+            id: chair.id,
+            claimedBy: chair.claimedBy,
+            angle: chair.angle
+          });
+        });
+      } else {
+        const extraChairCount = chairs.length - expectedChairCount;
+        chairsSnap.docs
+          .filter(d => !(d.data() as Chair).claimedBy)
+          .slice(0, extraChairCount)
+          .forEach(d => batch.delete(d.ref));
+      }
+
+      batch.update(doc(db, 'games', gameId), {
+        chairCount: expectedChairCount,
         updatedAt: Date.now()
       });
 
@@ -296,6 +347,7 @@ export const gameService = {
       batch.update(gameRef, {
         status: 'lobby',
         currentRound: 1,
+        chairCount: 0,
         timerValue: 0,
         timerStartTime: null,
         winnerId: null,

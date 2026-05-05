@@ -91,6 +91,7 @@ service cloud.firestore {
         && data.hostId is string
         && data.isPublic is bool
         && data.currentRound is int
+        && (!data.keys().hasAny(['chairCount']) || data.chairCount is int)
         && data.timerValue is int
         && (data.timerStartTime == null || data.timerStartTime is number)
         && (data.winnerId == null || data.winnerId is string)
