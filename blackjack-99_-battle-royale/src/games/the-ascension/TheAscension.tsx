@@ -20,6 +20,7 @@ export default function TheAscension() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+  const [nextBattleSearching, setNextBattleSearching] = useState(false);
 
   useEffect(() => {
     setUser(firebaseUser);
@@ -55,12 +56,13 @@ export default function TheAscension() {
   const handleMatchFinish = async () => {
     if (!activeMatchId || !profile || !user) return;
     setActiveMatchId(null);
+    setNextBattleSearching(false);
   };
 
   const findNextBattle = async () => {
     if (!profile || !user) return;
 
-    setActiveMatchId(null);
+    setNextBattleSearching(true);
 
     const openMatches = query(
       collection(db, ASCENSION_MATCHES_COLLECTION),
@@ -74,6 +76,7 @@ export default function TheAscension() {
       const matchData = matchDoc.data();
 
       if (matchData.player1Id === user.uid) {
+        setNextBattleSearching(false);
         setActiveMatchId(matchDoc.id);
         return;
       }
@@ -85,6 +88,7 @@ export default function TheAscension() {
         status: 'in_progress',
         updatedAt: serverTimestamp(),
       });
+      setNextBattleSearching(false);
       setActiveMatchId(matchDoc.id);
       return;
     }
@@ -101,6 +105,7 @@ export default function TheAscension() {
     const unsub = onSnapshot(doc(db, ASCENSION_MATCHES_COLLECTION, newMatch.id), (matchSnap) => {
       if (matchSnap.data()?.status === 'in_progress') {
         unsub();
+        setNextBattleSearching(false);
         setActiveMatchId(newMatch.id);
       }
     });
@@ -193,7 +198,13 @@ export default function TheAscension() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <Game matchId={activeMatchId} user={profile} onFinish={handleMatchFinish} onNextBattle={findNextBattle} />
+              <Game
+                matchId={activeMatchId}
+                user={profile}
+                onFinish={handleMatchFinish}
+                onNextBattle={findNextBattle}
+                nextBattleSearching={nextBattleSearching}
+              />
             </motion.div>
           ) : (
             <motion.div

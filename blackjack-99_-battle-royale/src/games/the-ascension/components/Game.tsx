@@ -12,9 +12,10 @@ interface GameProps {
   user: UserProfile;
   onFinish: () => void;
   onNextBattle: () => void;
+  nextBattleSearching?: boolean;
 }
 
-export default function Game({ matchId, user, onFinish, onNextBattle }: GameProps) {
+export default function Game({ matchId, user, onFinish, onNextBattle, nextBattleSearching = false }: GameProps) {
   const [match, setMatch] = useState<Match | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -485,7 +486,7 @@ export default function Game({ matchId, user, onFinish, onNextBattle }: GameProp
       </div>
 
       <AnimatePresence>
-        {match?.status === 'finished' && (
+        {match?.status === 'finished' && !nextBattleSearching && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -521,6 +522,25 @@ export default function Game({ matchId, user, onFinish, onNextBattle }: GameProp
                  <button onClick={onNextBattle} className="mog-button w-full">NEXT BATTLE</button>
                  <button onClick={onFinish} className="mog-button w-full bg-white/10 text-white border border-white/10">RETURN TO HUB</button>
                </div>
+            </div>
+          </motion.div>
+        )}
+        {nextBattleSearching && (
+          <motion.div
+            key="next-battle-searching"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-6 backdrop-blur-xl"
+          >
+            <div className="max-w-md w-full text-center space-y-8">
+              <RefreshCw className="animate-spin mx-auto text-white/60" size={56} />
+              <div className="space-y-2">
+                <div className="text-sm font-mono text-white/40 uppercase tracking-[0.3em]">Next Battle</div>
+                <div className="text-5xl font-black italic tracking-tighter">SEARCHING...</div>
+                <p className="text-white/50">Stay here. You will transition into the next match as soon as an opponent joins.</p>
+              </div>
+              <button onClick={onFinish} className="mog-button w-full bg-white/10 text-white border border-white/10">RETURN TO HUB</button>
             </div>
           </motion.div>
         )}
