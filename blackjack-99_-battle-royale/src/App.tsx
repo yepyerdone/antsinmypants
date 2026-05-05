@@ -26,6 +26,7 @@ import { ProfileOverlay } from './components/ProfileOverlay';
 import { IntroScreen } from './components/IntroScreen';
 import { Game as MolarMadness } from './games/molar-madness/MolarMadness';
 import SnakeRushApp from './games/snake-rush/SnakeRushApp';
+import ChairsApp from './games/chairs-io/App';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -51,6 +52,9 @@ export default function App() {
       setShowIntro(false);
     } else if (location.pathname === '/molar-madness') {
       setSelectedGame('molar-madness');
+      setShowIntro(false);
+    } else if (location.pathname === '/chairs-io') {
+      setSelectedGame('chairs-io');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -538,6 +542,25 @@ export default function App() {
         </button>
 
         <SnakeRushApp />
+      </div>
+    );
+  }
+
+  if (selectedGame === 'chairs-io') {
+    return (
+      <div className="min-h-screen bg-game-bg text-white">
+        <button
+          onClick={() => {
+            setSelectedGame(null);
+            setShowIntro(true);
+            navigate('/');
+          }}
+          className="fixed top-4 left-4 z-[60] bg-white text-game-void px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl"
+        >
+          ← Back to Games
+        </button>
+
+        <ChairsApp />
       </div>
     );
   }

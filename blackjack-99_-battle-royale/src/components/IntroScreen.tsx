@@ -68,6 +68,16 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       rating: 4.7,
       players: '1 Player',
       internalPath: '/molar-madness',
+    },
+    {
+      id: 'chairs-io',
+      title: 'Chairs.io',
+      description: 'Real-time musical chairs with private lobbies and online play.',
+      image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&q=80&w=400',
+      category: 'Party',
+      rating: 4.5,
+      players: '2-8',
+      internalPath: '/chairs-io',
     }
   ];
 
