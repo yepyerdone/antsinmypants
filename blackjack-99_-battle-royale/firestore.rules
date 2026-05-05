@@ -255,6 +255,47 @@ service cloud.firestore {
       allow create, update: if isOwner(userId) && isValidPublicProfile(incoming(), userId);
     }
 
+    // Friend Chess Rules
+    match /friendChessUsers/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
+    }
+
+    match /friendChessLobbies/{lobbyId} {
+      function isFriendChessPlayer(data) {
+        return isSignedIn() && (request.auth.uid == data.playerW || request.auth.uid == data.playerB);
+      }
+
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && incoming().playerW == request.auth.uid;
+      allow update: if
+        (
+          existing().status == 'waiting'
+          && incoming().status == 'playing'
+          && incoming().playerB == request.auth.uid
+          && incoming().playerW == existing().playerW
+        ) ||
+        (
+          isFriendChessPlayer(existing()) && (
+            (
+              existing().status == 'playing' && (
+                (existing().turn == 'w' && request.auth.uid == existing().playerW) ||
+                (existing().turn == 'b' && request.auth.uid == existing().playerB)
+              )
+            ) ||
+            incoming().status == 'finished'
+          )
+        );
+
+      match /moves/{moveId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && (
+          get(/databases/$(database)/documents/friendChessLobbies/$(lobbyId)).data.playerW == request.auth.uid ||
+          get(/databases/$(database)/documents/friendChessLobbies/$(lobbyId)).data.playerB == request.auth.uid
+        );
+      }
+    }
+
     // Validation Functions
     function isValidRoom(data) {
       return data.hostId == request.auth.uid 

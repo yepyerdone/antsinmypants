@@ -167,6 +167,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
   const createLobby = async (variant: LobbyVariant = 'standard') => {
     if (!user) return;
     setLoading(true);
+    setAuthError(null);
     try {
       const code = nanoid(6).toUpperCase();
       const isChess960 = variant === 'chess960';
@@ -196,7 +197,17 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
       });
       onJoinLobby(docRef.id);
     } catch (err) {
-      handleFirestoreError(err, OperationType.WRITE, FC_COLLECTIONS.lobbies);
+      try {
+        handleFirestoreError(err, OperationType.WRITE, FC_COLLECTIONS.lobbies);
+      } catch {
+        // The helper logs detailed auth/path context for debugging.
+      }
+      const message = err instanceof Error ? err.message : '';
+      setAuthError(
+        message.includes('permission-denied')
+          ? 'Permission denied creating table. Firestore rules may need to be deployed.'
+          : message || 'Could not create table. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -260,7 +271,6 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
         collection(db, FC_COLLECTIONS.lobbies),
         where('status', '==', 'waiting'),
         where('isQuickMatch', '==', true),
-        where('variant', '==', 'standard'),
         where('timeControl', '==', selectedTime),
         limit(5),
       );
@@ -304,7 +314,14 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
       }
     } catch (err) {
       console.error('Quick Match Error:', err);
-      setAuthError('Matchmaking failed. Please try again.');
+      const message = err instanceof Error ? err.message : '';
+      setAuthError(
+        message.includes('permission-denied')
+          ? 'Matchmaking denied by Firestore rules. Deploy the updated rules and try again.'
+          : message.includes('index')
+            ? 'Matchmaking needs a Firestore index for this query.'
+            : 'Matchmaking failed. Please try again.',
+      );
     } finally {
       setLoading(false);
       setIsMatching(false);
@@ -429,31 +446,37 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
             </div>
 
             <div className="grid sm:grid-cols-3 gap-4">
-              <div
-                onClick={() => createLobby('standard')}
-                className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group"
+              <button
+                type="button"
+                onClick={() => void createLobby('standard')}
+                disabled={loading}
+                className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group text-left disabled:opacity-60 disabled:cursor-wait"
               >
                 <div className="w-12 h-12 bg-fc-gold/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-fc-gold transition-all">
                   <Plus size={24} className="text-fc-gold group-hover:text-black transition-colors" />
                 </div>
                 <h3 className="text-lg font-bold mb-1 uppercase tracking-wider">New Table</h3>
                 <p className="text-xs text-[#666] leading-relaxed">Create a standard table with the classic chess setup.</p>
-              </div>
+              </button>
 
-              <div
-                onClick={() => createLobby('chess960')}
-                className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group"
+              <button
+                type="button"
+                onClick={() => void createLobby('chess960')}
+                disabled={loading}
+                className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group text-left disabled:opacity-60 disabled:cursor-wait"
               >
                 <div className="w-12 h-12 bg-fc-gold/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-fc-gold transition-all">
                   <Crown size={24} className="text-fc-gold group-hover:text-black transition-colors" />
                 </div>
                 <h3 className="text-lg font-bold mb-1 uppercase tracking-wider">New Fischer Table</h3>
                 <p className="text-xs text-[#666] leading-relaxed">Create a Chess960 table with randomized back-rank pieces.</p>
-              </div>
+              </button>
 
-              <div
-                onClick={handleQuickMatch}
-                className={`bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group relative overflow-hidden ${
+              <button
+                type="button"
+                onClick={() => void handleQuickMatch()}
+                disabled={loading}
+                className={`bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group relative overflow-hidden text-left disabled:opacity-60 disabled:cursor-wait ${
                   isMatching ? 'pointer-events-none' : ''
                 }`}
               >
@@ -472,7 +495,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
                 </div>
                 <h3 className="text-lg font-bold mb-1 uppercase tracking-wider">Quick Match</h3>
                 <p className="text-xs text-[#666] leading-relaxed">Find a random opponent.</p>
-              </div>
+              </button>
             </div>
 
             <div className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl space-y-6">
