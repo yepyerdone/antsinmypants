@@ -41,7 +41,7 @@ interface FriendChessHomeProps {
 }
 
 export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSettings }: FriendChessHomeProps) {
-  const { db, auth, usesDedicatedFirebase } = getFriendChessFirebase();
+  const { db, auth } = getFriendChessFirebase();
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(auth.currentUser);
@@ -142,21 +142,33 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
         return;
       }
 
-      await signInFriendChessAnonymous();
-      if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName: name });
-        await ensureUserDoc(auth.currentUser.uid, name);
-        setUser({ ...auth.currentUser });
-      }
+      const cred = await signInFriendChessAnonymous();
+      const signedIn = cred.user;
+      await updateProfile(signedIn, { displayName: name });
+      await ensureUserDoc(signedIn.uid, name);
+      setUser(signedIn);
     } catch (err: unknown) {
       console.error(err);
-      const code = typeof err === 'object' && err && 'code' in err ? String((err as { code: string }).code) : '';
+      const anyErr = err as { code?: string; message?: string };
+      const code = anyErr?.code ?? '';
+      const msg = anyErr?.message ?? '';
+
       if (code === 'auth/operation-not-allowed' || code === 'auth/admin-restricted-operation') {
         setAuthError(
-          'Anonymous Authentication is not enabled. In Firebase Console → Authentication → Sign-in method, enable Anonymous (or sign in from the main site first).',
+          'Anonymous sign-in is turned off for this Firebase project. In Firebase Console → Authentication → Sign-in method, enable Anonymous.',
+        );
+      } else if (code === 'auth/unauthorized-domain') {
+        setAuthError(
+          'This exact website domain is not allowed to use Firebase Auth. In Firebase Console → Authentication → Settings → Authorized domains, add your production host (e.g. your-app.vercel.app or your custom domain), save, then try again.',
+        );
+      } else if (code === 'auth/network-request-failed') {
+        setAuthError('Network error while contacting Firebase. Check connection, VPN, or ad blockers.');
+      } else if (code === 'permission-denied' || msg.includes('permission-denied')) {
+        setAuthError(
+          'Firestore denied writing your player profile. Publish rules for friendChessUsers (see firestore.friend-chess.rules in the repo) on the same Firebase project you use in production.',
         );
       } else {
-        setAuthError(err instanceof Error ? err.message : 'Failed to join the hall. Check your connection or Firebase setup.');
+        setAuthError(msg || 'Failed to join the hall. Check your connection or Firebase setup.');
       }
     } finally {
       setLoading(false);
@@ -388,11 +400,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
             </div>
             <button
               type="button"
-              title={
-                usesDedicatedFirebase
-                  ? 'Sign out'
-                  : 'Signs out of Friend Chess and the main catalog (shared Firebase auth).'
-              }
+              title="Signs out of every game on this site (one Firebase account)."
               onClick={() => void signOutFriendChess()}
               className="ml-auto text-gray-600 hover:text-red-400"
             >

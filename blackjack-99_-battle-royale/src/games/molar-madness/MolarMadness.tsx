@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Tile, TILE_SIZE, COLORS, COLORS_L2, INITIAL_MAZE, INITIAL_MAZE_2, GRID_WIDTH, GRID_HEIGHT } from './game/constants';
 import { motion, AnimatePresence } from 'motion/react';
-import { db } from './lib/firebase';
+import { db, auth } from './lib/firebase';
 import { 
   collection, 
   query, 
@@ -11,6 +11,7 @@ import {
   addDoc, 
   serverTimestamp 
 } from 'firebase/firestore';
+import { signInAnonymously } from 'firebase/auth';
 
 interface Entity {
   x: number;
@@ -34,6 +35,7 @@ export const Game: React.FC = () => {
   const [showNameInput, setShowNameInput] = useState(false);
   const [playerName, setPlayerName] = useState(localStorage.getItem('molar_player_name') || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -364,17 +366,30 @@ export const Game: React.FC = () => {
   }, [gameState, isMuted]);
 
   useEffect(() => {
-    const q = query(collection(db, 'leaderboard'), orderBy('score', 'desc'), limit(10));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const scores = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as {name: string, score: number, id: string}[];
-      setLeaderboard(scores);
-    }, (error) => {
-      console.error("Firestore Error:", error);
-    });
+    let unsubscribe = () => {};
 
+    const initLeaderboard = async () => {
+      try {
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error('Failed to sign in anonymously for leaderboard:', error);
+      }
+
+      const q = query(collection(db, 'leaderboard'), orderBy('score', 'desc'), limit(10));
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        const scores = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as {name: string, score: number, id: string}[];
+        setLeaderboard(scores);
+      }, (error) => {
+        console.error("Firestore Error:", error);
+      });
+    };
+
+    initLeaderboard();
     return () => unsubscribe();
   }, []);
 
@@ -448,17 +463,24 @@ export const Game: React.FC = () => {
 
   const submitScore = async () => {
     if (!playerName.trim() || isSubmitting) return;
+    setSaveError(null);
     setIsSubmitting(true);
     try {
-      localStorage.setItem('molar_player_name', playerName.trim());
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
+      const trimmedName = playerName.trim().substring(0, 15);
+      const normalizedScore = Math.trunc(score);
+      localStorage.setItem('molar_player_name', trimmedName);
       await addDoc(collection(db, 'leaderboard'), {
-        name: playerName.trim().substring(0, 15),
-        score: score,
+        name: trimmedName,
+        score: normalizedScore,
         createdAt: serverTimestamp()
       });
       setShowNameInput(false);
     } catch (e) {
       console.error("Error adding score: ", e);
+      setSaveError('Unable to save score. Please check console for details.');
     } finally {
       setIsSubmitting(false);
     }
@@ -629,6 +651,9 @@ export const Game: React.FC = () => {
                 >
                   {isSubmitting ? 'SAVING...' : 'REGISTER SCORE'}
                 </button>
+                {saveError && (
+                  <p className="text-xs text-red-400 mt-3">{saveError}</p>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

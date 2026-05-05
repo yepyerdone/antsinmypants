@@ -8,7 +8,7 @@ import FriendChessSettings from './components/FriendChessSettings';
 import type { LobbyData } from './types';
 
 export default function FriendChessApp() {
-  const { auth, usesDedicatedFirebase } = getFriendChessFirebase();
+  const { auth } = getFriendChessFirebase();
   const [currentLobbyId, setCurrentLobbyId] = useState<string | null>(null);
   const [view, setView] = useState<'home' | 'history' | 'settings'>('home');
   const [preSelectedGame, setPreSelectedGame] = useState<LobbyData | null>(null);
@@ -38,11 +38,6 @@ export default function FriendChessApp() {
         >
           ← Game catalog
         </Link>
-        {!usesDedicatedFirebase && (
-          <span className="text-[10px] text-white/50 max-w-xs hidden sm:inline">
-            Using main site Firebase — data in <code className="text-fc-gold/90">friendChessLobbies</code>
-          </span>
-        )}
       </div>
 
       {currentLobbyId ? (

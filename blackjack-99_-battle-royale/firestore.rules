@@ -50,9 +50,20 @@ service cloud.firestore {
       allow update: if isOwner(userId) && incoming().wins == existing().wins + 1 && incoming().date == date;
     }
 
+    // Classic Molar Madness Top Scores
+    match /leaderboard/{entryId} {
+      allow list, get: if true;
+      allow create: if isSignedIn()
+        && incoming().name is string
+        && incoming().name.size() >= 1
+        && incoming().name.size() <= 15
+        && incoming().score is number
+        && incoming().score >= 0;
+    }
+
     // User Rules
     match /users/{userId} {
-      allow get: if isSignedIn();
+      allow get: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUser(incoming());
       allow update: if isOwner(userId) && isValidUser(incoming());
     }
