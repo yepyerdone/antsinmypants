@@ -54,7 +54,7 @@ const games: GameCardData[] = [
   {
     id: 'the-ascension',
     title: 'The Ascension',
-    description: 'A high-stakes 1v1 matchmaking game where facial metrics determine dominance.'
+    description: 'A high-stakes 1v1 matchmaking game where facial metrics determine dominance.',
     category: 'Challenge',
     meta: 'Top 10 scores',
     preview: 'ascension',
