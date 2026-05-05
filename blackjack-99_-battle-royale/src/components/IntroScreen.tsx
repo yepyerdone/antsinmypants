@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Gamepad2, Play, Star, TrendingUp, Clock, Info } from 'lucide-react';
+import molarCover from './pictures/molar-madness-cover.png';
 
 interface IntroScreenProps {
   onLaunchGame: (gameId: string) => void;
@@ -53,7 +54,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       id: 'molar-madness',
       title: 'Molar Madness',
       description: 'Familiarly-styled arcade game with cavitites, candy, and hygeine',
-      image: './components/pictures/molar-madness-cover.png',
+  image: molarCover,
       category: 'Arcade',
       rating: 4.7,
       players: '1 Player'
