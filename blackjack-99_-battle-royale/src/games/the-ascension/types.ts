@@ -27,6 +27,11 @@ export interface Match {
   rtcAnswer?: RTCSessionDescriptionInit;
   player1IceCandidates?: RTCIceCandidateInit[];
   player2IceCandidates?: RTCIceCandidateInit[];
+  player1LiveFrame?: string;
+  player2LiveFrame?: string;
+  player1LiveFrameAt?: number;
+  player2LiveFrameAt?: number;
+  processedPlayers?: string[];
   status: 'searching' | 'in_progress' | 'finished';
   winnerId?: string | null;
   createdAt: any;

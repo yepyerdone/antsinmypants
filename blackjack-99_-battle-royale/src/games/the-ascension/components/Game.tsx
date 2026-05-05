@@ -21,6 +21,7 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [remoteFeedReady, setRemoteFeedReady] = useState(false);
+  const [remoteLiveFrame, setRemoteLiveFrame] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -34,7 +35,10 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, ASCENSION_MATCHES_COLLECTION, matchId), (snap) => {
       if (snap.exists()) {
-        setMatch({ id: snap.id, ...snap.data() } as Match);
+        const nextMatch = { id: snap.id, ...snap.data() } as Match;
+        setMatch(nextMatch);
+        const nextIsPlayer1 = nextMatch.player1Id === user.uid;
+        setRemoteLiveFrame(nextIsPlayer1 ? nextMatch.player2LiveFrame || null : nextMatch.player1LiveFrame || null);
       }
     });
 
@@ -59,6 +63,39 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
       setCameraReady(false);
     };
   }, [matchId]);
+
+  useEffect(() => {
+    if (!match || !cameraReady || !streamRef.current || !videoRef.current || match.status === 'searching') return;
+
+    const liveFrameField = isPlayer1 ? 'player1LiveFrame' : 'player2LiveFrame';
+    const liveFrameAtField = isPlayer1 ? 'player1LiveFrameAt' : 'player2LiveFrameAt';
+    const matchDoc = doc(db, ASCENSION_MATCHES_COLLECTION, matchId);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) return;
+
+    const publishFrame = () => {
+      const video = videoRef.current;
+      if (!video || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+
+      const width = 260;
+      const sourceWidth = video.videoWidth || 640;
+      const sourceHeight = video.videoHeight || 360;
+      canvas.width = width;
+      canvas.height = Math.round(width * (sourceHeight / sourceWidth));
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      void updateDoc(matchDoc, {
+        [liveFrameField]: canvas.toDataURL('image/jpeg', 0.38),
+        [liveFrameAtField]: Date.now(),
+      });
+    };
+
+    publishFrame();
+    const interval = window.setInterval(publishFrame, 1000);
+    return () => window.clearInterval(interval);
+  }, [cameraReady, isPlayer1, match, matchId]);
 
   useEffect(() => {
     if (!match || !streamRef.current || !cameraReady || !match.player2Id || match.status === 'searching') return;
@@ -390,16 +427,24 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
              <video
                 ref={remoteVideoRef}
                 autoPlay
+                muted
                 playsInline
                 className={`absolute inset-0 w-full h-full object-cover grayscale brightness-75 contrast-125 transition-opacity duration-500 ${remoteFeedReady ? 'opacity-100' : 'opacity-0'}`}
              />
-             {!remoteFeedReady && !(isPlayer1 ? match?.player2Score : match?.player1Score) ? (
+             {!remoteFeedReady && remoteLiveFrame && (
+                <img
+                  src={remoteLiveFrame}
+                  alt="Opponent live camera"
+                  className="absolute inset-0 w-full h-full object-cover grayscale brightness-75 contrast-125"
+                />
+             )}
+             {!remoteFeedReady && !remoteLiveFrame && !(isPlayer1 ? match?.player2Score : match?.player1Score) ? (
                 <div className="flex flex-col items-center gap-2 opacity-30 text-center px-4">
                    <Zap size={32} />
                    <span className="text-xs font-mono uppercase tracking-[0.2em]">Connecting opponent camera...</span>
                 </div>
              ) : (
-                <div className={`relative z-10 flex flex-col items-center gap-4 text-center px-6 ${remoteFeedReady ? 'self-end mb-4 rounded-full bg-black/50 px-4 py-2 backdrop-blur-sm' : ''}`}>
+                <div className={`relative z-10 flex flex-col items-center gap-4 text-center px-6 ${remoteFeedReady || remoteLiveFrame ? 'self-end mb-4 rounded-full bg-black/50 px-4 py-2 backdrop-blur-sm' : ''}`}>
                    <Trophy size={48} className="text-white/20" />
                    <div className="text-3xl font-black italic">{(isPlayer1 ? match?.player2Score : match?.player1Score) ? 'METRICS RECEIVED' : 'LIVE FEED'}</div>
                    <div className="text-white/50 text-sm">

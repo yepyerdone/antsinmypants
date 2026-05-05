@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, runTransaction, updateDoc } from 'firebase/firestore';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
@@ -58,39 +58,52 @@ export default function TheAscension() {
   };
 
   useEffect(() => {
-    if (!activeMatchId || !profile || !user) return;
+    if (!activeMatchId || !user) return;
 
     const unsubMatch = onSnapshot(doc(db, ASCENSION_MATCHES_COLLECTION, activeMatchId), async (snap) => {
       const match = snap.data();
       if (match?.status === 'finished' && match.winnerId !== undefined) {
-        const processed = match.processedPlayers || [];
-        if (!processed.includes(user.uid)) {
-          const isWinner = match.winnerId === user.uid;
-          const isDraw = match.winnerId === null;
-          const myElo = profile.elo;
-          const currentWinStreak = profile.winStreak || 0;
+        const matchRef = doc(db, ASCENSION_MATCHES_COLLECTION, activeMatchId);
+        const userRef = doc(db, ASCENSION_USERS_COLLECTION, user.uid);
+
+        await runTransaction(db, async (transaction) => {
+          const [matchSnap, userSnap] = await Promise.all([transaction.get(matchRef), transaction.get(userRef)]);
+          const latestMatch = matchSnap.data();
+          const latestProfile = userSnap.data() as UserProfile | undefined;
+
+          if (!latestMatch || !latestProfile || latestMatch.status !== 'finished' || latestMatch.winnerId === undefined) {
+            return;
+          }
+
+          const processed = latestMatch.processedPlayers || [];
+          if (processed.includes(user.uid)) {
+            return;
+          }
+
+          const isWinner = latestMatch.winnerId === user.uid;
+          const isDraw = latestMatch.winnerId === null;
+          const currentWinStreak = latestProfile.winStreak || 0;
           const finalChange = isDraw ? 0 : calculateAscensionEloChange(isWinner, currentWinStreak);
-          const newElo = myElo + finalChange;
-          const newRank = getRank(newElo);
+          const newElo = latestProfile.elo + finalChange;
           const nextWinStreak = isDraw ? currentWinStreak : isWinner ? currentWinStreak + 1 : 0;
 
-          await updateDoc(doc(db, ASCENSION_USERS_COLLECTION, user.uid), {
+          transaction.update(userRef, {
             elo: newElo,
-            rank: newRank,
-            wins: profile.wins + (isWinner ? 1 : 0),
-            losses: profile.losses + (!isWinner && !isDraw ? 1 : 0),
+            rank: getRank(newElo),
+            wins: latestProfile.wins + (isWinner ? 1 : 0),
+            losses: latestProfile.losses + (!isWinner && !isDraw ? 1 : 0),
             winStreak: nextWinStreak,
           });
 
-          await updateDoc(doc(db, ASCENSION_MATCHES_COLLECTION, activeMatchId), {
+          transaction.update(matchRef, {
             processedPlayers: [...processed, user.uid],
           });
-        }
+        });
       }
     });
 
     return () => unsubMatch();
-  }, [activeMatchId, profile, user]);
+  }, [activeMatchId, user]);
 
   if (loading) {
     return (
