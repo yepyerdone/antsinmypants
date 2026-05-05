@@ -23,6 +23,10 @@ export interface Match {
   player2Score?: number;
   player1Analysis?: string;
   player2Analysis?: string;
+  rtcOffer?: RTCSessionDescriptionInit;
+  rtcAnswer?: RTCSessionDescriptionInit;
+  player1IceCandidates?: RTCIceCandidateInit[];
+  player2IceCandidates?: RTCIceCandidateInit[];
   status: 'searching' | 'in_progress' | 'finished';
   winnerId?: string | null;
   createdAt: any;

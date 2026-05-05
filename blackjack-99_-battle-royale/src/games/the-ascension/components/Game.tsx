@@ -3,7 +3,7 @@ import { Camera, RefreshCw, Trophy, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { analyzeFaceScan, type ScanFrameMetrics } from '../lib/gemini';
 import { db } from '../lib/firebase';
-import { doc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { arrayUnion, doc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { Match, UserProfile } from '../types';
 import { ASCENSION_MATCHES_COLLECTION } from '../collections';
 
@@ -19,10 +19,15 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
   const [scanProgress, setScanProgress] = useState(0);
   const [scanMessage, setScanMessage] = useState('EXTRACTING METRICS...');
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [remoteFeedReady, setRemoteFeedReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const peerRef = useRef<RTCPeerConnection | null>(null);
+  const appliedRemoteCandidatesRef = useRef(0);
 
   const isPlayer1 = match?.player1Id === user.uid;
 
@@ -38,6 +43,7 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
       .then(stream => {
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
+        setCameraReady(true);
       })
       .catch(err => {
         console.error("Camera error:", err);
@@ -46,10 +52,101 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
 
     return () => {
       unsub();
+      peerRef.current?.close();
+      peerRef.current = null;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+      setCameraReady(false);
     };
   }, [matchId]);
+
+  useEffect(() => {
+    if (!match || !streamRef.current || !cameraReady || !match.player2Id || match.status === 'searching') return;
+
+    const matchDoc = doc(db, ASCENSION_MATCHES_COLLECTION, matchId);
+    const localCandidateField = isPlayer1 ? 'player1IceCandidates' : 'player2IceCandidates';
+    const remoteCandidateField = isPlayer1 ? 'player2IceCandidates' : 'player1IceCandidates';
+
+    const ensurePeerConnection = () => {
+      if (peerRef.current) return peerRef.current;
+
+      const peer = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      });
+
+      streamRef.current?.getTracks().forEach((track) => {
+        if (streamRef.current) {
+          peer.addTrack(track, streamRef.current);
+        }
+      });
+
+      peer.onicecandidate = (event) => {
+        if (!event.candidate) return;
+        void updateDoc(matchDoc, {
+          [localCandidateField]: arrayUnion(event.candidate.toJSON()),
+          updatedAt: serverTimestamp(),
+        });
+      };
+
+      peer.ontrack = (event) => {
+        const [remoteStream] = event.streams;
+        if (remoteVideoRef.current && remoteStream) {
+          remoteVideoRef.current.srcObject = remoteStream;
+          setRemoteFeedReady(true);
+        }
+      };
+
+      peerRef.current = peer;
+      return peer;
+    };
+
+    const syncPeer = async () => {
+      const peer = ensurePeerConnection();
+
+      if (isPlayer1 && !match.rtcOffer && !peer.localDescription) {
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        await updateDoc(matchDoc, {
+          rtcOffer: { type: offer.type, sdp: offer.sdp },
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      if (!isPlayer1 && match.rtcOffer && !peer.remoteDescription) {
+        await peer.setRemoteDescription(new RTCSessionDescription(match.rtcOffer));
+      }
+
+      if (!isPlayer1 && match.rtcOffer && !match.rtcAnswer && peer.signalingState === 'have-remote-offer') {
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+        await updateDoc(matchDoc, {
+          rtcAnswer: { type: answer.type, sdp: answer.sdp },
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      if (isPlayer1 && match.rtcAnswer && !peer.remoteDescription) {
+        await peer.setRemoteDescription(new RTCSessionDescription(match.rtcAnswer));
+      }
+
+      const remoteCandidates = (match[remoteCandidateField] || []) as RTCIceCandidateInit[];
+      if (peer.remoteDescription) {
+        for (let i = appliedRemoteCandidatesRef.current; i < remoteCandidates.length; i += 1) {
+          await peer.addIceCandidate(new RTCIceCandidate(remoteCandidates[i]));
+        }
+        appliedRemoteCandidatesRef.current = remoteCandidates.length;
+      }
+    };
+
+    void syncPeer().catch((err) => {
+      console.error('Ascension video connection failed:', err);
+    });
+  }, [
+    cameraReady,
+    isPlayer1,
+    match,
+    matchId,
+  ]);
 
   const getFrameMetrics = (imageData: ImageData): ScanFrameMetrics => {
     const { data, width, height } = imageData;
@@ -290,16 +387,26 @@ export default function Game({ matchId, user, onFinish }: GameProps) {
             )}
           </div>
           <div className="aspect-video bg-black/50 flex items-center justify-center relative">
-             {! (isPlayer1 ? match?.player2Score : match?.player1Score) ? (
+             <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className={`absolute inset-0 w-full h-full object-cover grayscale brightness-75 contrast-125 transition-opacity duration-500 ${remoteFeedReady ? 'opacity-100' : 'opacity-0'}`}
+             />
+             {!remoteFeedReady && !(isPlayer1 ? match?.player2Score : match?.player1Score) ? (
                 <div className="flex flex-col items-center gap-2 opacity-30 text-center px-4">
                    <Zap size={32} />
-                   <span className="text-xs font-mono uppercase tracking-[0.2em]">Opponent is preparing facial metrics...</span>
+                   <span className="text-xs font-mono uppercase tracking-[0.2em]">Connecting opponent camera...</span>
                 </div>
              ) : (
-                <div className="flex flex-col items-center gap-4 text-center px-6">
+                <div className={`relative z-10 flex flex-col items-center gap-4 text-center px-6 ${remoteFeedReady ? 'self-end mb-4 rounded-full bg-black/50 px-4 py-2 backdrop-blur-sm' : ''}`}>
                    <Trophy size={48} className="text-white/20" />
-                   <div className="text-3xl font-black italic">METRICS RECEIVED</div>
-                   <div className="text-white/50 text-sm">Opponent has submitted for evaluation.</div>
+                   <div className="text-3xl font-black italic">{(isPlayer1 ? match?.player2Score : match?.player1Score) ? 'METRICS RECEIVED' : 'LIVE FEED'}</div>
+                   <div className="text-white/50 text-sm">
+                     {(isPlayer1 ? match?.player2Score : match?.player1Score)
+                       ? 'Opponent has submitted for evaluation.'
+                       : 'Opponent camera connected.'}
+                   </div>
                 </div>
              )}
           </div>
