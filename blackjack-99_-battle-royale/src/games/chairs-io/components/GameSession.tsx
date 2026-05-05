@@ -78,7 +78,7 @@ export function GameSession({ gameId, onExit }: GameSessionProps) {
       alert('Need at least 2 players to start!');
       return;
     }
-    gameService.startGame(gameId, players.length);
+    gameService.startGame(gameId);
   };
 
   const handleClaim = (chairId: string) => {

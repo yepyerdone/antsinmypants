@@ -10,7 +10,8 @@ import {
   where, 
   type DocumentData,
   deleteDoc,
-  writeBatch
+  writeBatch,
+  runTransaction
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { Game, Player, Chair, GameStatus } from '../types';
@@ -83,32 +84,47 @@ export const gameService = {
     
     const path = `games/${gameId}/players/${auth.currentUser.uid}`;
     try {
-      const playerDoc = doc(db, 'games', gameId, 'players', auth.currentUser.uid);
-      const snap = await getDoc(playerDoc);
-      
-      if (snap.exists()) return;
-
+      const userId = auth.currentUser.uid;
       const { playerName } = getCurrentPlayerIdentity();
-      const player: Player = {
-        uid: auth.currentUser.uid,
-        displayName: playerName || `Player ${auth.currentUser.uid.slice(0, 4)}`,
-        isEliminated: false,
-        isReady: false,
-        chairId: null,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        joinedAt: Date.now()
-      };
+      const gameRef = doc(db, 'games', gameId);
+      const playerDoc = doc(db, 'games', gameId, 'players', auth.currentUser.uid);
 
-      await setDoc(playerDoc, player);
+      await runTransaction(db, async (transaction) => {
+        const gameSnap = await transaction.get(gameRef);
+        if (!gameSnap.exists()) throw new Error('Game not found');
+
+        const snap = await transaction.get(playerDoc);
+        if (snap.exists()) return;
+
+        const game = gameSnap.data() as Game;
+        if (game.status !== 'lobby') throw new Error('Game already started');
+
+        const player: Player = {
+          uid: userId,
+          displayName: playerName || `Player ${userId.slice(0, 4)}`,
+          isEliminated: false,
+          isReady: false,
+          chairId: null,
+          color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          joinedAt: Date.now()
+        };
+
+        transaction.set(playerDoc, player);
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     }
   },
 
-  async startGame(gameId: string, playerCount: number) {
+  async startGame(gameId: string) {
     const path = `games/${gameId}`;
     try {
       const batch = writeBatch(db);
+      const playersSnap = await getDocs(collection(db, 'games', gameId, 'players'));
+      const players = playersSnap.docs.map(d => d.data() as Player);
+      const playerCount = players.length;
+
+      if (playerCount < 2) throw new Error('Need at least 2 players to start');
       
       // Update game status
       batch.update(doc(db, 'games', gameId), {
@@ -119,14 +135,23 @@ export const gameService = {
         updatedAt: Date.now()
       });
 
+      playersSnap.docs.forEach(d => {
+        batch.update(d.ref, {
+          isEliminated: false,
+          isReady: false,
+          chairId: null
+        });
+      });
+
       // Create chairs (playerCount - 1)
       const chairCount = playerCount - 1;
+      const angleOffset = Math.random() * 360;
       for (let i = 0; i < chairCount; i++) {
         const chairId = nanoid(5);
         batch.set(doc(db, 'games', gameId, 'chairs', chairId), {
           id: chairId,
           claimedBy: null,
-          angle: (i / chairCount) * 360
+          angle: angleOffset + (i / chairCount) * 360
         });
       }
 
@@ -226,12 +251,13 @@ export const gameService = {
         .filter(p => !p.isEliminated).length;
       
       const nextChairCount = activePlayersCount - 1;
+      const angleOffset = Math.random() * 360;
       for (let i = 0; i < nextChairCount; i++) {
         const chairId = nanoid(5);
         batch.set(doc(db, 'games', gameId, 'chairs', chairId), {
           id: chairId,
           claimedBy: null,
-          angle: (i / nextChairCount) * 360
+          angle: angleOffset + (i / nextChairCount) * 360
         });
       }
 

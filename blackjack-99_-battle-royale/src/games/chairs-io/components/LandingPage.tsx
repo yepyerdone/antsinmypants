@@ -72,9 +72,16 @@ export function LandingPage({ onJoinGame }: LandingPageProps) {
               <motion.button
                 key={game.id}
                 whileHover={{ x: 10, scale: 1.02 }}
-                onClick={() => {
-                   gameService.joinGame(game.id);
-                   onJoinGame(game.id);
+                onClick={async () => {
+                   setLoading(true);
+                   try {
+                     await gameService.joinGame(game.id);
+                     onJoinGame(game.id);
+                   } catch (e) {
+                     alert('Game not found or error joining.');
+                   } finally {
+                     setLoading(false);
+                   }
                 }}
                 className="bg-white text-game-dark p-8 rounded-3xl flex items-center justify-between group hover:bg-game-accent transition-all text-left shadow-xl shadow-black/10 border-b-8 border-indigo-200 hover:border-yellow-600"
               >

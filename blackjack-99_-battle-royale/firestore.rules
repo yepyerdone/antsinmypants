@@ -141,6 +141,7 @@ service cloud.firestore {
 
         allow create: if isSignedIn()
           && playerId == request.auth.uid
+          && getChairsGame(gameId).status == 'lobby'
           && isValidChairsPlayer(incoming(), playerId);
 
         allow update: if isSignedIn()
