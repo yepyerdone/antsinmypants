@@ -26,7 +26,7 @@ import { ProfileOverlay } from './components/ProfileOverlay';
 import { IntroScreen } from './components/IntroScreen';
 import { Game as MolarMadness } from './games/molar-madness/MolarMadness';
 import SnakeRushApp from './games/snake-rush/SnakeRushApp';
-import MusicalChairs from './games/musical-chairs/MusicalChairs';
+import ChairsApp from './games/chairs.io/src/App';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -560,7 +560,7 @@ export default function App() {
           ← Back to Games
         </button>
 
-  <MusicalChairs />
+        <ChairsApp />
       </div>
     );
   }
