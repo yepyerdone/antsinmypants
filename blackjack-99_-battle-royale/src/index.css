@@ -1314,6 +1314,11 @@ body {
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
+.site-featured-scroll-button--back {
+  left: -1.35rem;
+  right: auto;
+}
+
 .site-featured-scroll-button:hover,
 .site-featured-scroll-button:focus-visible {
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.48), 0 0 44px rgba(251, 191, 36, 0.3);
@@ -2164,6 +2169,11 @@ body {
 
   .site-featured-scroll-button {
     right: 0.6rem;
+  }
+
+  .site-featured-scroll-button--back {
+    left: 0.6rem;
+    right: auto;
   }
 
   .site-profile-stats {

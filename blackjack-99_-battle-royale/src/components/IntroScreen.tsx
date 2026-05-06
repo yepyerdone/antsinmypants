@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Bell, ChevronRight, ExternalLink, Flame, Gamepad2, Gauge, LogOut, Play, Sparkles, UserRound, Trophy, Users } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, ExternalLink, Flame, Gamepad2, Gauge, LogOut, Play, Sparkles, UserRound, Trophy, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ProfileModal } from './ProfileModal';
 
@@ -274,6 +274,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
   const { displayName, isGuest, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileView, setProfileView] = useState<'profile' | 'inbox'>('profile');
+  const [showFeaturedBackButton, setShowFeaturedBackButton] = useState(false);
   const featuredScrollerRef = useRef<HTMLDivElement>(null);
 
   const launchGame = (game: GameCardData) => {
@@ -305,6 +306,24 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       left: featuredScrollerRef.current.scrollWidth,
       behavior: 'smooth',
     });
+    setShowFeaturedBackButton(true);
+  };
+
+  const scrollFeaturedToStart = () => {
+    featuredScrollerRef.current?.scrollTo({
+      left: 0,
+      behavior: 'smooth',
+    });
+    setShowFeaturedBackButton(false);
+  };
+
+  const handleFeaturedScroll = () => {
+    const featuredScroller = featuredScrollerRef.current;
+    if (!featuredScroller) {
+      return;
+    }
+
+    setShowFeaturedBackButton(featuredScroller.scrollLeft > 12);
   };
 
   const renderGameCard = (game: GameCardData, index: number) => (
@@ -440,9 +459,23 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
 
                   {isFeatured ? (
                     <div className="site-featured-carousel">
-                      <div ref={featuredScrollerRef} className="site-games-grid site-games-grid--featured">
+                      <div
+                        ref={featuredScrollerRef}
+                        className="site-games-grid site-games-grid--featured"
+                        onScroll={handleFeaturedScroll}
+                      >
                         {sectionGames.map(renderGameCard)}
                       </div>
+                      {showFeaturedBackButton && (
+                        <button
+                          type="button"
+                          className="site-featured-scroll-button site-featured-scroll-button--back"
+                          onClick={scrollFeaturedToStart}
+                          aria-label="Scroll back to first featured game"
+                        >
+                          <ChevronLeft size={28} strokeWidth={3} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="site-featured-scroll-button"
