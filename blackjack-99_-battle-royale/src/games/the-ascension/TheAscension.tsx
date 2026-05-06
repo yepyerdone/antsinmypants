@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { addDoc, collection, doc, getDocs, limit, onSnapshot, query, runTransaction, serverTimestamp, updateDoc, where } from 'firebase/firestore';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { db } from './lib/firebase';
 import { ASCENSION_MATCHES_COLLECTION, ASCENSION_USERS_COLLECTION } from './collections';
@@ -14,7 +13,6 @@ import Home from './components/Home';
 import Game from './components/Game';
 
 export default function TheAscension() {
-  const navigate = useNavigate();
   const { firebaseUser, displayName } = useAuth();
   const [user, setUser] = useState<User | null>(firebaseUser);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -169,15 +167,6 @@ export default function TheAscension() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
-      <button
-        type="button"
-        onClick={() => navigate('/')}
-        className="fixed top-4 left-4 z-[80] bg-white text-black px-4 py-2 rounded-full font-bold text-xs uppercase tracking-widest flex items-center gap-2"
-      >
-        <ArrowLeft size={15} />
-        Back to Games
-      </button>
-
       {!user ? (
         <div className="min-h-screen flex items-center justify-center p-6 text-center">
           <div className="mog-card max-w-md p-8 space-y-4">

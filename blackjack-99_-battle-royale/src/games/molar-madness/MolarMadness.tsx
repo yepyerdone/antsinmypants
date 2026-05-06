@@ -1,39 +1,111 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { Tile, TILE_SIZE, COLORS, COLORS_L2, INITIAL_MAZE, INITIAL_MAZE_2, GRID_WIDTH, GRID_HEIGHT } from './game/constants';
 import { motion, AnimatePresence } from 'motion/react';
+import { Crown, Heart, Home, Pause, Play, RotateCcw, Volume2, VolumeX, Zap } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { Tile, TILE_SIZE, COLORS, COLORS_L2, INITIAL_MAZE, INITIAL_MAZE_2, GRID_WIDTH, GRID_HEIGHT } from './game/constants';
 import { db, auth } from './lib/firebase';
-import { 
-  collection, 
-  query, 
-  orderBy, 
-  limit, 
-  onSnapshot, 
-  addDoc, 
-  serverTimestamp 
+import {
+  collection,
+  query,
+  orderBy,
+  limit,
+  onSnapshot,
+  addDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { usePlayerIdentity } from '../../hooks/usePlayerIdentity';
 
+type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'NONE';
+type GameState = 'START' | 'PLAYING' | 'PAUSED' | 'TRANSITION' | 'GAMEOVER' | 'WIN';
+type FeedbackKind = 'power' | 'caught' | 'bonus';
+
 interface Entity {
   x: number;
   y: number;
-  dir: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'NONE';
-  nextDir: 'UP' | 'DOWN' | 'LEFT' | 'RIGHT' | 'NONE';
+  dir: Direction;
+  nextDir: Direction;
   speed: number;
   type?: string;
   isDead?: boolean;
 }
+
+interface Feedback {
+  x: number;
+  y: number;
+  age: number;
+  maxAge: number;
+  kind: FeedbackKind;
+}
+
+const BOARD_WIDTH = GRID_WIDTH * TILE_SIZE;
+const BOARD_HEIGHT = GRID_HEIGHT * TILE_SIZE;
+const MAX_LIVES = 1;
+const PLAYER_SPEED = {
+  levelOne: 1.42,
+  levelTwo: 1.54
+};
+const CANDY_SPEED = {
+  levelOne: 0.98,
+  levelTwo: 1.08
+};
+
+const cloneMaze = (source: number[][]) => source.map((row) => [...row]);
+
+const createPlayer = (level: number): Entity => ({
+  x: 9 * TILE_SIZE,
+  y: 15 * TILE_SIZE,
+  dir: 'NONE',
+  nextDir: 'NONE',
+  speed: level === 2 ? PLAYER_SPEED.levelTwo : PLAYER_SPEED.levelOne
+});
+
+const createGhosts = (level: number): Entity[] => {
+  const speed = level === 2 ? CANDY_SPEED.levelTwo : CANDY_SPEED.levelOne;
+  return [
+    { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed, type: 'RED', isDead: false },
+    { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed, type: 'PINK', isDead: false },
+    { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed, type: 'CYAN', isDead: false },
+    { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed, type: 'ORANGE', isDead: false },
+  ];
+};
+
+const directionAngle: Record<Direction, number> = {
+  RIGHT: 0,
+  DOWN: Math.PI / 2,
+  LEFT: Math.PI,
+  UP: -Math.PI / 2,
+  NONE: 0
+};
+
+const roundedRect = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number
+) => {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+};
 
 export const Game: React.FC = () => {
   const { playerName, playerId, isGuest } = usePlayerIdentity();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(parseInt(localStorage.getItem('molar_madness_highscore') || '0'));
-  const [gameState, setGameState] = useState<'START' | 'PLAYING' | 'PAUSED' | 'TRANSITION' | 'GAMEOVER'>('START');
+  const [gameState, setGameState] = useState<GameState>('START');
   const [level, setLevel] = useState(1);
-  const [maze, setMaze] = useState<number[][]>(JSON.parse(JSON.stringify(INITIAL_MAZE)));
+  const [lives, setLives] = useState(MAX_LIVES);
+  const [maze, setMaze] = useState<number[][]>(cloneMaze(INITIAL_MAZE));
   const [powerTimer, setPowerTimer] = useState(0);
-  
   const [leaderboard, setLeaderboard] = useState<{name: string, score: number, id: string}[]>([]);
   const [showNameInput, setShowNameInput] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -42,33 +114,59 @@ export const Game: React.FC = () => {
   const [isMuted, setIsMuted] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const playerRef = useRef<Entity>({ x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1.25 });
+  const playerRef = useRef<Entity>(createPlayer(1));
+  const ghostsRef = useRef<Entity[]>(createGhosts(1));
   const hasStartedRef = useRef(false);
   const cheatBufferRef = useRef('');
-  const ghostsRef = useRef<Entity[]>([
-    { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.85, type: 'RED', isDead: false },
-    { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.85, type: 'PINK', isDead: false },
-    { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.85, type: 'CYAN', isDead: false },
-    { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.85, type: 'ORANGE', isDead: false },
-  ]);
-
   const requestRef = useRef<number>(0);
+  const effectsRef = useRef<Feedback[]>([]);
+  const hitCooldownRef = useRef(0);
+  const scoreRef = useRef(score);
+  const levelRef = useRef(level);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
+  useEffect(() => {
+    levelRef.current = level;
+  }, [level]);
+
+  const addFeedback = useCallback((x: number, y: number, kind: FeedbackKind, maxAge = 34) => {
+    effectsRef.current.push({ x, y, age: 0, maxAge, kind });
+  }, []);
+
+  const maybeSaveHighScore = useCallback(() => {
+    const finalScore = scoreRef.current;
+    setHighScore((prev) => {
+      const newHigh = Math.max(prev, finalScore);
+      localStorage.setItem('molar_madness_highscore', newHigh.toString());
+      return newHigh;
+    });
+    if (finalScore > (leaderboard.length < 10 ? 0 : leaderboard[leaderboard.length - 1].score)) {
+      setShowNameInput(true);
+    }
+  }, [leaderboard]);
+
+  const resetActors = useCallback((nextLevel = levelRef.current) => {
+    playerRef.current = createPlayer(nextLevel);
+    ghostsRef.current = createGhosts(nextLevel);
+    hasStartedRef.current = false;
+    hitCooldownRef.current = 90;
+  }, []);
 
   const isWall = useCallback((nx: number, ny: number) => {
     const gridX = Math.round(nx / TILE_SIZE);
     const gridY = Math.round(ny / TILE_SIZE);
-    
-    // Tunnel row (9) handles wrapping
+
     if (gridY === 9 && (gridX < 0 || gridX >= GRID_WIDTH)) return false;
-    
     if (gridX < 0 || gridX >= GRID_WIDTH || gridY < 0 || gridY >= GRID_HEIGHT) return true;
     return maze[gridY][gridX] === Tile.WALL;
   }, [maze]);
 
   const getValidDirs = useCallback((x: number, y: number, currentDir: string) => {
-    const dirs: ('UP' | 'DOWN' | 'LEFT' | 'RIGHT')[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
-    const valid = dirs.filter(d => {
+    const dirs: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
+    const valid = dirs.filter((d) => {
       let nx = x;
       let ny = y;
       if (d === 'UP') ny -= TILE_SIZE;
@@ -78,14 +176,31 @@ export const Game: React.FC = () => {
       return !isWall(nx, ny);
     });
     const opposite: Record<string, string> = { UP: 'DOWN', DOWN: 'UP', LEFT: 'RIGHT', RIGHT: 'LEFT' };
-    const filtered = valid.filter(d => d !== opposite[currentDir]);
+    const filtered = valid.filter((d) => d !== opposite[currentDir]);
     return filtered.length > 0 ? filtered : valid;
   }, [isWall]);
 
+  const loseLife = useCallback(() => {
+    addFeedback(playerRef.current.x + TILE_SIZE / 2, playerRef.current.y + TILE_SIZE / 2, 'caught', 54);
+    setLives(0);
+    setGameState('GAMEOVER');
+    maybeSaveHighScore();
+  }, [addFeedback, maybeSaveHighScore]);
+
+  const completeBoard = useCallback(() => {
+    if (levelRef.current === 1) {
+      setGameState('TRANSITION');
+    } else {
+      setGameState('WIN');
+      maybeSaveHighScore();
+      confetti({ particleCount: 140, spread: 72, origin: { y: 0.52 } });
+    }
+  }, [maybeSaveHighScore]);
+
   const update = useCallback(() => {
     if (gameState !== 'PLAYING') return;
+    if (hitCooldownRef.current > 0) hitCooldownRef.current -= 1;
 
-    // --- Player Update ---
     const player = playerRef.current;
     if (player.dir !== 'NONE') hasStartedRef.current = true;
     const pGridX = Math.round(player.x / TILE_SIZE);
@@ -93,10 +208,10 @@ export const Game: React.FC = () => {
     const pCenterX = pGridX * TILE_SIZE;
     const pCenterY = pGridY * TILE_SIZE;
 
-    // Junction detection for player
-    if (Math.abs(player.x - pCenterX) < player.speed * 0.6 && Math.abs(player.y - pCenterY) < player.speed * 0.6) {
+    if (Math.abs(player.x - pCenterX) < player.speed * 0.7 && Math.abs(player.y - pCenterY) < player.speed * 0.7) {
       if (player.nextDir !== 'NONE') {
-        let nx = pCenterX, ny = pCenterY;
+        let nx = pCenterX;
+        let ny = pCenterY;
         if (player.nextDir === 'UP') ny -= TILE_SIZE;
         else if (player.nextDir === 'DOWN') ny += TILE_SIZE;
         else if (player.nextDir === 'LEFT') nx -= TILE_SIZE;
@@ -110,8 +225,8 @@ export const Game: React.FC = () => {
         }
       }
 
-      // Wall check for current direction
-      let wx = pCenterX, wy = pCenterY;
+      let wx = pCenterX;
+      let wy = pCenterY;
       if (player.dir === 'UP') wy -= TILE_SIZE;
       else if (player.dir === 'DOWN') wy += TILE_SIZE;
       else if (player.dir === 'LEFT') wx -= TILE_SIZE;
@@ -129,54 +244,47 @@ export const Game: React.FC = () => {
     else if (player.dir === 'LEFT') player.x -= player.speed;
     else if (player.dir === 'RIGHT') player.x += player.speed;
 
-    // Wrap around
     if (player.x <= -TILE_SIZE) player.x = (GRID_WIDTH - 1) * TILE_SIZE + TILE_SIZE - 2;
     if (player.x >= GRID_WIDTH * TILE_SIZE) player.x = -TILE_SIZE + 2;
 
-    // Pellets & Powerups
     const curX = Math.round(player.x / TILE_SIZE);
     const curY = Math.round(player.y / TILE_SIZE);
-    if (maze[curY] && (maze[curY][curX] === Tile.PELLET || maze[curY][curX] === Tile.POWER_PELLET)) {
-      const tileType = maze[curY][curX];
-      const newMaze = [...maze];
-      newMaze[curY] = [...newMaze[curY]];
-      newMaze[curY][curX] = Tile.EMPTY;
+    const currentTile = maze[curY]?.[curX];
+    if (currentTile === Tile.PELLET || currentTile === Tile.POWER_PELLET) {
+      const newMaze = maze.map((row, y) => (y === curY ? row.map((tile, x) => (x === curX ? Tile.EMPTY : tile)) : row));
       setMaze(newMaze);
-      
-      if (tileType === Tile.PELLET) {
-        setScore(s => s + 10);
+
+      if (currentTile === Tile.PELLET) {
+        setScore((s) => s + 10);
       } else {
-        setScore(s => s + 50);
-        setPowerTimer(600); // 10 seconds at 60fps
+        setScore((s) => s + 50);
+        setPowerTimer(600);
+        addFeedback(curX * TILE_SIZE + TILE_SIZE / 2, curY * TILE_SIZE + TILE_SIZE / 2, 'power', 58);
       }
 
-      if (!newMaze.some(row => row.some(tile => tile === Tile.PELLET || tile === Tile.POWER_PELLET))) {
-        setGameState('TRANSITION');
+      if (!newMaze.some((row) => row.some((tile) => tile === Tile.PELLET || tile === Tile.POWER_PELLET))) {
+        completeBoard();
       }
     }
 
-    // --- Ghosts ---
     if (hasStartedRef.current) {
-      if (powerTimer > 0) setPowerTimer(prev => prev - 1);
-      
-      ghostsRef.current.forEach(ghost => {
+      if (powerTimer > 0) setPowerTimer((prev) => prev - 1);
+
+      ghostsRef.current.forEach((ghost) => {
         const gGridX = Math.round(ghost.x / TILE_SIZE);
         const gGridY = Math.round(ghost.y / TILE_SIZE);
         const gCenterX = gGridX * TILE_SIZE;
         const gCenterY = gGridY * TILE_SIZE;
+        const effectiveSpeed = ghost.isDead ? ghost.speed * 2 : (powerTimer > 0 ? ghost.speed * 0.62 : ghost.speed);
 
-        const effectiveSpeed = ghost.isDead ? ghost.speed * 2 : (powerTimer > 0 ? ghost.speed * 0.6 : ghost.speed);
-
-        // Junction decision - snap if close to center
-        if (Math.abs(ghost.x - gCenterX) < effectiveSpeed * 0.6 && Math.abs(ghost.y - gCenterY) < effectiveSpeed * 0.6) {
+        if (Math.abs(ghost.x - gCenterX) < effectiveSpeed * 0.7 && Math.abs(ghost.y - gCenterY) < effectiveSpeed * 0.7) {
           ghost.x = gCenterX;
           ghost.y = gCenterY;
 
-          // If dead and back at base
           if (ghost.isDead && gGridX === 9 && (gGridY === 7 || gGridY === 6)) {
             ghost.isDead = false;
           }
-          
+
           const validDirs = getValidDirs(ghost.x, ghost.y, ghost.dir);
           if (validDirs.length > 0) {
             let bestDir = validDirs[0];
@@ -189,22 +297,24 @@ export const Game: React.FC = () => {
             }
 
             let compareDist = ghost.isDead || powerTimer === 0 ? Infinity : -1;
-            
-            validDirs.forEach(d => {
-              let nx = ghost.x, ny = ghost.y;
+
+            validDirs.forEach((d) => {
+              let nx = ghost.x;
+              let ny = ghost.y;
               if (d === 'UP') ny -= TILE_SIZE;
               else if (d === 'DOWN') ny += TILE_SIZE;
               else if (d === 'LEFT') nx -= TILE_SIZE;
               else if (d === 'RIGHT') nx += TILE_SIZE;
-              
-              const dist = Math.sqrt((nx - targetX)**2 + (ny - targetY)**2);
-              
+
+              const dist = Math.sqrt((nx - targetX) ** 2 + (ny - targetY) ** 2);
               if (ghost.isDead || powerTimer === 0) {
-                // Chasing or returning home: find minimum distance
-                if (dist < compareDist) { compareDist = dist; bestDir = d; }
-              } else {
-                // Scared: find maximum distance
-                if (dist > compareDist) { compareDist = dist; bestDir = d; }
+                if (dist < compareDist) {
+                  compareDist = dist;
+                  bestDir = d;
+                }
+              } else if (dist > compareDist) {
+                compareDist = dist;
+                bestDir = d;
               }
             });
             ghost.dir = bestDir;
@@ -216,155 +326,394 @@ export const Game: React.FC = () => {
         else if (ghost.dir === 'LEFT') ghost.x -= effectiveSpeed;
         else if (ghost.dir === 'RIGHT') ghost.x += effectiveSpeed;
 
-        // Ghost Wrap
         if (ghost.x <= -TILE_SIZE) ghost.x = (GRID_WIDTH - 1) * TILE_SIZE + TILE_SIZE - 2;
         if (ghost.x >= GRID_WIDTH * TILE_SIZE) ghost.x = -TILE_SIZE + 2;
 
-        // Collision Detection
-        if (Math.abs(player.x - ghost.x) < TILE_SIZE * 0.7 && Math.abs(player.y - ghost.y) < TILE_SIZE * 0.7) {
+        if (
+          hitCooldownRef.current <= 0 &&
+          Math.abs(player.x - ghost.x) < TILE_SIZE * 0.72 &&
+          Math.abs(player.y - ghost.y) < TILE_SIZE * 0.72
+        ) {
           if (powerTimer > 0 && !ghost.isDead) {
-            // Kill ghost
             ghost.isDead = true;
-            setScore(s => s + 200);
+            setScore((s) => s + 200);
+            addFeedback(ghost.x + TILE_SIZE / 2, ghost.y + TILE_SIZE / 2, 'bonus', 46);
           } else if (!ghost.isDead) {
-            setGameState('GAMEOVER');
-            setHighScore(prev => {
-              const newHigh = Math.max(prev, score);
-              localStorage.setItem('molar_madness_highscore', newHigh.toString());
-              return newHigh;
-            });
-            if (score > (leaderboard.length < 10 ? 0 : leaderboard[leaderboard.length - 1].score)) setShowNameInput(true);
+            loseLife();
           }
         }
       });
     }
-  }, [gameState, maze, isWall, getValidDirs, leaderboard, score, powerTimer]);
+  }, [addFeedback, completeBoard, gameState, getValidDirs, isWall, loseLife, maze, powerTimer]);
+
+  const drawTooth = (ctx: CanvasRenderingContext2D, entity: Entity) => {
+    const cx = entity.x + TILE_SIZE / 2;
+    const cy = entity.y + TILE_SIZE / 2;
+    const bob = Math.sin(Date.now() / 130) * 1.2;
+
+    ctx.save();
+    ctx.translate(cx, cy + bob);
+    ctx.rotate(directionAngle[entity.dir] * 0.06);
+
+    const glow = powerTimer > 0 ? '#7dd3fc' : '#ffffff';
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = powerTimer > 0 ? 16 : 8;
+    const toothGradient = ctx.createLinearGradient(-8, -10, 8, 11);
+    toothGradient.addColorStop(0, '#ffffff');
+    toothGradient.addColorStop(0.58, powerTimer > 0 ? '#dff7ff' : '#eef7f6');
+    toothGradient.addColorStop(1, '#b9d9dc');
+    ctx.fillStyle = toothGradient;
+
+    ctx.beginPath();
+    ctx.moveTo(-8, -8);
+    ctx.quadraticCurveTo(-12, -2, -9, 7);
+    ctx.quadraticCurveTo(-7, 13, -3, 8);
+    ctx.quadraticCurveTo(0, 4, 3, 8);
+    ctx.quadraticCurveTo(7, 13, 9, 7);
+    ctx.quadraticCurveTo(12, -2, 8, -8);
+    ctx.quadraticCurveTo(2, -13, -8, -8);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#11313c';
+    ctx.beginPath();
+    ctx.arc(-3.5, -4, 1.55, 0, Math.PI * 2);
+    ctx.arc(4.2, -4, 1.55, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#1f8da0';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, 1.5, 4.5, 0.15, Math.PI - 0.15);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const drawWrappedCandy = (
+    ctx: CanvasRenderingContext2D,
+    baseColor: string,
+    stripeColor: string,
+    wrapperColor: string
+  ) => {
+    ctx.fillStyle = wrapperColor;
+    ctx.beginPath();
+    ctx.moveTo(-11, -5);
+    ctx.lineTo(-18, -10);
+    ctx.lineTo(-17, -1);
+    ctx.lineTo(-18, 8);
+    ctx.lineTo(-11, 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(11, -5);
+    ctx.lineTo(18, -10);
+    ctx.lineTo(17, -1);
+    ctx.lineTo(18, 8);
+    ctx.lineTo(11, 5);
+    ctx.closePath();
+    ctx.fill();
+
+    const candyGradient = ctx.createRadialGradient(-4, -5, 2, 0, 0, 11);
+    candyGradient.addColorStop(0, '#ffffff');
+    candyGradient.addColorStop(0.18, stripeColor);
+    candyGradient.addColorStop(0.42, baseColor);
+    candyGradient.addColorStop(1, '#4c0519');
+    ctx.fillStyle = candyGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = stripeColor;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 6.2, 0.25, Math.PI * 1.18);
+    ctx.stroke();
+  };
+
+  const drawGummyDrop = (ctx: CanvasRenderingContext2D, baseColor: string) => {
+    const gummyGradient = ctx.createRadialGradient(-4, -6, 2, 0, 0, 13);
+    gummyGradient.addColorStop(0, 'rgba(255,255,255,0.92)');
+    gummyGradient.addColorStop(0.22, baseColor);
+    gummyGradient.addColorStop(1, '#14532d');
+    ctx.fillStyle = gummyGradient;
+    ctx.beginPath();
+    ctx.moveTo(0, -12);
+    ctx.bezierCurveTo(9, -9, 13, -2, 10, 7);
+    ctx.bezierCurveTo(7, 13, -7, 13, -10, 7);
+    ctx.bezierCurveTo(-13, -2, -9, -9, 0, -12);
+    ctx.fill();
+
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(-4, -5, 3, 5, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  };
+
+  const drawLollipop = (ctx: CanvasRenderingContext2D, baseColor: string, stripeColor: string) => {
+    ctx.strokeStyle = '#f8fafc';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(5, 8);
+    ctx.lineTo(11, 17);
+    ctx.stroke();
+
+    const popGradient = ctx.createRadialGradient(-4, -5, 2, 0, 0, 12);
+    popGradient.addColorStop(0, '#ffffff');
+    popGradient.addColorStop(0.2, stripeColor);
+    popGradient.addColorStop(0.5, baseColor);
+    popGradient.addColorStop(1, '#7f1d1d');
+    ctx.fillStyle = popGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, 11.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = stripeColor;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 6.8, -0.2, Math.PI * 1.35);
+    ctx.stroke();
+  };
+
+  const drawHardCandy = (ctx: CanvasRenderingContext2D, baseColor: string, stripeColor: string) => {
+    const hardCandyGradient = ctx.createRadialGradient(-4, -5, 2, 0, 0, 12);
+    hardCandyGradient.addColorStop(0, '#ffffff');
+    hardCandyGradient.addColorStop(0.2, stripeColor);
+    hardCandyGradient.addColorStop(0.55, baseColor);
+    hardCandyGradient.addColorStop(1, '#713f12');
+    ctx.fillStyle = hardCandyGradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, 11.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.62)';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+    ctx.stroke();
+  };
+
+  const drawCandy = (ctx: CanvasRenderingContext2D, ghost: Entity) => {
+    const cx = ghost.x + TILE_SIZE / 2;
+    const cy = ghost.y + TILE_SIZE / 2;
+    const scared = powerTimer > 0 && !ghost.isDead;
+    const candyStyles: Record<string, { base: string; stripe: string; wrapper: string }> = {
+      RED: { base: '#ef4444', stripe: '#fef2f2', wrapper: '#fecaca' },
+      PINK: { base: '#f472b6', stripe: '#fff1f2', wrapper: '#fbcfe8' },
+      CYAN: { base: '#22c55e', stripe: '#dcfce7', wrapper: '#bbf7d0' },
+      ORANGE: { base: '#f59e0b', stripe: '#fffbeb', wrapper: '#fde68a' }
+    };
+    const style = candyStyles[ghost.type || 'RED'] || candyStyles.RED;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.shadowBlur = 0;
+
+    if (ghost.isDead) {
+      ctx.globalAlpha = 0.58;
+      drawHardCandy(ctx, '#cbd5e1', '#ffffff');
+    } else if (scared) {
+      drawHardCandy(ctx, '#60a5fa', '#dbeafe');
+    } else {
+      if (ghost.type === 'RED') drawLollipop(ctx, style.base, style.stripe);
+      else if (ghost.type === 'PINK') drawWrappedCandy(ctx, style.base, style.stripe, style.wrapper);
+      else if (ghost.type === 'CYAN') drawGummyDrop(ctx, style.base);
+      else drawHardCandy(ctx, style.base, style.stripe);
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(-4, -2, 2, 0, Math.PI * 2);
+    ctx.arc(4, -2, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111827';
+    ctx.beginPath();
+    ctx.arc(-3.4, -1.6, 0.9, 0, Math.PI * 2);
+    ctx.arc(4.6, -1.6, 0.9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
 
   const draw = useCallback((ctx: CanvasRenderingContext2D) => {
     const currentColors = level === 2 ? COLORS_L2 : COLORS;
-    ctx.fillStyle = currentColors.BG;
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+    const bg = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+    bg.addColorStop(0, currentColors.BG);
+    bg.addColorStop(1, level === 2 ? '#052e16' : '#111827');
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-    // Draw Maze
+    ctx.save();
+    ctx.globalAlpha = 0.16;
+    ctx.strokeStyle = level === 2 ? '#bbf7d0' : '#bae6fd';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < ctx.canvas.width; x += TILE_SIZE) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, ctx.canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y < ctx.canvas.height; y += TILE_SIZE) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(ctx.canvas.width, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+
     maze.forEach((row, y) => {
       row.forEach((tile, x) => {
+        const tileX = x * TILE_SIZE;
+        const tileY = y * TILE_SIZE;
+
         if (tile === Tile.WALL) {
-          ctx.fillStyle = currentColors.WALL;
-          ctx.fillRect(x * TILE_SIZE + 2, y * TILE_SIZE + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          ctx.save();
+          ctx.shadowBlur = 11;
+          ctx.shadowColor = currentColors.WALL;
+          const wallGradient = ctx.createLinearGradient(tileX, tileY, tileX + TILE_SIZE, tileY + TILE_SIZE);
+          wallGradient.addColorStop(0, currentColors.WALL);
+          wallGradient.addColorStop(1, level === 2 ? '#15803d' : '#2563eb');
+          ctx.fillStyle = wallGradient;
+          roundedRect(ctx, tileX + 3, tileY + 3, TILE_SIZE - 6, TILE_SIZE - 6, 6);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = 'rgba(255,255,255,0.34)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.restore();
         } else if (tile === Tile.PELLET) {
-          ctx.fillStyle = currentColors.PELLET;
+          ctx.save();
+          const pelletGradient = ctx.createRadialGradient(
+            tileX + TILE_SIZE / 2 - 1.5,
+            tileY + TILE_SIZE / 2 - 1.5,
+            0.8,
+            tileX + TILE_SIZE / 2,
+            tileY + TILE_SIZE / 2,
+            4
+          );
+          pelletGradient.addColorStop(0, '#fff7ed');
+          pelletGradient.addColorStop(0.42, currentColors.PELLET);
+          pelletGradient.addColorStop(1, level === 2 ? '#a16207' : '#831843');
+          ctx.fillStyle = pelletGradient;
           ctx.beginPath();
-          ctx.arc(x * TILE_SIZE + TILE_SIZE/2, y * TILE_SIZE + TILE_SIZE/2, 2, 0, Math.PI * 2);
+          ctx.arc(tileX + TILE_SIZE / 2, tileY + TILE_SIZE / 2, 3.7, 0, Math.PI * 2);
           ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+          ctx.restore();
         } else if (tile === Tile.POWER_PELLET) {
-          ctx.fillStyle = '#00ffff';
+          ctx.save();
+          ctx.fillStyle = level === 2 ? '#fde68a' : '#bfdbfe';
           ctx.beginPath();
-          ctx.arc(x * TILE_SIZE + TILE_SIZE/2, y * TILE_SIZE + TILE_SIZE/2, TILE_SIZE/2 - 6, 0, Math.PI * 2);
+          ctx.moveTo(tileX + 5, tileY + 8);
+          ctx.lineTo(tileX + 1, tileY + 4);
+          ctx.lineTo(tileX + 2, tileY + 12);
+          ctx.lineTo(tileX + 1, tileY + 19);
+          ctx.lineTo(tileX + 5, tileY + 16);
+          ctx.closePath();
           ctx.fill();
-          // Glow effect
-          if (Math.sin(Date.now() / 150) > 0) {
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
+          ctx.beginPath();
+          ctx.moveTo(tileX + TILE_SIZE - 5, tileY + 8);
+          ctx.lineTo(tileX + TILE_SIZE - 1, tileY + 4);
+          ctx.lineTo(tileX + TILE_SIZE - 2, tileY + 12);
+          ctx.lineTo(tileX + TILE_SIZE - 1, tileY + 19);
+          ctx.lineTo(tileX + TILE_SIZE - 5, tileY + 16);
+          ctx.closePath();
+          ctx.fill();
+          const powerGradient = ctx.createRadialGradient(
+            tileX + TILE_SIZE / 2 - 3,
+            tileY + TILE_SIZE / 2 - 4,
+            2,
+            tileX + TILE_SIZE / 2,
+            tileY + TILE_SIZE / 2,
+            8
+          );
+          powerGradient.addColorStop(0, '#ffffff');
+          powerGradient.addColorStop(0.28, '#a7f3d0');
+          powerGradient.addColorStop(1, '#0f766e');
+          ctx.fillStyle = powerGradient;
+          ctx.beginPath();
+          ctx.arc(tileX + TILE_SIZE / 2, tileY + TILE_SIZE / 2, TILE_SIZE / 2 - 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+          ctx.restore();
         }
       });
     });
 
-    // Draw Player (Tooth)
-    const p = playerRef.current;
-    ctx.fillStyle = powerTimer > 0 ? '#00ffff' : currentColors.PLAYER;
-    if (powerTimer > 0 && powerTimer < 120 && Math.floor(powerTimer / 10) % 2 === 0) {
-      ctx.fillStyle = currentColors.PLAYER; // Flashing at end
-    }
-    // Tooth shape: body
-    ctx.fillRect(p.x + 4, p.y + 4, TILE_SIZE - 8, TILE_SIZE - 10);
-    // Roots
-    ctx.fillRect(p.x + 6, p.y + TILE_SIZE - 8, 4, 4);
-    ctx.fillRect(p.x + TILE_SIZE - 10, p.y + TILE_SIZE - 8, 4, 4);
-    // Eyes
-    ctx.fillStyle = '#000';
-    ctx.fillRect(p.x + 7, p.y + 8, 2, 2);
-    ctx.fillRect(p.x + TILE_SIZE - 9, p.y + 8, 2, 2);
+    effectsRef.current = effectsRef.current
+      .map((effect) => ({ ...effect, age: effect.age + 1 }))
+      .filter((effect) => effect.age < effect.maxAge);
 
-    // Draw Ghosts (Candy)
-    ghostsRef.current.forEach(g => {
-        if (g.isDead) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-        } else if (powerTimer > 0) {
-          ctx.fillStyle = (powerTimer < 120 && Math.floor(powerTimer / 10) % 2 === 0) ? '#FFFFFF' : '#0000FF';
-        } else {
-          if (g.type === 'RED') ctx.fillStyle = currentColors.GHOST_RED;
-          if (g.type === 'PINK') ctx.fillStyle = currentColors.GHOST_PINK;
-          if (g.type === 'CYAN') ctx.fillStyle = currentColors.GHOST_CYAN;
-          if (g.type === 'ORANGE') ctx.fillStyle = currentColors.GHOST_ORANGE;
-        }
-        
-        // Draw Candy Sprite (Simple 8-bit circle with wrap)
-        ctx.beginPath();
-        ctx.arc(g.x + TILE_SIZE/2, g.y + TILE_SIZE/2, TILE_SIZE/2 - 4, 0, Math.PI * 2);
-        ctx.fill();
-        
-        if (!g.isDead) {
-          // Stick or wrapper bit
-          ctx.fillStyle = '#EEE';
-          if (g.type === 'RED') {
-               ctx.fillRect(g.x + TILE_SIZE/2 - 1, g.y + TILE_SIZE/2, 2, 10); // Lollipop
-          } else {
-               ctx.fillRect(g.x + 2, g.y + TILE_SIZE/2 - 2, 4, 4); // Wrapper
-               ctx.fillRect(g.x + TILE_SIZE - 6, g.y + TILE_SIZE/2 - 2, 4, 4);
-          }
-        }
-
-        // Ghost/Candy Eyes
-        ctx.fillStyle = '#FFF';
-        ctx.fillRect(g.x + TILE_SIZE/2 - 5, g.y + TILE_SIZE/2 - 4, 4, 4);
-        ctx.fillRect(g.x + TILE_SIZE/2 + 1, g.y + TILE_SIZE/2 - 4, 4, 4);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(g.x + TILE_SIZE/2 - 3, g.y + TILE_SIZE/2 - 2, 2, 2);
-        ctx.fillRect(g.x + TILE_SIZE/2 + 3, g.y + TILE_SIZE/2 - 2, 2, 2);
+    effectsRef.current.forEach((effect) => {
+      const progress = effect.age / effect.maxAge;
+      const alpha = 1 - progress;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = effect.kind === 'caught' ? '#fb7185' : effect.kind === 'bonus' ? '#facc15' : '#7dd3fc';
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(effect.x, effect.y, 4 + progress * 22, 0, Math.PI * 2);
+      ctx.stroke();
+      if (effect.kind === 'bonus') {
+        ctx.font = '700 11px Inter, sans-serif';
+        ctx.fillText('+200', effect.x - 13, effect.y - progress * 18);
+      }
+      ctx.restore();
     });
 
-    // Score Overlay
-    ctx.fillStyle = COLORS.TEXT;
-    ctx.font = '10px "Press Start 2P"';
-    ctx.fillText(`SCORE: ${score}`, 10, 20);
-    ctx.fillText(`HI: ${highScore}`, ctx.canvas.width - 100, 20);
+    drawTooth(ctx, playerRef.current);
+    ghostsRef.current.forEach((ghost) => drawCandy(ctx, ghost));
 
-  }, [maze, score]);
+    if (hitCooldownRef.current > 0 && Math.floor(hitCooldownRef.current / 6) % 2 === 0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(248, 113, 113, 0.08)';
+      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.restore();
+    }
+  }, [level, maze, powerTimer]);
 
   const loop = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) {
+      if (gameState !== 'START') {
+        requestRef.current = requestAnimationFrame(loop);
+      }
+      return;
+    }
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      requestRef.current = requestAnimationFrame(loop);
+      return;
+    }
 
     update();
     draw(ctx);
     requestRef.current = requestAnimationFrame(loop);
-  }, [update, draw]);
+  }, [draw, update]);
 
   useEffect(() => {
-    // Background Music Setup
-    audioRef.current = new Audio('https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3'); // Retro/8-bit loop
+    audioRef.current = new Audio('https://cdn.pixabay.com/audio/2022/01/18/audio_d0a13f69d2.mp3');
     audioRef.current.loop = true;
-    audioRef.current.volume = 0.3;
+    audioRef.current.volume = 0.22;
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      audioRef.current?.pause();
+      audioRef.current = null;
     };
   }, []);
 
   useEffect(() => {
-    if (audioRef.current) {
-      if (gameState === 'PLAYING' && !isMuted) {
-        audioRef.current.play().catch(e => console.log("Audio play blocked by browser:", e));
-      } else {
-        audioRef.current.pause();
-      }
+    if (!audioRef.current) return;
+    if (gameState === 'PLAYING' && !isMuted) {
+      audioRef.current.play().catch((error) => console.log('Audio play blocked by browser:', error));
+    } else {
+      audioRef.current.pause();
     }
   }, [gameState, isMuted]);
 
@@ -382,13 +731,13 @@ export const Game: React.FC = () => {
 
       const q = query(collection(db, 'leaderboard'), orderBy('score', 'desc'), limit(10));
       unsubscribe = onSnapshot(q, (snapshot) => {
-        const scores = snapshot.docs.map(doc => ({
+        const scores = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data()
         })) as {name: string, score: number, id: string}[];
         setLeaderboard(scores);
       }, (error) => {
-        console.error("Firestore Error:", error);
+        console.error('Firestore Error:', error);
       });
     };
 
@@ -398,8 +747,15 @@ export const Game: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Toggle Pause with Space
-      if (e.code === 'Space') {
+      const key = e.key.toLowerCase();
+      const isMoveKey = ['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(key);
+      const isControlKey = isMoveKey || e.code === 'Space' || e.key === 'Escape';
+
+      if ((gameState === 'PLAYING' || gameState === 'PAUSED') && isControlKey) {
+        e.preventDefault();
+      }
+
+      if (e.key === 'Escape' || e.code === 'Space') {
         if (gameState === 'PLAYING') setGameState('PAUSED');
         else if (gameState === 'PAUSED') setGameState('PLAYING');
         return;
@@ -407,63 +763,58 @@ export const Game: React.FC = () => {
 
       if (gameState !== 'PLAYING') return;
 
-      // Secret Cheat Code: "16"
       if (/^[0-9]$/.test(e.key)) {
         cheatBufferRef.current = (cheatBufferRef.current + e.key).slice(-2);
         if (cheatBufferRef.current === '16') {
-          setScore(s => s + 10000);
-          cheatBufferRef.current = ''; // Reset after activation
+          setScore((s) => s + 10000);
+          addFeedback(playerRef.current.x + TILE_SIZE / 2, playerRef.current.y + TILE_SIZE / 2, 'bonus', 60);
+          cheatBufferRef.current = '';
         }
       }
 
-      const key = e.key.toLowerCase();
       if (key === 'arrowup' || key === 'w') playerRef.current.nextDir = 'UP';
       if (key === 'arrowdown' || key === 's') playerRef.current.nextDir = 'DOWN';
       if (key === 'arrowleft' || key === 'a') playerRef.current.nextDir = 'LEFT';
       if (key === 'arrowright' || key === 'd') playerRef.current.nextDir = 'RIGHT';
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { passive: false });
     requestRef.current = requestAnimationFrame(loop);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       cancelAnimationFrame(requestRef.current);
     };
-  }, [gameState, loop]);
+  }, [addFeedback, gameState, loop]);
 
   const startGame = () => {
     setScore(0);
     setLevel(1);
-    setMaze(JSON.parse(JSON.stringify(INITIAL_MAZE)));
-    hasStartedRef.current = false;
+    setLives(MAX_LIVES);
+    setMaze(cloneMaze(INITIAL_MAZE));
     setPowerTimer(0);
-    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1.25 };
-    ghostsRef.current = [
-        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.85, type: 'RED', isDead: false },
-        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.85, type: 'PINK', isDead: false },
-        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.85, type: 'CYAN', isDead: false },
-        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.85, type: 'ORANGE', isDead: false },
-    ];
-    setGameState('PLAYING');
     setShowNameInput(false);
     setScoreSaved(false);
     setSaveError(null);
+    effectsRef.current = [];
+    resetActors(1);
+    setGameState('PLAYING');
   };
 
   const startLevel2 = () => {
     setLevel(2);
-    setMaze(JSON.parse(JSON.stringify(INITIAL_MAZE_2)));
-    hasStartedRef.current = false;
+    setMaze(cloneMaze(INITIAL_MAZE_2));
     setPowerTimer(0);
-    playerRef.current = { x: 9 * TILE_SIZE, y: 15 * TILE_SIZE, dir: 'NONE', nextDir: 'NONE', speed: 1.35 };
-    ghostsRef.current = [
-        { x: 9 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'LEFT', nextDir: 'NONE', speed: 0.95, type: 'RED', isDead: false },
-        { x: 8 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.95, type: 'PINK', isDead: false },
-        { x: 10 * TILE_SIZE, y: 7 * TILE_SIZE, dir: 'RIGHT', nextDir: 'NONE', speed: 0.95, type: 'CYAN', isDead: false },
-        { x: 9 * TILE_SIZE, y: 6 * TILE_SIZE, dir: 'UP', nextDir: 'NONE', speed: 0.95, type: 'ORANGE', isDead: false },
-    ];
+    effectsRef.current = [];
+    resetActors(2);
     setGameState('PLAYING');
+  };
+
+  const returnToMenu = () => {
+    setGameState('START');
+    setShowNameInput(false);
+    setSaveError(null);
+    effectsRef.current = [];
   };
 
   const submitScore = async () => {
@@ -475,17 +826,16 @@ export const Game: React.FC = () => {
         await signInAnonymously(auth);
       }
       const trimmedName = playerName.trim().substring(0, 16) || (isGuest ? 'Guest Player' : 'Player');
-      const normalizedScore = Math.trunc(score);
       await addDoc(collection(db, 'leaderboard'), {
         name: trimmedName,
-        score: normalizedScore,
+        score: Math.trunc(scoreRef.current),
         playerId: playerId ?? null,
         isGuest,
         createdAt: serverTimestamp()
       });
       setScoreSaved(true);
     } catch (e) {
-      console.error("Error adding score: ", e);
+      console.error('Error adding score: ', e);
       setSaveError('Unable to save score. Please check console for details.');
     } finally {
       setIsSubmitting(false);
@@ -497,225 +847,262 @@ export const Game: React.FC = () => {
     submitScore();
   }, [showNameInput, scoreSaved, isSubmitting]);
 
+  const leaderboardPanel = (
+    <section className="molar-madness-panel molar-madness-leaderboard">
+      <div className="molar-madness-panel-heading">
+        <Crown size={16} aria-hidden="true" />
+        <span>Hall of Fame</span>
+      </div>
+      <div className="molar-madness-score-list">
+        {leaderboard.length === 0 ? (
+          <div className="molar-madness-empty">Loading scores...</div>
+        ) : (
+          leaderboard.map((entry, index) => (
+            <div key={entry.id} className="molar-madness-score-row">
+              <span>{index + 1}</span>
+              <strong>{entry.name}</strong>
+              <b>{entry.score.toLocaleString()}</b>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+
+  const overlayTitle = gameState === 'WIN' ? 'Enamel Saved' : gameState === 'GAMEOVER' ? 'Cavity Attack' : 'Level Clear';
+
   return (
-    <div className="relative flex flex-col items-center justify-start min-h-screen bg-[#1a0a2e] text-[#ff00ff] font-['Press_Start_2P'] overflow-hidden border-x-[12px] border-y-[12px] border-[#2e1055] select-none">
-      {/* Scanline Overlay */}
-      <div className="absolute inset-0 pointer-events-none opacity-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%] z-50" />
-      
-      {/* CRT Vignette */}
-      <div className="absolute inset-0 pointer-events-none z-40 shadow-[inset_0_0_150px_rgba(0,0,0,0.8)]" />
+    <div className={`molar-madness-page ${gameState === 'START' ? 'molar-madness-page--menu' : 'molar-madness-page--play'}`}>
+      <div className="molar-madness-backdrop" aria-hidden="true" />
 
-      {/* Retro Arcade Header */}
-      <div className="w-full max-w-5xl flex justify-between items-center px-12 pt-8 pb-4 z-10">
-        <div className="space-y-1">
-          <p className="text-[10px] uppercase tracking-widest text-[#00ffff] opacity-70">Player 1</p>
-          <p className="text-2xl font-bold tracking-tighter text-[#fff]">{score.toString().padStart(6, '0')}</p>
-        </div>
-        <div className="text-center">
-          <h1 className="text-4xl font-black italic tracking-tighter text-[#fff] arcade-text-shadow">MOLAR MADNESS</h1>
-          <p className="text-[8px] uppercase tracking-[0.4em] text-[#00ffff] mt-1 shrink-0">Defend the Enamel</p>
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="space-y-1 text-right">
-            <p className="text-[10px] uppercase tracking-widest text-[#00ffff] opacity-70">High Score</p>
-            <p className="text-2xl font-bold tracking-tighter text-[#fff]">{highScore.toString().padStart(6, '0')}</p>
-          </div>
-          <button 
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-[#00ffff]"
-            title={isMuted ? "Unmute" : "Mute"}
+      <AnimatePresence mode="wait">
+        {gameState === 'START' ? (
+          <motion.main
+            key="menu"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -18 }}
+            className="molar-madness-menu"
           >
-            {isMuted ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-            )}
-          </button>
-        </div>
-      </div>
+            <section className="molar-madness-hero">
+              <div className="molar-madness-badge">
+                <Zap size={15} aria-hidden="true" />
+                Arcade dental defense
+              </div>
+              <h1>Molar Madness</h1>
+              <p>
+                Guide the brave molar through neon enamel tunnels, polish every pellet, and turn power rinses
+                against the candy crew.
+              </p>
 
-      <div className="flex flex-col lg:flex-row justify-center items-center px-12 gap-12 z-10 w-full max-w-6xl mt-4">
-        {/* Main Game Container */}
-        <motion.div 
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="relative p-4 bg-[#0a0414] border-4 border-[#00ffff] neon-shadow-cyan"
-        >
-          <canvas
-            ref={canvasRef}
-            width={GRID_WIDTH * TILE_SIZE}
-            height={GRID_HEIGHT * TILE_SIZE}
-            className="bg-[#0a0414]"
-          />
-          
-          <AnimatePresence>
-            {gameState === 'PAUSED' && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/70 text-white p-8 text-center"
-              >
-                <h2 className="text-4xl mb-8 text-[#00ffff] arcade-text-shadow italic">PAUSED</h2>
-                <button
-                  onClick={() => setGameState('PLAYING')}
-                  className="px-8 py-4 bg-[#ff00ff] text-white hover:bg-white hover:text-black transition-colors border-4 border-[#00ffff] cursor-pointer text-sm font-bold"
-                >
-                  RESUME
+              <div className="molar-madness-actions">
+                <button className="molar-madness-primary" onClick={startGame}>
+                  <Play size={18} aria-hidden="true" />
+                  <span>Start Game</span>
                 </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
 
-          <AnimatePresence>
-            {gameState !== 'PLAYING' && gameState !== 'PAUSED' && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/90 text-white p-8 text-center"
-              >
-                {gameState === 'TRANSITION' ? (
-                  <>
-                    <h2 className="text-3xl mb-6 text-[#ffff00] arcade-text-shadow uppercase">
-                      LEVEL 1 CLEAR!
-                    </h2>
-                    <div className="flex gap-8 mb-8 items-end">
-                      {/* Decorative Tooth */}
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-14 bg-white rounded-t-lg relative">
-                             <div className="absolute top-2 left-2 w-2 h-2 bg-black" />
-                             <div className="absolute top-2 right-2 w-2 h-2 bg-black" />
-                             <div className="absolute bottom-0 left-1 w-3 h-3 bg-white" />
-                             <div className="absolute bottom-0 right-1 w-3 h-3 bg-white" />
-                        </div>
-                        <p className="text-[10px] text-white">BRAVE MOLAR</p>
-                      </div>
-                      <p className="text-2xl text-[#ff00ff]">VS</p>
-                      {/* Decorative Candy */}
-                      <div className="flex flex-col items-center gap-2">
-                         <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
-                             <div className="w-2 h-2 bg-white rounded-full mx-1 translate-y--1" />
-                             <div className="w-2 h-2 bg-white rounded-full mx-1 translate-y--1" />
-                         </div>
-                         <p className="text-[10px] text-white">SUGAR KING</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={startLevel2}
-                      className="px-8 py-4 bg-[#33ff33] text-[#1a0a2e] hover:bg-white transition-colors border-4 border-[#1a0a2e] cursor-pointer text-xs font-bold"
-                    >
-                      START LEVEL 2
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="text-3xl mb-6 text-blue-400 arcade-text-shadow">
-                      {gameState === 'START' ? 'INSERT COIN' : 'CAVITY ATTACK!'}
-                    </h2>
-                    
-                    {gameState === 'GAMEOVER' && (
-                      <p className="text-lg mb-4 text-red-500 animate-pulse">GAME OVER</p>
-                    )}
-                    
-                    <p className="text-sm mb-8 text-gray-400">
-                       {gameState === 'GAMEOVER' ? `BLOOD SUGAR: ${score}` : 'DODGE THE CANDY!'}
-                    </p>
-
-                    <button
-                      onClick={startGame}
-                      className="px-6 py-3 bg-[#00ffff] text-[#1a0a2e] hover:bg-white transition-colors border-4 border-[#ff00ff] cursor-pointer text-xs font-bold"
-                      id="start-button"
-                    >
-                      {gameState === 'START' ? 'PUSH START BUTTON' : 'RETRY MISSION'}
-                    </button>
-                  </>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <AnimatePresence>
-            {showNameInput && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/95 text-white p-8 text-center"
-              >
-                <h2 className="text-2xl mb-4 text-[#ff00ff] arcade-text-shadow">TOP 10 SCORE!</h2>
-                <p className="text-sm mb-6 text-[#00ffff]">
-                  {scoreSaved
-                    ? `SAVED AS ${playerName.toUpperCase()}`
-                    : `SAVING AS ${playerName.toUpperCase()}`}
-                </p>
-
-                <div className="bg-[#0a0414] border-4 border-[#00ffff] p-4 text-center text-xl mb-6 w-64 uppercase">
-                  {score.toLocaleString()}
+              <div className="molar-madness-instructions">
+                <div>
+                  <span>Move</span>
+                  <strong>Arrow keys or WASD</strong>
                 </div>
+                <div>
+                  <span>Pause</span>
+                  <strong>Escape or Space</strong>
+                </div>
+                <div>
+                  <span>Goal</span>
+                  <strong>Clear two plaque-packed boards</strong>
+                </div>
+              </div>
+            </section>
 
-                {scoreSaved && (
-                  <button
-                    onClick={() => setShowNameInput(false)}
-                    className="px-8 py-4 bg-[#ff00ff] text-white hover:bg-white hover:text-black transition-colors border-4 border-[#00ffff] cursor-pointer text-sm font-bold"
-                  >
-                    CONTINUE
-                  </button>
-                )}
-                {isSubmitting && (
-                  <p className="text-xs text-white/60 animate-pulse">REGISTERING SCORE...</p>
-                )}
-                {saveError && (
-                  <p className="text-xs text-red-400 mt-3">{saveError}</p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+            <aside className="molar-madness-menu-card">
+              <div className="molar-madness-preview">
+                <div className="molar-madness-preview-tooth" />
+                <span />
+                <span />
+                <span />
+                <div className="molar-madness-preview-candy molar-madness-preview-candy--one" />
+                <div className="molar-madness-preview-candy molar-madness-preview-candy--two" />
+              </div>
+              <div className="molar-madness-menu-stats">
+                <div>
+                  <span>Best</span>
+                  <strong>{highScore.toLocaleString()}</strong>
+                </div>
+                <div>
+                  <span>Lives</span>
+                  <strong>{MAX_LIVES}</strong>
+                </div>
+                <div>
+                  <span>Boards</span>
+                  <strong>2</strong>
+                </div>
+              </div>
+              {leaderboardPanel}
+            </aside>
+          </motion.main>
+        ) : (
+          <motion.main
+            key="play"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="molar-madness-play"
+          >
+            <header className="molar-madness-topbar">
+              <div className="molar-madness-brand">
+                <span>Defend the Enamel</span>
+                <strong>Molar Madness</strong>
+              </div>
+              <div className="molar-madness-topbar-actions">
+                <button
+                  className="molar-madness-icon-button"
+                  onClick={() => setIsMuted(!isMuted)}
+                  title={isMuted ? 'Unmute' : 'Mute'}
+                  aria-label={isMuted ? 'Unmute' : 'Mute'}
+                >
+                  {isMuted ? <VolumeX size={19} aria-hidden="true" /> : <Volume2 size={19} aria-hidden="true" />}
+                </button>
+                <button
+                  className="molar-madness-icon-button"
+                  onClick={() => setGameState(gameState === 'PAUSED' ? 'PLAYING' : 'PAUSED')}
+                  title={gameState === 'PAUSED' ? 'Resume' : 'Pause'}
+                  aria-label={gameState === 'PAUSED' ? 'Resume' : 'Pause'}
+                  disabled={gameState !== 'PLAYING' && gameState !== 'PAUSED'}
+                >
+                  {gameState === 'PAUSED' ? <Play size={19} aria-hidden="true" /> : <Pause size={19} aria-hidden="true" />}
+                </button>
+              </div>
+            </header>
 
-        {/* Sidebar / Stats */}
-        <div className="flex-1 flex flex-col gap-6 w-full max-w-sm">
-          <div className="bg-[#2e1055] p-6 border-2 border-[#ff00ff] rounded-lg neon-shadow-pink min-h-[300px]">
-            <h3 className="text-[#00ffff] text-[10px] uppercase mb-4 tracking-widest text-center border-b-2 border-[#ff00ff] pb-2">HALL OF FAME</h3>
-            <div className="flex flex-col gap-3 font-mono">
-              {leaderboard.length === 0 ? (
-                <div className="text-[10px] text-center text-white/50 animate-pulse mt-8">LOADING SCORES...</div>
-              ) : (
-                leaderboard.map((entry, index) => (
-                  <div key={entry.id} className="flex justify-between items-center text-[10px] uppercase">
-                    <div className="flex gap-2">
-                      <span className="text-[#ff00ff] w-4">{index + 1}.</span>
-                      <span className="text-white truncate max-w-[120px]">{entry.name}</span>
-                    </div>
-                    <span className="text-[#00ffff] font-bold">{entry.score.toLocaleString()}</span>
+            <section className="molar-madness-hud" aria-label="Game status">
+              <div>
+                <span>Score</span>
+                <strong>{score.toLocaleString()}</strong>
+              </div>
+              <div>
+                <span>High</span>
+                <strong>{highScore.toLocaleString()}</strong>
+              </div>
+              <div>
+                <span>Stage</span>
+                <strong>{level === 1 ? 'Molars' : 'Gum Line'}</strong>
+              </div>
+              <div className="molar-madness-lives">
+                <span>Life</span>
+                <strong>
+                  <Heart size={18} fill={lives > 0 ? 'currentColor' : 'none'} aria-hidden="true" />
+                </strong>
+              </div>
+            </section>
+
+            <section className="molar-madness-stage">
+              <div className="molar-madness-canvas-shell">
+                <canvas
+                  ref={canvasRef}
+                  width={BOARD_WIDTH}
+                  height={BOARD_HEIGHT}
+                  className="molar-madness-canvas"
+                  aria-label="Molar Madness game board"
+                />
+
+                <AnimatePresence>
+                  {gameState === 'PAUSED' && (
+                    <motion.div
+                      className="molar-madness-overlay"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <div className="molar-madness-overlay-card">
+                        <span>Time Out</span>
+                        <h2>Paused</h2>
+                        <button className="molar-madness-primary" onClick={() => setGameState('PLAYING')}>
+                          <Play size={18} aria-hidden="true" />
+                          <span>Resume</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {(gameState === 'TRANSITION' || gameState === 'GAMEOVER' || gameState === 'WIN') && (
+                    <motion.div
+                      className="molar-madness-overlay"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      <div className="molar-madness-overlay-card molar-madness-score-modal">
+                        <span>{gameState === 'TRANSITION' ? 'Board One Complete' : 'Final Score'}</span>
+                        <h2>{overlayTitle}</h2>
+                        <p>{score.toLocaleString()} points</p>
+                        <div className="molar-madness-overlay-actions">
+                          {gameState === 'TRANSITION' ? (
+                            <button className="molar-madness-primary" onClick={startLevel2}>
+                              <Zap size={18} aria-hidden="true" />
+                              <span>Start Level 2</span>
+                            </button>
+                          ) : (
+                            <button className="molar-madness-primary" onClick={startGame}>
+                              <RotateCcw size={18} aria-hidden="true" />
+                              <span>Play Again</span>
+                            </button>
+                          )}
+                          <button className="molar-madness-secondary" onClick={returnToMenu}>
+                            <Home size={17} aria-hidden="true" />
+                            <span>Game Menu</span>
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {showNameInput && (
+                    <motion.div
+                      className="molar-madness-overlay molar-madness-overlay--score"
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                    >
+                      <div className="molar-madness-overlay-card">
+                        <span>Top 10 Score</span>
+                        <h2>{scoreSaved ? 'Score Saved' : 'Saving Score'}</h2>
+                        <p>{scoreSaved ? `Saved as ${playerName}` : `Registering ${playerName}`}</p>
+                        {scoreSaved && (
+                          <button className="molar-madness-primary" onClick={() => setShowNameInput(false)}>
+                            <span>Continue</span>
+                          </button>
+                        )}
+                        {isSubmitting && <small>Registering score...</small>}
+                        {saveError && <small className="molar-madness-error">{saveError}</small>}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <aside className="molar-madness-play-aside">
+                {leaderboardPanel}
+                <section className="molar-madness-panel">
+                  <div className="molar-madness-panel-heading">
+                    <Zap size={16} aria-hidden="true" />
+                    <span>Controls</span>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="bg-[#2e1055] p-6 border-2 border-[#00ffff] rounded-lg">
-            <h3 className="text-[#ff00ff] text-[10px] uppercase mb-3 tracking-widest">Controls</h3>
-            <p className="text-[9px] leading-relaxed text-white/80 uppercase">
-              Use ARROWS or WASD to navigate. PRESS SPACE TO PAUSE.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <span className="px-2 py-1 bg-[#00ffff] text-[#1a0a2e] text-[8px] font-bold uppercase">LVL {level.toString().padStart(2, '0')}</span>
-              <span className="px-2 py-1 bg-[#ff00ff] text-white text-[8px] font-bold uppercase">STG: {level === 1 ? 'MOLARS' : 'GUM LINE'}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Decorative Bar */}
-      <div className="absolute bottom-0 w-full h-12 bg-[#2e1055] border-t-4 border-[#ff00ff] flex items-center justify-center z-10">
-        <p className="text-[10px] uppercase tracking-[0.6em] text-white animate-pulse">
-          {gameState === 'PLAYING' ? 'BATTLE IN PROGRESS' : 'Insert Coin To Continue'}
-        </p>
-      </div>
-      
-      {/* Ambient Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
+                  <div className="molar-madness-control-grid">
+                    <kbd>WASD</kbd>
+                    <kbd>Arrows</kbd>
+                    <kbd>Esc</kbd>
+                    <kbd>Space</kbd>
+                  </div>
+                </section>
+              </aside>
+            </section>
+          </motion.main>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

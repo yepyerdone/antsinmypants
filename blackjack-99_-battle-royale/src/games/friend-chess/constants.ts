@@ -50,7 +50,7 @@ export const DEFAULT_THEME = BOARD_THEMES[0];
 export const BOT_DIFFICULTIES: BotDifficulty[] = [
   {
     id: 'beginner',
-    name: 'Beginner Bot',
+    name: 'Beginner',
     estimatedElo: '~400 ELO',
     elo: 1320,
     skill: 0,
@@ -59,7 +59,7 @@ export const BOT_DIFFICULTIES: BotDifficulty[] = [
   },
   {
     id: 'easy',
-    name: 'Easy Bot',
+    name: 'Easy',
     estimatedElo: '~700 ELO',
     elo: 1350,
     skill: 2,
@@ -68,7 +68,7 @@ export const BOT_DIFFICULTIES: BotDifficulty[] = [
   },
   {
     id: 'casual',
-    name: 'Casual Bot',
+    name: 'Casual',
     estimatedElo: '~1000 ELO',
     elo: 1400,
     skill: 4,
@@ -77,7 +77,7 @@ export const BOT_DIFFICULTIES: BotDifficulty[] = [
   },
   {
     id: 'intermediate',
-    name: 'Intermediate Bot',
+    name: 'Intermediate',
     estimatedElo: '~1300 ELO',
     elo: 1500,
     skill: 7,
@@ -86,7 +86,7 @@ export const BOT_DIFFICULTIES: BotDifficulty[] = [
   },
   {
     id: 'advanced',
-    name: 'Advanced Bot',
+    name: 'Advanced',
     estimatedElo: '~1600 ELO',
     elo: 1600,
     skill: 10,
@@ -95,7 +95,7 @@ export const BOT_DIFFICULTIES: BotDifficulty[] = [
   },
   {
     id: 'expert',
-    name: 'Expert Bot',
+    name: 'Expert',
     estimatedElo: '2000+ ELO',
     elo: 2000,
     skill: 16,

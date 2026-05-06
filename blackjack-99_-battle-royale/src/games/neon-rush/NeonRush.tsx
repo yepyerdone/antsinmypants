@@ -7,7 +7,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { ArrowLeft, Diamond, MapPin, RefreshCcw, Trophy } from 'lucide-react';
+import { Diamond, MapPin, RefreshCcw, Trophy } from 'lucide-react';
 import { Environment } from './components/World/Environment';
 import { Player } from './components/World/Player';
 import { Chaser } from './components/World/Chaser';
@@ -198,14 +198,10 @@ function SpaceRunnerLeaderboard() {
   );
 }
 
-type SpaceRunnerProps = {
-  onBack?: () => void;
-};
-
-function SpaceRunner({ onBack }: SpaceRunnerProps) {
+function SpaceRunner() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Space Runner | Honor Roll Arcade';
+    document.title = 'Space Runner | The Honor Roll';
     return () => {
       document.title = previousTitle;
     };
@@ -214,10 +210,6 @@ function SpaceRunner({ onBack }: SpaceRunnerProps) {
   return (
     <div className="space-runner-page">
       <header className="space-runner-header">
-        <button type="button" onClick={onBack} className="space-runner-back">
-          <ArrowLeft size={16} />
-          Back to Games
-        </button>
         <div>
           <p>Orbital arcade runner</p>
           <h1>Space Runner</h1>

@@ -40,20 +40,5 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  return (
-    <>
-      <div className="site-account-bar">
-        <div>
-          <UserRound size={16} />
-          <span>{displayName}</span>
-          {isGuest && <small>Guest</small>}
-        </div>
-        <button type="button" onClick={handleLogout} title="Sign out">
-          <LogOut size={16} />
-          <span>Sign Out</span>
-        </button>
-      </div>
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

@@ -5,13 +5,13 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Card, Player, GameState, PlayerStatus } from './types';
 import { createDeck, calculateScore } from './lib/blackjack';
 import { CardComponent } from './components/CardComponent';
 import { BattleRoyaleHUD, SidebarPlayerList } from './components/BattleRoyaleHUD';
 import { cn } from './lib/utils';
-import { ArrowLeft, Play, RotateCcw, User, Cpu, Info, Skull, Trophy, Timer as TimerIcon } from 'lucide-react';
+import { Play, RotateCcw, User, Cpu, Info, Skull, Trophy, Timer as TimerIcon } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 import { OnlineLobby } from './components/OnlineLobby';
@@ -35,7 +35,6 @@ const TURN_TIME_LIMIT = 15;
 
 export default function App() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { firebaseUser, displayName } = useAuth();
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [mode, setMode] = useState<'online' | 'offline' | null>(null);
@@ -520,17 +519,6 @@ export default function App() {
   if (selectedGame === 'molar-madness') {
     return (
       <div className="min-h-screen bg-bg-dark text-white">
-        <button
-          onClick={() => {
-            setSelectedGame(null);
-            setShowIntro(true);
-            navigate('/');
-          }}
-          className="fixed top-4 left-4 z-50 bg-white text-bg-dark px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest"
-        >
-          ← Back to Games
-        </button>
-
         <MolarMadness />
       </div>
     );
@@ -539,18 +527,6 @@ export default function App() {
   if (selectedGame === 'snake-rush') {
     return (
       <div className="min-h-screen bg-slate-900 text-white">
-        <button
-          onClick={() => {
-            setSelectedGame(null);
-            setShowIntro(true);
-            navigate('/');
-          }}
-          className="snake-rush-back-button fixed top-4 left-4 z-50"
-        >
-          <ArrowLeft size={15} aria-hidden="true" />
-          <span>Back to Games</span>
-        </button>
-
         <SnakeRushApp />
       </div>
     );
@@ -559,32 +535,13 @@ export default function App() {
   if (selectedGame === 'chairs-io') {
     return (
       <div className="min-h-screen bg-game-bg text-white">
-        <button
-          onClick={() => {
-            setSelectedGame(null);
-            setShowIntro(true);
-            navigate('/');
-          }}
-          className="fixed top-4 left-4 z-[60] bg-white text-game-void px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl"
-        >
-          ← Back to Games
-        </button>
-
         <ChairsApp />
       </div>
     );
   }
 
   if (selectedGame === 'space-runner') {
-    return (
-      <SpaceRunner
-        onBack={() => {
-          setSelectedGame(null);
-          setShowIntro(true);
-          navigate('/');
-        }}
-      />
-    );
+    return <SpaceRunner />;
   }
 
   if (selectedGame === 'the-ascension') {
@@ -594,17 +551,6 @@ export default function App() {
   if (selectedGame === 'mole-mania') {
     return (
       <div className="min-h-screen bg-[#FFDE59] text-[#8B4513]">
-        <button
-          onClick={() => {
-            setSelectedGame(null);
-            setShowIntro(true);
-            navigate('/');
-          }}
-          className="fixed top-4 left-4 z-[80] bg-white text-[#8B4513] px-4 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-xl border-2 border-[#8B4513]"
-        >
-          ← Back to Games
-        </button>
-
         <MoleMania />
       </div>
     );
@@ -613,17 +559,6 @@ export default function App() {
   if (selectedGame === 'states-master') {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100">
-        <button
-          onClick={() => {
-            setSelectedGame(null);
-            setShowIntro(true);
-            navigate('/');
-          }}
-          className="fixed top-24 left-4 z-[80] bg-white text-slate-950 px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl"
-        >
-          ← Back to Games
-        </button>
-
         <StatesMaster />
       </div>
     );
@@ -1065,3 +1000,6 @@ export default function App() {
     </div>
   );
 }
+
+
+

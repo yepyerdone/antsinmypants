@@ -5,7 +5,7 @@ import type { LobbyData, MoveRecord } from '../types';
 import { BOARD_THEMES, DEFAULT_THEME, FC_COLLECTIONS } from '../constants';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
-import { ChevronLeft, ChevronRight, RotateCcw, Calendar, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, Calendar, Trophy, Castle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const STANDARD_INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -141,7 +141,7 @@ export default function FriendChessHistoryView({ onBack, initialGame }: FriendCh
   }
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden bg-fc-bg-dark text-white font-sans">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-fc-bg-dark text-white font-sans">
       <header className="h-16 border-b border-fc-border-dim flex items-center justify-between px-8 bg-fc-bg-header shrink-0">
         <button
           onClick={selectedGame ? () => setSelectedGame(null) : onBack}
@@ -149,12 +149,12 @@ export default function FriendChessHistoryView({ onBack, initialGame }: FriendCh
           type="button"
         >
           <ChevronLeft size={16} />
-          {selectedGame ? 'Back to List' : 'Back to Hall'}
+          {selectedGame ? 'Back to History' : 'Back to Dashboard'}
         </button>
         <div className="flex items-center gap-2">
           <Calendar size={18} className="text-fc-gold" />
           <h1 className="text-sm font-bold tracking-widest uppercase">
-            {selectedGame ? `Analysis: ${selectedGame.code}` : 'Chess History'}
+            {selectedGame ? `Analysis: ${selectedGame.code}` : 'Games'}
           </h1>
         </div>
         <div className="w-20"></div>
@@ -171,8 +171,10 @@ export default function FriendChessHistoryView({ onBack, initialGame }: FriendCh
               className="p-8 lg:p-12 max-w-5xl mx-auto w-full"
             >
               {games.length === 0 ? (
-                <div className="p-20 border border-dashed border-[#222] rounded-3xl text-center">
-                  <p className="text-[#444] uppercase tracking-[0.2em] text-xs font-bold">No combat records found yet.</p>
+                <div className="friend-chess-empty-state p-20 border border-dashed border-[#222] rounded-3xl text-center">
+                  <Castle size={42} className="mx-auto mb-5 text-fc-gold" />
+                  <h2 className="text-white text-2xl font-black uppercase tracking-tight mb-2">No games found yet.</h2>
+                  <p className="text-[#9a9a9a] text-sm font-bold">Your completed games will appear here.</p>
                 </div>
               ) : (
                 <div className="grid gap-4">

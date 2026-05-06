@@ -111,7 +111,7 @@ export function SiteAuthStart() {
               <Gamepad2 size={30} />
             </div>
             <div>
-              <h1>Honor Roll Arcade</h1>
+              <h1>The Honor Roll</h1>
             </div>
           </div>
 

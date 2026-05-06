@@ -140,7 +140,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
     const localPlayerId = user?.uid || 'local-player';
     const initialLobby: LobbyData = {
       id: 'stockfish-local',
-      code: 'BOT',
+      code: 'COMPUTER',
       playerW: localPlayerId,
       playerB: 'stockfish',
       whiteName: botConfig.playerName,
@@ -244,7 +244,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         }
       } catch (error) {
         botHistorySavedRef.current = false;
-        console.error('Failed to save Stockfish game to history:', error);
+        console.error('Failed to save computer game to history:', error);
       }
     },
     [botConfig, db, localClocks.b, localClocks.w, user],
@@ -507,7 +507,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         const safeMove = buildSafeMove(g, sourceSquare, targetSquare);
 
         if (!safeMove) {
-          throw new Error(`Stockfish suggested an illegal move: ${bestMove}`);
+          throw new Error(`Computer suggested an illegal move: ${bestMove}`);
         }
         const promotion = bestMove.slice(4, 5);
         if (promotion) safeMove.promotion = promotion as PromotionPiece;
@@ -516,13 +516,13 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         try {
           move = g.move(safeMove as never);
         } catch (error) {
-          console.warn('Invalid Stockfish move ignored:', safeMove, error);
-          throw new Error(`Stockfish suggested an illegal move: ${bestMove}`);
+          console.warn('Invalid computer move ignored:', safeMove, error);
+          throw new Error(`Computer suggested an illegal move: ${bestMove}`);
         }
 
         if (move === null) {
-          console.warn('Invalid Stockfish move ignored:', safeMove);
-          throw new Error(`Stockfish suggested an illegal move: ${bestMove}`);
+          console.warn('Invalid computer move ignored:', safeMove);
+          throw new Error(`Computer suggested an illegal move: ${bestMove}`);
         }
 
         const status = g.isGameOver() ? 'finished' : 'playing';
@@ -548,8 +548,8 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         recordBotMove(move.san, fenBefore, g.fen(), 'stockfish');
       } catch (err) {
         if (!cancelled) {
-          console.error('Stockfish move failed:', err);
-          setErrorMsg(err instanceof Error ? err.message : 'Stockfish could not choose a move.');
+          console.error('Computer move failed:', err);
+          setErrorMsg(err instanceof Error ? err.message : 'The computer could not choose a move.');
         }
       } finally {
         if (!cancelled) {
@@ -679,7 +679,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
 
   if (!lobby)
     return (
-      <div className="flex items-center justify-center h-screen bg-fc-bg-dark text-white">
+      <div className="friend-chess-game-screen flex items-center justify-center h-screen bg-fc-bg-dark text-white">
         <div className="w-12 h-12 border-4 border-fc-gold border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -692,7 +692,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
   const activeTheme = BOARD_THEMES.find((t) => t.id === lobby.theme) || DEFAULT_THEME;
 
   return (
-    <div className="w-full h-screen bg-fc-bg-dark text-[#E0E0E0] font-sans flex flex-col lg:flex-row overflow-hidden">
+    <div className="friend-chess-game-screen w-full h-screen bg-fc-bg-dark text-[#E0E0E0] font-sans flex flex-col lg:flex-row overflow-hidden">
       <aside className="w-full lg:w-80 border-r border-fc-border-dim bg-fc-bg-panel flex flex-col shrink-0">
         <div className="p-6 border-b border-fc-border-dim">
           <button
@@ -705,7 +705,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
 
           <div className="flex justify-between items-center mb-2">
             <span className="text-[10px] uppercase text-[#666] font-bold tracking-widest">
-              {isBotGame ? 'Bot Session' : 'Match Session'}
+              {isBotGame ? 'Computer Game' : 'Match Session'}
             </span>
             <span
               className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded ${
@@ -811,7 +811,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
                 ) : (
                   <div className="text-[#666] uppercase tracking-widest flex items-center gap-2 py-2">
                     <span className={`w-1.5 h-1.5 rounded-full ${lobby.turn === 'w' ? 'bg-white' : 'bg-fc-gold animate-pulse'}`}></span>
-                    {botThinking ? 'Stockfish thinking' : lobby.turn === 'w' ? "White's turn" : "Black's turn"}
+                    {botThinking ? 'Computer thinking' : lobby.turn === 'w' ? "White's turn" : "Black's turn"}
                   </div>
                 )}
               </div>

@@ -19,18 +19,14 @@ import type { LobbyData, UserProfile } from '../types';
 import { BOT_DIFFICULTIES, DEFAULT_THEME, FC_COLLECTIONS } from '../constants';
 import {
   Bot,
-  LogOut,
   Plus,
   User,
-  LayoutDashboard,
-  Settings as SettingsIcon,
   Trophy,
   ChevronRight,
-  History,
   Crown,
+  Castle,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useAuth } from '../../../context/AuthContext';
 import { usePlayerIdentity } from '../../../hooks/usePlayerIdentity';
 
 type LobbyVariant = 'standard' | 'chess960';
@@ -39,7 +35,6 @@ interface FriendChessHomeProps {
   onJoinLobby: (id: string) => void;
   onStartBotGame: (difficultyId: string, timeControl: number) => void;
   onShowHistory: (game?: LobbyData) => void;
-  onShowSettings: () => void;
 }
 
 const generateChess960FEN = (): string => {
@@ -77,9 +72,8 @@ const generateChess960FEN = (): string => {
   return `${blackBackrank}/pppppppp/8/8/8/8/PPPPPPPP/${whiteBackrank} w KQkq - 0 1`;
 };
 
-export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHistory, onShowSettings }: FriendChessHomeProps) {
+export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHistory }: FriendChessHomeProps) {
   const { db, auth } = getFriendChessFirebase();
-  const { logout } = useAuth();
   const { playerName } = usePlayerIdentity();
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -373,75 +367,36 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
   }
 
   return (
-    <div className="w-full h-screen bg-fc-bg-dark text-[#E0E0E0] font-sans flex overflow-hidden">
-      <aside className="w-64 border-r border-fc-border-dim flex flex-col shrink-0 hidden lg:flex">
-        <div className="p-8">
-          <h1 className="text-xl font-bold tracking-widest text-fc-gold flex items-center gap-2 uppercase">CHESS</h1>
-        </div>
-
-        <nav className="flex-1 px-4 space-y-1">
-          <div className="text-[10px] uppercase tracking-widest text-[#666] mb-4 mt-6">Navigation</div>
-          <button className="w-full text-left bg-[#141414] border border-[#222] p-3 rounded-lg flex items-center gap-3 text-white transition-all">
-            <LayoutDashboard size={18} />
-            <span className="text-sm">Dashboard</span>
-          </button>
-
-          <button
-            onClick={() => onShowHistory()}
-            className="w-full text-left p-3 text-sm text-[#888] hover:bg-[#111] hover:text-white rounded-lg cursor-pointer transition-all flex items-center gap-3"
-          >
-            <History size={18} />
-            <span className="text-sm">History</span>
-          </button>
-        </nav>
-
-        <div className="p-6 mt-auto border-t border-fc-border-dim">
-          <button
-            onClick={onShowSettings}
-            className="w-full bg-[#1A1A1A] border border-[#333] text-white py-2 rounded-md text-sm hover:bg-[#222] mb-4 transition-colors flex items-center justify-center gap-2"
-          >
-            <SettingsIcon size={16} />
-            Settings
-          </button>
-          <div className="flex items-center gap-3">
-            {user.photoURL ? (
-              <img src={user.photoURL} alt="" className="w-10 h-10 rounded-full border border-fc-gold" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-fc-gold to-[#8C7642]"></div>
-            )}
-            <div className="overflow-hidden">
-              <p className="text-sm font-semibold truncate">{playerName}</p>
-              <p className="text-[11px] text-[#666] uppercase tracking-wider">Player</p>
-            </div>
-            <button
-              type="button"
-              title="Signs out of every game on this site (one Firebase account)."
-              onClick={() => void logout()}
-              className="ml-auto text-gray-600 hover:text-red-400"
-            >
-              <LogOut size={16} />
-            </button>
+    <>
+      <div className="friend-chess-dashboard-view flex-1 flex flex-col overflow-auto">
+        <header className="friend-chess-topbar h-16 border-b border-fc-border-dim flex items-center justify-between px-8 bg-fc-bg-header shrink-0">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-fc-gold font-black">Dashboard</p>
+            <h2 className="text-xl font-black uppercase tracking-tight text-white">Choose your table</h2>
           </div>
-        </div>
-      </aside>
-
-      <main className="flex-1 flex flex-col overflow-auto">
-        <header className="h-16 border-b border-fc-border-dim flex items-center justify-between px-8 bg-fc-bg-header shrink-0">
-          <div className="flex gap-8 text-sm h-full items-center"></div>
+          <div className="hidden md:flex items-center gap-2 text-[10px] uppercase tracking-widest text-[#9a9a9a] font-bold">
+            <Castle size={16} className="text-fc-gold" />
+            Play friends, quick matches, or the computer
+          </div>
         </header>
 
-        <div className="flex-1 flex flex-col lg:flex-row p-6 lg:p-12 gap-8 justify-center items-center">
-          <div className="w-full max-w-xl space-y-6">
-            <div className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] text-[#666] font-bold mb-4">Select Format</h3>
+        <div className="friend-chess-dashboard flex-1 flex flex-col lg:flex-row p-6 lg:p-12 gap-8 justify-center items-center">
+          <div className="friend-chess-primary-column w-full max-w-xl space-y-6">
+            <section className="friend-chess-panel friend-chess-time-panel bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl">
+              <div className="flex items-end justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-[10px] uppercase tracking-[0.2em] text-fc-gold font-black">Time Control</h3>
+                  <p className="text-sm text-[#b8b8b8] font-semibold mt-1">Pick a clock for new tables and computer games.</p>
+                </div>
+              </div>
               <div className="grid grid-cols-3 gap-3">
                 {TIME_OPTIONS.map((opt) => (
                   <button
                     key={opt.seconds}
                     onClick={() => setSelectedTime(opt.seconds)}
-                    className={`py-3 rounded-lg border text-[10px] font-bold uppercase tracking-widest transition-all ${
+                    className={`friend-chess-time-option py-3 rounded-lg border text-[10px] font-bold uppercase tracking-widest transition-all ${
                       selectedTime === opt.seconds
-                        ? 'border-fc-gold bg-fc-gold/10 text-fc-gold shadow-[0_0_15px_rgba(196,164,100,0.1)]'
+                        ? 'is-selected border-fc-gold bg-fc-gold/10 text-fc-gold shadow-[0_0_15px_rgba(196,164,100,0.1)]'
                         : 'border-fc-border-dim bg-[#0d0d0d] text-[#666] hover:border-[#444]'
                     }`}
                   >
@@ -449,14 +404,14 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
                   </button>
                 ))}
               </div>
-            </div>
+            </section>
 
             <div className="grid sm:grid-cols-3 gap-4">
               <button
                 type="button"
                 onClick={() => void createLobby('standard')}
                 disabled={loading}
-                className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group text-left disabled:opacity-60 disabled:cursor-wait"
+                className="friend-chess-action-card bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group text-left disabled:opacity-60 disabled:cursor-wait"
               >
                 <div className="w-12 h-12 bg-fc-gold/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-fc-gold transition-all">
                   <Plus size={24} className="text-fc-gold group-hover:text-black transition-colors" />
@@ -469,7 +424,7 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
                 type="button"
                 onClick={() => void createLobby('chess960')}
                 disabled={loading}
-                className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group text-left disabled:opacity-60 disabled:cursor-wait"
+                className="friend-chess-action-card bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group text-left disabled:opacity-60 disabled:cursor-wait"
               >
                 <div className="w-12 h-12 bg-fc-gold/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-fc-gold transition-all">
                   <Crown size={24} className="text-fc-gold group-hover:text-black transition-colors" />
@@ -482,7 +437,7 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
                 type="button"
                 onClick={() => void handleQuickMatch()}
                 disabled={loading}
-                className={`bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group relative overflow-hidden text-left disabled:opacity-60 disabled:cursor-wait ${
+                className={`friend-chess-action-card bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl hover:border-fc-gold transition-all cursor-pointer group relative overflow-hidden text-left disabled:opacity-60 disabled:cursor-wait ${
                   isMatching ? 'pointer-events-none' : ''
                 }`}
               >
@@ -504,19 +459,19 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
               </button>
             </div>
 
-            <div className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl space-y-4">
+            <section className="friend-chess-panel friend-chess-computer-panel bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl space-y-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xs font-bold mb-2 tracking-[0.2em] text-[#666] uppercase">Play Stockfish</h2>
-                  <p className="text-xs text-[#666] leading-relaxed">Start a local game against a browser Stockfish bot.</p>
+                  <h2 className="text-xs font-bold mb-2 tracking-[0.2em] text-fc-gold uppercase">Play vs Computer</h2>
+                  <p className="text-sm text-[#b8b8b8] leading-relaxed font-semibold">Choose a difficulty and play a local game against the computer.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => onStartBotGame(selectedBotDifficulty, selectedTime)}
-                  className="bg-fc-gold hover:bg-fc-gold-light text-black px-5 py-3 rounded-md text-xs font-bold tracking-widest transition-all uppercase flex items-center gap-2 shrink-0"
+                  className="friend-chess-primary-button bg-fc-gold hover:bg-fc-gold-light text-black px-5 py-3 rounded-md text-xs font-bold tracking-widest transition-all uppercase flex items-center gap-2 shrink-0"
                 >
                   <Bot size={16} />
-                  Play Bot
+                  Play vs Computer
                 </button>
               </div>
 
@@ -526,9 +481,9 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
                     key={difficulty.id}
                     type="button"
                     onClick={() => setSelectedBotDifficulty(difficulty.id)}
-                    className={`border rounded-lg px-3 py-3 text-left transition-all ${
+                    className={`friend-chess-difficulty border rounded-lg px-3 py-3 text-left transition-all ${
                       selectedBotDifficulty === difficulty.id
-                        ? 'border-fc-gold bg-fc-gold/10 text-fc-gold'
+                        ? 'is-selected border-fc-gold bg-fc-gold/10 text-fc-gold'
                         : 'border-fc-border-dim bg-[#0d0d0d] text-[#888] hover:border-[#444]'
                     }`}
                   >
@@ -537,24 +492,25 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
                   </button>
                 ))}
               </div>
-            </div>
+            </section>
 
-            <div className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl space-y-6">
+            <section className="friend-chess-panel friend-chess-join-panel bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl space-y-6">
               <div>
-                <h2 className="text-xs font-bold mb-2 tracking-[0.2em] text-[#666] uppercase">Join with code</h2>
+                <h2 className="text-xs font-bold mb-2 tracking-[0.2em] text-fc-gold uppercase">Join with code</h2>
+                <p className="text-sm text-[#b8b8b8] font-semibold mb-4">Enter a six-character table code from a friend.</p>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     placeholder="ENTER CODE..."
                     value={joinCode}
                     onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    className="flex-1 bg-fc-bg-dark border border-fc-border-dim rounded-md px-4 py-3 text-sm uppercase tracking-widest outline-none focus:border-fc-gold text-white font-mono"
+                    className="friend-chess-code-input flex-1 bg-fc-bg-dark border border-fc-border-dim rounded-md px-4 py-3 text-sm uppercase tracking-widest outline-none focus:border-fc-gold text-white font-mono"
                     maxLength={6}
                   />
                   <button
                     onClick={joinLobby}
                     disabled={!joinCode || loading}
-                    className="bg-[#222] hover:bg-[#333] px-6 py-3 rounded-md text-xs font-bold tracking-widest disabled:opacity-30 transition-all uppercase"
+                    className="friend-chess-secondary-button bg-[#222] hover:bg-[#333] px-6 py-3 rounded-md text-xs font-bold tracking-widest disabled:opacity-30 transition-all uppercase"
                   >
                     JOIN
                   </button>
@@ -565,19 +521,20 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
                   </p>
                 )}
               </div>
-            </div>
+            </section>
           </div>
 
           <div className="hidden lg:flex w-80 flex-col gap-4">
-            <div className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl flex-1 max-h-[400px] overflow-hidden flex flex-col">
+            <div className="friend-chess-panel friend-chess-recent-panel bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl flex-1 max-h-[400px] overflow-hidden flex flex-col">
               <div className="flex justify-between items-center mb-6 text-[10px] uppercase text-[#666] font-bold tracking-widest">
                 Recent Opponents
               </div>
               <div className="space-y-4 flex-1 overflow-auto pr-2">
                 {recentGames.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full py-20 text-center opacity-30">
-                    <User size={32} className="mb-4" />
-                    <p className="text-[10px] uppercase tracking-widest font-bold">No history yet</p>
+                  <div className="friend-chess-empty-state flex flex-col items-center justify-center h-full py-20 text-center">
+                    <Castle size={36} className="mb-4 text-fc-gold" />
+                    <p className="text-sm text-white uppercase tracking-widest font-black">No games yet</p>
+                    <p className="text-xs text-[#9a9a9a] mt-2 max-w-[12rem]">Recent opponents appear after your completed games.</p>
                   </div>
                 ) : (
                   recentGames.map((game) => {
@@ -624,13 +581,13 @@ export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHis
                   onClick={() => onShowHistory()}
                   className="mt-6 w-full py-3 bg-[#111] border border-[#222] rounded-lg text-[10px] font-bold uppercase tracking-widest text-[#666] hover:text-fc-gold hover:border-fc-gold transition-all"
                 >
-                  View Full Archives
+                  View All Games
                 </button>
               )}
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

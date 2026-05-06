@@ -90,8 +90,8 @@ export default function App() {
   }, [states.length, guessedStates.size]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30 selection:text-white">
-      <header className="fixed top-0 left-0 right-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4">
+    <div className="states-master-page min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500/30 selection:text-white">
+      <header className="states-master-header sticky z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
@@ -119,7 +119,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="pt-24 pb-10 px-6 max-w-7xl mx-auto min-h-[calc(100vh-80px)] flex flex-col">
+      <main className="pt-8 pb-10 px-6 max-w-7xl mx-auto min-h-[calc(100vh-80px)] flex flex-col">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start flex-1">
           
           <div className="lg:col-span-8 space-y-6 flex flex-col h-full">
