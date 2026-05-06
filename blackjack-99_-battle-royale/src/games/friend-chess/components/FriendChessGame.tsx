@@ -20,6 +20,7 @@ const STANDARD_INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq
 export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendChessGameProps) {
   const { db, auth } = getFriendChessFirebase();
   const engineRef = useRef<StockfishEngine | null>(null);
+  const botSearchInFlightRef = useRef(false);
   const [game, setGame] = useState(new Chess());
   const [lobby, setLobby] = useState<LobbyData | null>(null);
   const [copied, setCopied] = useState(false);
@@ -334,9 +335,12 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
   );
 
   useEffect(() => {
-    if (!isBotGame || !botConfig || !lobby || lobby.status !== 'playing' || lobby.turn !== 'b' || botThinking) return;
+    if (!isBotGame || !botConfig || !lobby || lobby.status !== 'playing' || lobby.turn !== 'b' || botSearchInFlightRef.current) {
+      return;
+    }
 
     let cancelled = false;
+    botSearchInFlightRef.current = true;
     setBotThinking(true);
     setErrorMsg(null);
 
@@ -387,7 +391,10 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
           setErrorMsg(err instanceof Error ? err.message : 'Stockfish could not choose a move.');
         }
       } finally {
-        if (!cancelled) setBotThinking(false);
+        if (!cancelled) {
+          botSearchInFlightRef.current = false;
+          setBotThinking(false);
+        }
       }
     };
 
@@ -395,8 +402,9 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
 
     return () => {
       cancelled = true;
+      botSearchInFlightRef.current = false;
     };
-  }, [botConfig, botThinking, isBotGame, lobby]);
+  }, [botConfig, isBotGame, lobby]);
 
   const onDrop = useCallback(
     (args: { piece: unknown; sourceSquare: string; targetSquare: string | null }) => {

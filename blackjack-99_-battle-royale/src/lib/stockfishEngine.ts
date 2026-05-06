@@ -10,9 +10,11 @@ type PendingWaiter = {
   resolve: (line: string) => void;
   reject: (error: Error) => void;
   timeoutId: number;
+  label: string;
 };
 
 const STOCKFISH_WORKER_PATH = '/stockfish/stockfish.worker.js';
+const STOCKFISH_TIMEOUT_MS = 5000;
 
 export class StockfishEngine {
   private worker: Worker | null = null;
@@ -24,17 +26,19 @@ export class StockfishEngine {
     if (this.initialized && this.worker) return;
 
     this.worker = new Worker(new URL(STOCKFISH_WORKER_PATH, window.location.origin));
+    console.log('[Stockfish] worker created', STOCKFISH_WORKER_PATH);
     this.worker.onmessage = (event: MessageEvent<string>) => {
       this.handleMessage(String(event.data));
     };
     this.worker.onerror = (event) => {
+      console.error('[Stockfish] worker error', event);
       this.rejectAll(new Error(event.message || 'Stockfish worker failed.'));
     };
 
     this.send('uci');
-    await this.waitFor((line) => line === 'uciok', 10000);
+    await this.waitFor((line) => line === 'uciok', 'uciok');
     this.send('isready');
-    await this.waitFor((line) => line === 'readyok', 10000);
+    await this.waitFor((line) => line === 'readyok', 'readyok');
     this.initialized = true;
   }
 
@@ -42,6 +46,7 @@ export class StockfishEngine {
     if (!this.worker) {
       throw new Error('Stockfish is not initialized.');
     }
+    console.log('[Stockfish] >>', command);
     this.worker.postMessage(command);
   }
 
@@ -54,7 +59,7 @@ export class StockfishEngine {
     this.send('stop');
     this.send('ucinewgame');
     this.send('isready');
-    await this.waitFor((line) => line === 'readyok', 10000);
+    await this.waitFor((line) => line === 'readyok', 'readyok after reset');
   }
 
   async getBestMove(fen: string, options: StockfishSearchOptions): Promise<string> {
@@ -66,12 +71,14 @@ export class StockfishEngine {
     this.send('setoption name UCI_LimitStrength value true');
     this.send('setoption name UCI_Elo value ' + options.elo);
     this.send('isready');
-    await this.waitFor((line) => line === 'readyok', 10000);
+    await this.waitFor((line) => line === 'readyok', 'readyok after options');
 
+    console.log('[Stockfish] FEN', fen);
     this.send('position fen ' + fen);
-    this.send(`go depth ${options.depth} movetime ${options.movetime}`);
+    const goCommand = options.movetime > 0 ? `go movetime ${options.movetime}` : `go depth ${options.depth}`;
+    this.send(goCommand);
 
-    const bestMoveLine = await this.waitFor((line) => line.startsWith('bestmove '), options.movetime + 15000);
+    const bestMoveLine = await this.waitFor((line) => line.startsWith('bestmove '), 'bestmove');
     if (currentSearch !== this.searchId) {
       throw new Error('Stockfish search was superseded.');
     }
@@ -80,6 +87,7 @@ export class StockfishEngine {
     if (!bestMove || bestMove === '(none)') {
       throw new Error('Stockfish did not return a legal move.');
     }
+    console.log('[Stockfish] bestmove', bestMove);
     return bestMove;
   }
 
@@ -98,22 +106,26 @@ export class StockfishEngine {
     this.initialized = false;
   }
 
-  private waitFor(matcher: (line: string) => boolean, timeoutMs: number): Promise<string> {
+  private waitFor(matcher: (line: string) => boolean, label: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const waiter: PendingWaiter = {
         matcher,
         resolve,
         reject,
+        label,
         timeoutId: window.setTimeout(() => {
           this.waiters = this.waiters.filter((item) => item !== waiter);
-          reject(new Error('Timed out waiting for Stockfish.'));
-        }, timeoutMs),
+          const error = new Error(`Timed out waiting for Stockfish ${label}.`);
+          console.error('[Stockfish]', error.message);
+          reject(error);
+        }, STOCKFISH_TIMEOUT_MS),
       };
       this.waiters.push(waiter);
     });
   }
 
   private handleMessage(line: string) {
+    console.log('[Stockfish] <<', line);
     const waiter = this.waiters.find((item) => item.matcher(line));
     if (!waiter) return;
 
