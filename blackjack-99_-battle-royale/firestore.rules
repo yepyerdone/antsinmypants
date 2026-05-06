@@ -79,6 +79,15 @@ service cloud.firestore {
         && data.status in ['pending', 'accepted', 'declined'];
     }
 
+    function isValidStatesScore(data) {
+      return data.playerName is string
+        && data.playerName.size() > 0
+        && data.playerName.size() <= 32
+        && data.timeSeconds is number
+        && data.timeSeconds > 0
+        && data.completedAt is timestamp;
+    }
+
     // Daily Leaderboard Rules
     match /daily_leaderboard/{date}/players/{userId} {
       allow list: if true;
@@ -96,6 +105,14 @@ service cloud.firestore {
         && incoming().name.size() <= 15
         && incoming().score is number
         && incoming().score >= 0;
+    }
+
+    // States Master Leaderboard Rules
+    match /states_leaderboard/{entryId} {
+      allow list, get: if true;
+      allow create: if isValidId(entryId)
+        && isValidStatesScore(incoming())
+        && incoming().completedAt == request.time;
     }
 
     // Snake Rush Leaderboard Rules

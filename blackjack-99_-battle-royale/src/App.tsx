@@ -29,6 +29,7 @@ import ChairsApp from './games/chairs-io/App';
 import SpaceRunner from './games/neon-rush/NeonRush';
 import TheAscension from './games/the-ascension/TheAscension';
 import MoleMania from './games/mole-mania/App';
+import StatesMaster from './games/states/App';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -67,6 +68,9 @@ export default function App() {
       setShowIntro(false);
     } else if (location.pathname === '/mole-mania') {
       setSelectedGame('mole-mania');
+      setShowIntro(false);
+    } else if (location.pathname === '/states-master') {
+      setSelectedGame('states-master');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -606,6 +610,25 @@ export default function App() {
     );
   }
 
+  if (selectedGame === 'states-master') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100">
+        <button
+          onClick={() => {
+            setSelectedGame(null);
+            setShowIntro(true);
+            navigate('/');
+          }}
+          className="fixed top-24 left-4 z-[80] bg-white text-slate-950 px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest shadow-xl"
+        >
+          ← Back to Games
+        </button>
+
+        <StatesMaster />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-bg-dark text-white font-sans selection:bg-stake-green selection:text-bg-dark overflow-hidden flex flex-col">
       <AnimatePresence mode="wait">
@@ -630,6 +653,8 @@ export default function App() {
                   setSelectedGame('the-ascension');
                 } else if (gameId === 'mole-mania') {
                   setSelectedGame('mole-mania');
+                } else if (gameId === 'states-master') {
+                  setSelectedGame('states-master');
                 } else {
                   setShowIntro(false);
                 }

@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Bell, ChevronLeft, ChevronRight, ExternalLink, Flame, Gamepad2, Gauge, LogOut, Play, Sparkles, UserRound, Trophy, Users } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, ExternalLink, Flame, Gamepad2, Gauge, LogOut, MapIcon, Play, Sparkles, UserRound, Trophy, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ProfileModal } from './ProfileModal';
 
@@ -9,7 +9,7 @@ interface IntroScreenProps {
   onLaunchGame: (gameId: string) => void;
 }
 
-type PreviewType = 'blackjack' | 'neon-snake' | 'space-runner' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs' | 'ascension' | 'mole';
+type PreviewType = 'blackjack' | 'neon-snake' | 'space-runner' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs' | 'ascension' | 'mole' | 'states';
 
 type GameCardData = {
   id: string;
@@ -117,6 +117,15 @@ const games: GameCardData[] = [
     preview: 'chairs',
     internalPath: '/chairs-io',
   },
+  {
+    id: 'states-master',
+    title: 'States Master',
+    description: 'A fast US geography challenge where every state you name lights up the map.',
+    category: 'Academic',
+    meta: '50 states',
+    preview: 'states',
+    internalPath: '/states-master',
+  },
 ];
 
 const gameSections = [
@@ -131,6 +140,10 @@ const gameSections = [
   {
     title: 'Multiplayer',
     gameIds: ['friend-chess', 'neon-snake', 'chairs-io'],
+  },
+  {
+    title: 'Academic Weapon',
+    gameIds: ['states-master'],
   },
 ];
 
@@ -229,6 +242,22 @@ function GamePreview({ type, title, coverImage }: { type: PreviewType; title: st
         <span className="preview-mole-face" />
         <span className="preview-mole-mallet" />
         <span className="preview-score">BONK</span>
+      </div>
+    );
+  }
+
+  if (type === 'states') {
+    return (
+      <div className="site-game-preview site-game-preview--states" aria-label={`${title} preview`}>
+        <span className="preview-states-map" />
+        <span className="preview-states-pin preview-states-pin--one" />
+        <span className="preview-states-pin preview-states-pin--two" />
+        <span className="preview-states-pin preview-states-pin--three" />
+        <span className="preview-states-route" />
+        <span className="preview-score">
+          <MapIcon size={17} />
+          50
+        </span>
       </div>
     );
   }
