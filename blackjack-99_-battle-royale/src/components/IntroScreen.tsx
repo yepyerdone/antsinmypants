@@ -62,12 +62,13 @@ const games: GameCardData[] = [
   },
   {
     id: 'friend-chess',
-    title: 'Friend Chess',
+    title: 'Chess',
     description: 'Create lobby codes, play real-time chess, and review your match history.',
     category: 'Strategy',
     meta: '2 players',
     preview: 'chess',
     internalPath: '/friend-chess',
+    coverImage: '/chess.png',
   },
   {
     id: 'snake-rush',

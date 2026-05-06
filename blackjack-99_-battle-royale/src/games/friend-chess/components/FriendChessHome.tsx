@@ -346,7 +346,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
               CHESS
             </h1>
           </div>
-          <p className="text-[#888] text-lg mb-10 tracking-wide uppercase font-bold">Friend Chess</p>
+          <p className="text-[#888] text-lg mb-10 tracking-wide uppercase font-bold">Chess</p>
 
           <div className="space-y-4">
             {authError && (
