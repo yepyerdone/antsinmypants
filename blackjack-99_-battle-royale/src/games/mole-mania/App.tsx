@@ -333,7 +333,12 @@ export default function App() {
         <div className="flex items-center gap-6">
           <div className="mole-mania-stat mole-mania-stat--time bg-[#FF5757] text-white px-6 py-2 rounded-full border-4 border-white shadow-lg flex flex-col items-center">
             <span className="text-[10px] uppercase font-black tracking-widest block opacity-80">Time Left</span>
-            <span className={`text-3xl font-bold leading-none tabular-nums ${timeLeft < 10 ? 'animate-pulse' : ''}`}>{timeLeft}s</span>
+            <span
+              key={timeLeft}
+              className={`mole-mania-timer-value text-3xl font-bold leading-none tabular-nums ${timeLeft < 10 ? 'mole-mania-timer-value--urgent' : ''}`}
+            >
+              {timeLeft}s
+            </span>
           </div>
           <div className="mole-mania-stat mole-mania-stat--score bg-[#54D2D2] text-white px-6 py-2 rounded-full border-4 border-white shadow-lg flex flex-col items-center">
             <span className="text-[10px] uppercase font-black tracking-widest block opacity-80">Score</span>

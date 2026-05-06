@@ -3022,6 +3022,22 @@ body {
   animation: mole-mania-shine 3s ease-in-out infinite;
 }
 
+.mole-mania-timer-value {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: 3.8rem;
+  justify-content: center;
+  overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  transform: translateZ(0);
+}
+
+.mole-mania-timer-value--urgent {
+  animation: mole-mania-timer-urgent 0.75s ease-in-out infinite;
+}
+
 .mole-mania-title {
   text-shadow:
     0 4px 0 rgba(255, 255, 255, 0.45),
@@ -3279,6 +3295,16 @@ body {
   }
   50% {
     transform: translateY(-0.65rem) scale(1.08);
+  }
+}
+
+@keyframes mole-mania-timer-urgent {
+  0%,
+  100% {
+    transform: translateZ(0) scale(1);
+  }
+  50% {
+    transform: translateZ(0) scale(1.08);
   }
 }
 
