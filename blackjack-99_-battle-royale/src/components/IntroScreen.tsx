@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Bell, ExternalLink, Flame, Gamepad2, Gauge, LogOut, Play, Sparkles, UserRound, Trophy, Users } from 'lucide-react';
+import { Bell, ChevronRight, ExternalLink, Flame, Gamepad2, Gauge, LogOut, Play, Sparkles, UserRound, Trophy, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ProfileModal } from './ProfileModal';
 
@@ -274,6 +274,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
   const { displayName, isGuest, logout } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileView, setProfileView] = useState<'profile' | 'inbox'>('profile');
+  const featuredScrollerRef = useRef<HTMLDivElement>(null);
 
   const launchGame = (game: GameCardData) => {
     if (game.internalPath) {
@@ -298,6 +299,40 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
     setProfileView(view);
     setProfileOpen(true);
   };
+
+  const scrollFeaturedToMoleMania = () => {
+    featuredScrollerRef.current?.scrollTo({
+      left: featuredScrollerRef.current.scrollWidth,
+      behavior: 'smooth',
+    });
+  };
+
+  const renderGameCard = (game: GameCardData, index: number) => (
+    <motion.button
+      key={game.id}
+      type="button"
+      onClick={() => launchGame(game)}
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, delay: index * 0.035 }}
+      className="site-game-card"
+    >
+      <GamePreview type={game.preview} title={game.title} coverImage={game.coverImage} />
+
+      <span className="site-game-card__body">
+        <span className="site-game-card__meta">
+          <span>{game.category}</span>
+          <span>{game.meta}</span>
+        </span>
+        <strong>{game.title}</strong>
+        <span className="site-game-card__description">{game.description}</span>
+        <span className="site-game-card__cta">
+          <span>{game.externalUrl ? 'Open Game' : 'Play Now'}</span>
+          {game.externalUrl ? <ExternalLink size={15} /> : <Play size={15} fill="currentColor" />}
+        </span>
+      </span>
+    </motion.button>
+  );
 
   return (
     <div className="site-home">
@@ -394,50 +429,35 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
           </div>
 
           <div className="site-games-rows">
-            {gameSections.map((section) => (
-              <section
-                key={section.title}
-                className="site-game-row"
-                aria-labelledby={
-                  section.title === 'Featured Games'
-                    ? 'site-games-title'
-                    : `site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`
-                }
-              >
-                {section.title !== 'Featured Games' && (
-                  <h3 id={`site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`}>{section.title}</h3>
-                )}
+            {gameSections.map((section) => {
+              const isFeatured = section.title === 'Featured Games';
+              const sectionTitleId = isFeatured ? 'site-games-title' : `site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`;
+              const sectionGames = getSectionGames(section.gameIds);
 
-                <div className="site-games-grid">
-                  {getSectionGames(section.gameIds).map((game, index) => (
-                    <motion.button
-                      key={game.id}
-                      type="button"
-                      onClick={() => launchGame(game)}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.28, delay: index * 0.035 }}
-                      className="site-game-card"
-                    >
-                      <GamePreview type={game.preview} title={game.title} coverImage={game.coverImage} />
+              return (
+                <section key={section.title} className="site-game-row" aria-labelledby={sectionTitleId}>
+                  {!isFeatured && <h3 id={sectionTitleId}>{section.title}</h3>}
 
-                      <span className="site-game-card__body">
-                        <span className="site-game-card__meta">
-                          <span>{game.category}</span>
-                          <span>{game.meta}</span>
-                        </span>
-                        <strong>{game.title}</strong>
-                        <span className="site-game-card__description">{game.description}</span>
-                        <span className="site-game-card__cta">
-                          <span>{game.externalUrl ? 'Open Game' : 'Play Now'}</span>
-                          {game.externalUrl ? <ExternalLink size={15} /> : <Play size={15} fill="currentColor" />}
-                        </span>
-                      </span>
-                    </motion.button>
-                  ))}
-                </div>
-              </section>
-            ))}
+                  {isFeatured ? (
+                    <div className="site-featured-carousel">
+                      <div ref={featuredScrollerRef} className="site-games-grid site-games-grid--featured">
+                        {sectionGames.map(renderGameCard)}
+                      </div>
+                      <button
+                        type="button"
+                        className="site-featured-scroll-button"
+                        onClick={scrollFeaturedToMoleMania}
+                        aria-label="Scroll to Mole Mania"
+                      >
+                        <ChevronRight size={28} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="site-games-grid">{sectionGames.map(renderGameCard)}</div>
+                  )}
+                </section>
+              );
+            })}
           </div>
         </section>
       </main>
