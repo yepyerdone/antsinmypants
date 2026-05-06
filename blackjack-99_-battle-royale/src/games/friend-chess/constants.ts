@@ -1,4 +1,4 @@
-import type { BoardTheme } from './types';
+import type { BoardTheme, BotDifficulty } from './types';
 
 /** Firestore paths — isolated from blackjack `rooms` / online data */
 export const FC_COLLECTIONS = {
@@ -46,3 +46,60 @@ export const BOARD_THEMES: BoardTheme[] = [
 ];
 
 export const DEFAULT_THEME = BOARD_THEMES[0];
+
+export const BOT_DIFFICULTIES: BotDifficulty[] = [
+  {
+    id: 'beginner',
+    name: 'Beginner Bot',
+    estimatedElo: '~400 ELO',
+    elo: 1320,
+    skill: 0,
+    depth: 1,
+    movetime: 120,
+  },
+  {
+    id: 'easy',
+    name: 'Easy Bot',
+    estimatedElo: '~700 ELO',
+    elo: 1350,
+    skill: 2,
+    depth: 2,
+    movetime: 180,
+  },
+  {
+    id: 'casual',
+    name: 'Casual Bot',
+    estimatedElo: '~1000 ELO',
+    elo: 1400,
+    skill: 4,
+    depth: 4,
+    movetime: 260,
+  },
+  {
+    id: 'intermediate',
+    name: 'Intermediate Bot',
+    estimatedElo: '~1300 ELO',
+    elo: 1500,
+    skill: 7,
+    depth: 6,
+    movetime: 420,
+  },
+  {
+    id: 'advanced',
+    name: 'Advanced Bot',
+    estimatedElo: '~1600 ELO',
+    elo: 1600,
+    skill: 10,
+    depth: 8,
+    movetime: 650,
+  },
+  {
+    id: 'expert',
+    name: 'Expert Bot',
+    estimatedElo: '2000+ ELO',
+    elo: 2000,
+    skill: 16,
+    depth: 12,
+    movetime: 1000,
+  },
+];

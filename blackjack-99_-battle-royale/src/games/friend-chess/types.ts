@@ -2,6 +2,25 @@ export type GameStatus = 'waiting' | 'playing' | 'finished';
 
 export type LobbyVariant = 'standard' | 'chess960';
 
+export type BotDifficultyId = 'beginner' | 'easy' | 'casual' | 'intermediate' | 'advanced' | 'expert';
+
+export interface BotDifficulty {
+  id: BotDifficultyId;
+  name: string;
+  estimatedElo: string;
+  elo: number;
+  skill: number;
+  depth: number;
+  movetime: number;
+}
+
+export interface BotGameConfig {
+  difficulty: BotDifficulty;
+  timeControl: number;
+  playerName: string;
+  theme?: string;
+}
+
 export interface LobbyData {
   id: string;
   code: string;
@@ -17,6 +36,8 @@ export interface LobbyData {
   winner?: string;
   moveCount: number;
   isQuickMatch?: boolean;
+  isBotGame?: boolean;
+  botDifficulty?: BotDifficultyId;
   theme?: string;
   timeControl?: number;
   clocks?: {

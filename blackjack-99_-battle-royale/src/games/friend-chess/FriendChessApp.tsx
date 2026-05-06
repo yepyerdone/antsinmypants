@@ -5,11 +5,15 @@ import FriendChessHome from './components/FriendChessHome';
 import FriendChessGame from './components/FriendChessGame';
 import FriendChessHistoryView from './components/FriendChessHistoryView';
 import FriendChessSettings from './components/FriendChessSettings';
-import type { LobbyData } from './types';
+import { BOT_DIFFICULTIES, DEFAULT_THEME } from './constants';
+import type { BotDifficultyId, BotGameConfig, LobbyData } from './types';
+import { usePlayerIdentity } from '../../hooks/usePlayerIdentity';
 
 export default function FriendChessApp() {
   const { auth } = getFriendChessFirebase();
+  const { playerName } = usePlayerIdentity();
   const [currentLobbyId, setCurrentLobbyId] = useState<string | null>(null);
+  const [botGameConfig, setBotGameConfig] = useState<BotGameConfig | null>(null);
   const [view, setView] = useState<'home' | 'history' | 'settings'>('home');
   const [preSelectedGame, setPreSelectedGame] = useState<LobbyData | null>(null);
   const [initializing, setInitializing] = useState(true);
@@ -40,7 +44,9 @@ export default function FriendChessApp() {
         </Link>
       </div>
 
-      {currentLobbyId ? (
+      {botGameConfig ? (
+        <FriendChessGame botConfig={botGameConfig} onExit={() => setBotGameConfig(null)} />
+      ) : currentLobbyId ? (
         <FriendChessGame lobbyId={currentLobbyId} onExit={() => setCurrentLobbyId(null)} />
       ) : view === 'history' ? (
         <FriendChessHistoryView
@@ -55,6 +61,16 @@ export default function FriendChessApp() {
       ) : (
         <FriendChessHome
           onJoinLobby={(id) => setCurrentLobbyId(id)}
+          onStartBotGame={(difficultyId, timeControl) => {
+            const difficulty =
+              BOT_DIFFICULTIES.find((item) => item.id === (difficultyId as BotDifficultyId)) || BOT_DIFFICULTIES[2];
+            setBotGameConfig({
+              difficulty,
+              timeControl,
+              playerName,
+              theme: DEFAULT_THEME.id,
+            });
+          }}
           onShowHistory={(game) => {
             if (game) setPreSelectedGame(game);
             setView('history');

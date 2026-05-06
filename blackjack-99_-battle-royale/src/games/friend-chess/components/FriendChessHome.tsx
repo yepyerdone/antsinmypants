@@ -16,8 +16,9 @@ import {
 import { handleFirestoreError, OperationType } from '../lib/friendChessUtils';
 import { nanoid } from 'nanoid';
 import type { LobbyData, UserProfile } from '../types';
-import { DEFAULT_THEME, FC_COLLECTIONS } from '../constants';
+import { BOT_DIFFICULTIES, DEFAULT_THEME, FC_COLLECTIONS } from '../constants';
 import {
+  Bot,
   LogOut,
   Plus,
   User,
@@ -36,6 +37,7 @@ type LobbyVariant = 'standard' | 'chess960';
 
 interface FriendChessHomeProps {
   onJoinLobby: (id: string) => void;
+  onStartBotGame: (difficultyId: string, timeControl: number) => void;
   onShowHistory: (game?: LobbyData) => void;
   onShowSettings: () => void;
 }
@@ -75,7 +77,7 @@ const generateChess960FEN = (): string => {
   return `${blackBackrank}/pppppppp/8/8/8/8/PPPPPPPP/${whiteBackrank} w KQkq - 0 1`;
 };
 
-export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSettings }: FriendChessHomeProps) {
+export default function FriendChessHome({ onJoinLobby, onStartBotGame, onShowHistory, onShowSettings }: FriendChessHomeProps) {
   const { db, auth } = getFriendChessFirebase();
   const { logout } = useAuth();
   const { playerName } = usePlayerIdentity();
@@ -88,6 +90,7 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
   const [recentGames, setRecentGames] = useState<LobbyData[]>([]);
   const [isMatching, setIsMatching] = useState(false);
   const [selectedTime, setSelectedTime] = useState<number>(600);
+  const [selectedBotDifficulty, setSelectedBotDifficulty] = useState(BOT_DIFFICULTIES[2].id);
 
   const TIME_OPTIONS = [
     { label: 'Bullet 1m', seconds: 60, icon: 'Zap' },
@@ -499,6 +502,41 @@ export default function FriendChessHome({ onJoinLobby, onShowHistory, onShowSett
                 <h3 className="text-lg font-bold mb-1 uppercase tracking-wider">Quick Match</h3>
                 <p className="text-xs text-[#666] leading-relaxed">Find a random opponent.</p>
               </button>
+            </div>
+
+            <div className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xs font-bold mb-2 tracking-[0.2em] text-[#666] uppercase">Play Stockfish</h2>
+                  <p className="text-xs text-[#666] leading-relaxed">Start a local game against a browser Stockfish bot.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onStartBotGame(selectedBotDifficulty, selectedTime)}
+                  className="bg-fc-gold hover:bg-fc-gold-light text-black px-5 py-3 rounded-md text-xs font-bold tracking-widest transition-all uppercase flex items-center gap-2 shrink-0"
+                >
+                  <Bot size={16} />
+                  Play Bot
+                </button>
+              </div>
+
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {BOT_DIFFICULTIES.map((difficulty) => (
+                  <button
+                    key={difficulty.id}
+                    type="button"
+                    onClick={() => setSelectedBotDifficulty(difficulty.id)}
+                    className={`border rounded-lg px-3 py-3 text-left transition-all ${
+                      selectedBotDifficulty === difficulty.id
+                        ? 'border-fc-gold bg-fc-gold/10 text-fc-gold'
+                        : 'border-fc-border-dim bg-[#0d0d0d] text-[#888] hover:border-[#444]'
+                    }`}
+                  >
+                    <span className="block text-[10px] uppercase tracking-widest font-bold">{difficulty.name}</span>
+                    <span className="block text-[10px] uppercase tracking-wider opacity-70 mt-1">{difficulty.estimatedElo}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="bg-fc-bg-panel border border-fc-border-dim p-6 rounded-xl space-y-6">

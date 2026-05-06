@@ -1,20 +1,25 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { doc, onSnapshot, updateDoc, serverTimestamp, collection, runTransaction } from 'firebase/firestore';
 import { getFriendChessFirebase } from '../lib/friendChessFirebase';
-import type { LobbyData } from '../types';
+import { StockfishEngine } from '../../../lib/stockfishEngine';
+import type { BotGameConfig, LobbyData } from '../types';
 import { BOARD_THEMES, DEFAULT_THEME, FC_COLLECTIONS } from '../constants';
 import { Trophy, User, ArrowLeft, Copy, Check, Info, History } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface FriendChessGameProps {
-  lobbyId: string;
+  lobbyId?: string;
+  botConfig?: BotGameConfig;
   onExit: () => void;
 }
 
-export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProps) {
+const STANDARD_INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendChessGameProps) {
   const { db, auth } = getFriendChessFirebase();
+  const engineRef = useRef<StockfishEngine | null>(null);
   const [game, setGame] = useState(new Chess());
   const [lobby, setLobby] = useState<LobbyData | null>(null);
   const [copied, setCopied] = useState(false);
@@ -24,12 +29,15 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
   const [optionSquares, setOptionSquares] = useState<Record<string, React.CSSProperties>>({});
   const [localClocks, setLocalClocks] = useState<{ w: number; b: number }>({ w: 600, b: 600 });
   const [pendingMove, setPendingMove] = useState(false);
+  const [botThinking, setBotThinking] = useState(false);
+  const isBotGame = Boolean(botConfig);
 
   useEffect(() => {
     return auth.onAuthStateChanged((u) => setUser(u));
   }, [auth]);
 
   useEffect(() => {
+    if (isBotGame || !lobbyId) return;
     const unsub = onSnapshot(
       doc(db, FC_COLLECTIONS.lobbies, lobbyId),
       (docSnap) => {
@@ -63,7 +71,55 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
     );
 
     return unsub;
-  }, [lobbyId, db]);
+  }, [isBotGame, lobbyId, db]);
+
+  useEffect(() => {
+    if (!botConfig) return;
+
+    engineRef.current?.terminate();
+    engineRef.current = new StockfishEngine();
+
+    const localPlayerId = user?.uid || 'local-player';
+    const initialLobby: LobbyData = {
+      id: 'stockfish-local',
+      code: 'BOT',
+      playerW: localPlayerId,
+      playerB: 'stockfish',
+      whiteName: botConfig.playerName,
+      blackName: botConfig.difficulty.name,
+      fen: STANDARD_INITIAL_FEN,
+      initialFen: STANDARD_INITIAL_FEN,
+      status: 'playing',
+      turn: 'w',
+      variant: 'standard',
+      moveCount: 0,
+      isBotGame: true,
+      botDifficulty: botConfig.difficulty.id,
+      theme: botConfig.theme || DEFAULT_THEME.id,
+      timeControl: botConfig.timeControl,
+      clocks: {
+        w: botConfig.timeControl,
+        b: botConfig.timeControl,
+        lastTickAt: new Date(),
+      },
+      createdAt: new Date(),
+      updatedAt: { seconds: Math.floor(Date.now() / 1000) },
+    };
+
+    setLobby(initialLobby);
+    setGame(new Chess(STANDARD_INITIAL_FEN));
+    setLocalClocks({ w: botConfig.timeControl, b: botConfig.timeControl });
+    setErrorMsg(null);
+    setPendingMove(false);
+    setBotThinking(false);
+    setMoveFrom(null);
+    setOptionSquares({});
+
+    return () => {
+      engineRef.current?.terminate();
+      engineRef.current = null;
+    };
+  }, [botConfig, user?.uid]);
 
   useEffect(() => {
     if (!lobby?.fen) return;
@@ -94,8 +150,22 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
   }, [lobby?.status, lobby?.turn, lobby?.clocks?.lastTickAt, lobby]);
 
   const handleTimeout = async (color: 'w' | 'b') => {
-    if (!lobbyId || !lobby || lobby.status !== 'playing') return;
+    if (!lobby || lobby.status !== 'playing') return;
     const winner = color === 'w' ? 'Black' : 'White';
+    if (isBotGame) {
+      setLobby((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: 'finished',
+              winner,
+              updatedAt: { seconds: Math.floor(Date.now() / 1000) },
+            }
+          : prev,
+      );
+      return;
+    }
+    if (!lobbyId) return;
     try {
       await updateDoc(doc(db, FC_COLLECTIONS.lobbies, lobbyId), {
         status: 'finished',
@@ -107,6 +177,48 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
     }
   };
 
+  const applyLocalMove = useCallback(
+    (sourceSquare: string, targetSquare: string, playerId: string) => {
+      if (!lobby || lobby.status !== 'playing') return false;
+
+      const g = new Chess(lobby.fen);
+      const move = g.move({
+        from: sourceSquare as never,
+        to: targetSquare as never,
+        promotion: 'q',
+      });
+
+      if (move === null) {
+        setErrorMsg('Illegal move.');
+        return false;
+      }
+
+      const status = g.isGameOver() ? 'finished' : 'playing';
+      let winner: string | null = null;
+      if (g.isCheckmate()) winner = g.turn() === 'w' ? 'Black' : 'White';
+      else if (g.isDraw() || g.isGameOver()) winner = 'Draw';
+
+      setLobby({
+        ...lobby,
+        fen: g.fen(),
+        turn: g.turn(),
+        status,
+        winner,
+        moveCount: (lobby.moveCount || 0) + 1,
+        clocks: {
+          w: localClocks.w,
+          b: localClocks.b,
+          lastTickAt: new Date(),
+        },
+        updatedAt: { seconds: Math.floor(Date.now() / 1000) },
+      });
+      setGame(g);
+      setErrorMsg(null);
+      return true;
+    },
+    [lobby, localClocks],
+  );
+
   const submitMove = useCallback(
     async (sourceSquare: string, targetSquare: string) => {
       if (pendingMove) return false;
@@ -115,7 +227,7 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
 
       const isPlayerW = user.uid === lobby.playerW;
       const isPlayerB = user.uid === lobby.playerB;
-      const myColor = isPlayerW ? 'w' : isPlayerB ? 'b' : null;
+      const myColor = isBotGame ? 'w' : isPlayerW ? 'w' : isPlayerB ? 'b' : null;
 
       if (lobby.status !== 'playing' || !myColor || lobby.turn !== myColor) {
         return false;
@@ -126,7 +238,14 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
       setOptionSquares({});
       setErrorMsg(null);
 
+      if (isBotGame) {
+        const moved = applyLocalMove(sourceSquare, targetSquare, user.uid);
+        setPendingMove(false);
+        return moved;
+      }
+
       try {
+        if (!lobbyId) throw new Error('Match session no longer exists.');
         const lobbyRef = doc(db, FC_COLLECTIONS.lobbies, lobbyId);
         const moveRef = doc(collection(db, FC_COLLECTIONS.lobbies, lobbyId, 'moves'));
 
@@ -211,8 +330,73 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
         setPendingMove(false);
       }
     },
-    [db, lobby, lobbyId, pendingMove, user],
+    [applyLocalMove, db, isBotGame, lobby, lobbyId, pendingMove, user],
   );
+
+  useEffect(() => {
+    if (!isBotGame || !botConfig || !lobby || lobby.status !== 'playing' || lobby.turn !== 'b' || botThinking) return;
+
+    let cancelled = false;
+    setBotThinking(true);
+    setErrorMsg(null);
+
+    const makeBotMove = async () => {
+      try {
+        const engine = engineRef.current || new StockfishEngine();
+        engineRef.current = engine;
+        const bestMove = await engine.getBestMove(lobby.fen, botConfig.difficulty);
+        if (cancelled) return;
+
+        const sourceSquare = bestMove.slice(0, 2);
+        const targetSquare = bestMove.slice(2, 4);
+        const promotion = bestMove.slice(4, 5) || 'q';
+        const g = new Chess(lobby.fen);
+        const move = g.move({
+          from: sourceSquare as never,
+          to: targetSquare as never,
+          promotion,
+        });
+
+        if (move === null) {
+          throw new Error(`Stockfish suggested an illegal move: ${bestMove}`);
+        }
+
+        const status = g.isGameOver() ? 'finished' : 'playing';
+        let winner: string | null = null;
+        if (g.isCheckmate()) winner = g.turn() === 'w' ? 'Black' : 'White';
+        else if (g.isDraw() || g.isGameOver()) winner = 'Draw';
+
+        setLobby({
+          ...lobby,
+          fen: g.fen(),
+          turn: g.turn(),
+          status,
+          winner,
+          moveCount: (lobby.moveCount || 0) + 1,
+          clocks: {
+            w: localClocks.w,
+            b: localClocks.b,
+            lastTickAt: new Date(),
+          },
+          updatedAt: { seconds: Math.floor(Date.now() / 1000) },
+        });
+        setGame(g);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Stockfish move failed:', err);
+          setErrorMsg(err instanceof Error ? err.message : 'Stockfish could not choose a move.');
+        }
+      } finally {
+        if (!cancelled) setBotThinking(false);
+      }
+    };
+
+    void makeBotMove();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [botConfig, botThinking, isBotGame, lobby]);
 
   const onDrop = useCallback(
     (args: { piece: unknown; sourceSquare: string; targetSquare: string | null }) => {
@@ -255,11 +439,11 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
   const onSquareClick = (args: { square: string }) => {
     const { square } = args;
 
-    if (!lobby || !user || lobby.status !== 'playing') return;
+    if (!lobby || !user || lobby.status !== 'playing' || botThinking) return;
 
     const isPlayerW = user.uid === lobby.playerW;
     const isPlayerB = user.uid === lobby.playerB;
-    const myColor = isPlayerW ? 'w' : isPlayerB ? 'b' : null;
+    const myColor = isBotGame ? 'w' : isPlayerW ? 'w' : isPlayerB ? 'b' : null;
 
     if (!myColor || lobby.turn !== myColor) return;
 
@@ -290,7 +474,7 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
   };
 
   const copyCode = () => {
-    if (lobby) {
+    if (lobby && !isBotGame) {
       void navigator.clipboard.writeText(lobby.code);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -304,8 +488,10 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
       </div>
     );
 
-  const orientation = user?.uid === lobby.playerB ? 'black' : 'white';
-  const isMyTurn = (lobby.turn === 'w' && user?.uid === lobby.playerW) || (lobby.turn === 'b' && user?.uid === lobby.playerB);
+  const orientation = isBotGame ? 'white' : user?.uid === lobby.playerB ? 'black' : 'white';
+  const isMyTurn = isBotGame
+    ? lobby.turn === 'w' && lobby.status === 'playing' && !botThinking
+    : (lobby.turn === 'w' && user?.uid === lobby.playerW) || (lobby.turn === 'b' && user?.uid === lobby.playerB);
 
   const activeTheme = BOARD_THEMES.find((t) => t.id === lobby.theme) || DEFAULT_THEME;
 
@@ -322,7 +508,9 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
           </button>
 
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] uppercase text-[#666] font-bold tracking-widest">Match Session</span>
+            <span className="text-[10px] uppercase text-[#666] font-bold tracking-widest">
+              {isBotGame ? 'Bot Session' : 'Match Session'}
+            </span>
             <span
               className={`text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded ${
                 lobby.status === 'playing' ? 'text-green-500 bg-green-500/10' : 'text-fc-gold bg-fc-gold/10'
@@ -337,14 +525,16 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
           </div>
           <h2 className="text-xl font-bold tracking-widest text-white flex items-center gap-2 uppercase">
             {lobby.code}
-            <button
-              onClick={copyCode}
-              className="p-1.5 hover:bg-[#222] rounded-lg transition-colors text-[#444] hover:text-fc-gold"
-              type="button"
-              title="Copy join code"
-            >
-              {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
-            </button>
+            {!isBotGame && (
+              <button
+                onClick={copyCode}
+                className="p-1.5 hover:bg-[#222] rounded-lg transition-colors text-[#444] hover:text-fc-gold"
+                type="button"
+                title="Copy join code"
+              >
+                {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+              </button>
+            )}
           </h2>
         </div>
 
@@ -425,7 +615,7 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
                 ) : (
                   <div className="text-[#666] uppercase tracking-widest flex items-center gap-2 py-2">
                     <span className={`w-1.5 h-1.5 rounded-full ${lobby.turn === 'w' ? 'bg-white' : 'bg-fc-gold animate-pulse'}`}></span>
-                    {lobby.turn === 'w' ? "White's turn" : "Black's turn"}
+                    {botThinking ? 'Stockfish thinking' : lobby.turn === 'w' ? "White's turn" : "Black's turn"}
                   </div>
                 )}
               </div>
@@ -476,7 +666,7 @@ export default function FriendChessGame({ lobbyId, onExit }: FriendChessGameProp
                 onPieceDrop: onDrop,
                 onSquareClick: onSquareClick,
                 boardOrientation: orientation,
-                allowDragging: isMyTurn && lobby.status === 'playing' && !pendingMove,
+                allowDragging: isMyTurn && lobby.status === 'playing' && !pendingMove && !botThinking,
                 darkSquareStyle: { backgroundColor: activeTheme.dark },
                 lightSquareStyle: { backgroundColor: activeTheme.light },
                 squareStyles: optionSquares,
