@@ -17,6 +17,53 @@ interface FriendChessGameProps {
 
 const STANDARD_INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+type PromotionPiece = 'q' | 'r' | 'b' | 'n';
+
+type SafeChessMove = {
+  from: string;
+  to: string;
+  promotion?: PromotionPiece;
+};
+
+function buildSafeMove(chess: Chess, sourceSquare: string | null | undefined, targetSquare: string | null | undefined) {
+  if (!sourceSquare || !targetSquare || sourceSquare === targetSquare) {
+    console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare });
+    return null;
+  }
+
+  const piece = chess.get(sourceSquare as never);
+  const move: SafeChessMove = {
+    from: sourceSquare,
+    to: targetSquare,
+  };
+
+  if (piece?.type === 'p' && ((piece.color === 'w' && targetSquare[1] === '8') || (piece.color === 'b' && targetSquare[1] === '1'))) {
+    move.promotion = 'q';
+  }
+
+  return move;
+}
+
+function makeSafeMove(chess: Chess, sourceSquare: string | null | undefined, targetSquare: string | null | undefined) {
+  const move = buildSafeMove(chess, sourceSquare, targetSquare);
+  if (!move) return null;
+
+  try {
+    const gameCopy = new Chess(chess.fen());
+    const result = gameCopy.move(move as never);
+
+    if (result === null) {
+      console.warn('Invalid move ignored:', move);
+      return null;
+    }
+
+    return { game: gameCopy, move: result };
+  } catch (error) {
+    console.warn('Invalid move ignored:', move, error);
+    return null;
+  }
+}
+
 export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendChessGameProps) {
   const { db, auth } = getFriendChessFirebase();
   const engineRef = useRef<StockfishEngine | null>(null);
@@ -182,17 +229,11 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
     (sourceSquare: string, targetSquare: string, playerId: string) => {
       if (!lobby || lobby.status !== 'playing') return false;
 
-      const g = new Chess(lobby.fen);
-      const move = g.move({
-        from: sourceSquare as never,
-        to: targetSquare as never,
-        promotion: 'q',
-      });
-
-      if (move === null) {
-        setErrorMsg('Illegal move.');
+      const safeMove = makeSafeMove(new Chess(lobby.fen), sourceSquare, targetSquare);
+      if (!safeMove) {
         return false;
       }
+      const { game: g, move } = safeMove;
 
       const status = g.isGameOver() ? 'finished' : 'playing';
       let winner: string | null = null;
@@ -222,9 +263,17 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
 
   const submitMove = useCallback(
     async (sourceSquare: string, targetSquare: string) => {
+      if (!sourceSquare || !targetSquare || sourceSquare === targetSquare) {
+        console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare });
+        return false;
+      }
       if (pendingMove) return false;
 
       if (!lobby || !user) return false;
+      if (botThinking || game.isGameOver()) {
+        console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare, reason: 'not ready for a human move' });
+        return false;
+      }
 
       const isPlayerW = user.uid === lobby.playerW;
       const isPlayerB = user.uid === lobby.playerB;
@@ -265,17 +314,14 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
             throw new Error('That move is out of sync. Wait for the board to refresh.');
           }
 
-          const g = new Chess(latestLobby.fen);
-          const fenBefore = g.fen();
-          const move = g.move({
-            from: sourceSquare as never,
-            to: targetSquare as never,
-            promotion: 'q',
-          });
+          const latestGame = new Chess(latestLobby.fen);
+          const fenBefore = latestGame.fen();
+          const safeMove = makeSafeMove(latestGame, sourceSquare, targetSquare);
 
-          if (move === null) {
+          if (!safeMove) {
             throw new Error('Illegal move.');
           }
+          const { game: g, move } = safeMove;
 
           const status = g.isGameOver() ? 'finished' : 'playing';
           let winner: string | null = null;
@@ -323,15 +369,17 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
 
         return true;
       } catch (err) {
-        console.error('Move sync failed:', err);
+        console.warn('Move ignored:', err);
         const message = err instanceof Error ? err.message : '';
-        setErrorMsg(message || 'Failed to sync move with server.');
+        if (message && message !== 'Illegal move.') {
+          setErrorMsg(message || 'Failed to sync move with server.');
+        }
         return false;
       } finally {
         setPendingMove(false);
       }
     },
-    [applyLocalMove, db, isBotGame, lobby, lobbyId, pendingMove, user],
+    [applyLocalMove, botThinking, db, game, isBotGame, lobby, lobbyId, pendingMove, user],
   );
 
   useEffect(() => {
@@ -351,17 +399,27 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         const bestMove = await engine.getBestMove(lobby.fen, botConfig.difficulty);
         if (cancelled) return;
 
+        const g = new Chess(lobby.fen);
         const sourceSquare = bestMove.slice(0, 2);
         const targetSquare = bestMove.slice(2, 4);
-        const promotion = bestMove.slice(4, 5) || 'q';
-        const g = new Chess(lobby.fen);
-        const move = g.move({
-          from: sourceSquare as never,
-          to: targetSquare as never,
-          promotion,
-        });
+        const safeMove = buildSafeMove(g, sourceSquare, targetSquare);
+
+        if (!safeMove) {
+          throw new Error(`Stockfish suggested an illegal move: ${bestMove}`);
+        }
+        const promotion = bestMove.slice(4, 5);
+        if (promotion) safeMove.promotion = promotion as PromotionPiece;
+
+        let move;
+        try {
+          move = g.move(safeMove as never);
+        } catch (error) {
+          console.warn('Invalid Stockfish move ignored:', safeMove, error);
+          throw new Error(`Stockfish suggested an illegal move: ${bestMove}`);
+        }
 
         if (move === null) {
+          console.warn('Invalid Stockfish move ignored:', safeMove);
           throw new Error(`Stockfish suggested an illegal move: ${bestMove}`);
         }
 
@@ -409,11 +467,30 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
   const onDrop = useCallback(
     (args: { piece: unknown; sourceSquare: string; targetSquare: string | null }) => {
       const { sourceSquare, targetSquare } = args;
-      if (!targetSquare) return false;
+      if (!sourceSquare || !targetSquare || sourceSquare === targetSquare) {
+        console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare });
+        return false;
+      }
+      if (!lobby || !user || lobby.status !== 'playing' || game.isGameOver() || pendingMove || botThinking) {
+        console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare, reason: 'not ready for a human move' });
+        return false;
+      }
+
+      const isPlayerW = user.uid === lobby.playerW;
+      const isPlayerB = user.uid === lobby.playerB;
+      const myColor = isBotGame ? 'w' : isPlayerW ? 'w' : isPlayerB ? 'b' : null;
+      if (!myColor || lobby.turn !== myColor) {
+        console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare, reason: 'not your turn' });
+        return false;
+      }
+
+      const safeMove = makeSafeMove(game, sourceSquare, targetSquare);
+      if (!safeMove) return false;
+
       void submitMove(sourceSquare, targetSquare);
-      return false;
+      return true;
     },
-    [submitMove],
+    [botThinking, game, isBotGame, lobby, pendingMove, submitMove, user],
   );
 
   const getMoveOptions = (square: string) => {
