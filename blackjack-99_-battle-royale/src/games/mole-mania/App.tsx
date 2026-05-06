@@ -363,7 +363,7 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col lg:flex-row px-4 sm:px-6 py-4 gap-6 max-w-[1400px] mx-auto w-full">
+      <main className="mole-mania-main flex-1 flex flex-col lg:flex-row px-4 sm:px-6 py-4 gap-6 max-w-[1400px] mx-auto w-full">
         
         {/* Game Area */}
         <div className="mole-mania-board relative flex-1 bg-[#4CAF50] rounded-[32px] border-b-[10px] border-[#388E3C] shadow-2xl p-4 sm:p-6 flex flex-col items-center justify-center min-h-[400px]">
@@ -517,7 +517,7 @@ export default function App() {
         </div>
 
         {/* Leaderboard Sidebar */}
-        <aside className="w-full lg:w-80 bg-white rounded-[40px] border-b-[8px] border-[#E0E0E0] p-6 flex flex-col shadow-xl h-fit sticky lg:top-32">
+        <aside className="mole-mania-leaderboard w-full lg:w-80 bg-white rounded-[40px] border-b-[8px] border-[#E0E0E0] p-6 flex flex-col shadow-xl h-fit sticky lg:top-32">
           <h2 className="text-center text-3xl font-black text-[#54D2D2] uppercase tracking-tighter italic mb-6">Hall of Fame</h2>
           
           <div className="flex flex-col gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">

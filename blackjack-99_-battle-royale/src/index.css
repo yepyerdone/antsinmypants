@@ -4789,6 +4789,8 @@ body {
 }
 
 .mole-mania-header {
+  position: relative !important;
+  top: auto !important;
   display: grid;
   grid-template-columns: minmax(17rem, 1fr) auto minmax(12rem, 1fr);
   gap: 1rem;
@@ -4797,6 +4799,17 @@ body {
     radial-gradient(circle at 8% 10%, rgba(255, 255, 255, 0.42) 0 0.55rem, transparent 0.62rem),
     radial-gradient(circle at 72% 22%, rgba(255, 255, 255, 0.35) 0 0.3rem, transparent 0.36rem),
     linear-gradient(135deg, #ffd166, #ffbd59 58%, #f5a623);
+}
+
+.mole-mania-main {
+  position: relative;
+  z-index: 1;
+  align-items: stretch;
+  padding-top: 1.35rem !important;
+}
+
+.mole-mania-leaderboard {
+  top: calc(var(--site-topbar-height) + 1.25rem) !important;
 }
 
 .mole-mania-header-stats {
@@ -5170,6 +5183,15 @@ body {
   .mole-mania-header {
     grid-template-columns: 1fr;
     padding: 1rem;
+  }
+
+  .mole-mania-main {
+    padding-top: 1rem !important;
+  }
+
+  .mole-mania-leaderboard {
+    position: relative !important;
+    top: auto !important;
   }
 
   .mole-mania-title {
