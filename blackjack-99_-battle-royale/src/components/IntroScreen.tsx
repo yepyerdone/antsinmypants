@@ -57,14 +57,14 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
     setShowFeaturedBackButton(featuredScroller.scrollLeft > 12);
   };
 
-  const renderGameCard = (game: GameCardData, index: number) => (
+  const renderGameCard = (game: GameCardData) => (
     <motion.button
       key={game.id}
       type="button"
       onClick={() => launchGame(game)}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, delay: index * 0.035 }}
+      transition={{ duration: 0.28 }}
       className="site-game-card"
     >
       <GamePreview type={game.preview} title={game.title} coverImage={game.coverImage} />
@@ -156,41 +156,41 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
               const sectionGames = getSectionGames(section.gameIds);
 
               return (
-                <div key={section.title} className="site-games-row" aria-labelledby={sectionTitleId}>
-                  <div className="site-games-row__heading">
-                    <h3 id={sectionTitleId}>{section.title}</h3>
-                    {isFeatured && (
-                      <div className="site-games-row__controls">
-                        <button
-                          type="button"
-                          onClick={scrollFeaturedToStart}
-                          disabled={!showFeaturedBackButton}
-                          className="site-games-row__control"
-                          aria-label="Scroll featured games to start"
-                        >
-                          <ChevronLeft size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={scrollFeaturedToMoleMania}
-                          disabled={showFeaturedBackButton}
-                          className="site-games-row__control"
-                          aria-label="Scroll featured games to end"
-                        >
-                          <ChevronRight size={16} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <section key={section.title} className="site-game-row" aria-labelledby={sectionTitleId}>
+                  {!isFeatured && <h3 id={sectionTitleId}>{section.title}</h3>}
 
-                  <div
-                    className="site-games-row__cards"
-                    ref={isFeatured ? featuredScrollerRef : undefined}
-                    onScroll={isFeatured ? handleFeaturedScroll : undefined}
-                  >
-                    {sectionGames.map((game, index) => renderGameCard(game, index))}
-                  </div>
-                </div>
+                  {isFeatured ? (
+                    <div className="site-featured-carousel">
+                      <div
+                        ref={featuredScrollerRef}
+                        className="site-games-grid site-games-grid--featured"
+                        onScroll={handleFeaturedScroll}
+                      >
+                        {sectionGames.map(renderGameCard)}
+                      </div>
+                      {showFeaturedBackButton && (
+                        <button
+                          type="button"
+                          className="site-featured-scroll-button site-featured-scroll-button--back"
+                          onClick={scrollFeaturedToStart}
+                          aria-label="Scroll back to first featured game"
+                        >
+                          <ChevronLeft size={28} strokeWidth={3} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="site-featured-scroll-button"
+                        onClick={scrollFeaturedToMoleMania}
+                        aria-label="Scroll to Mole Mania"
+                      >
+                        <ChevronRight size={28} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="site-games-grid">{sectionGames.map(renderGameCard)}</div>
+                  )}
+                </section>
               );
             })}
           </div>
