@@ -106,7 +106,7 @@ function SpaceRunnerLeaderboard() {
     getSpaceRunnerScores(10)
       .then(setScores)
       .catch((err) => {
-        console.error('Failed to load Space Runner leaderboard:', err);
+        console.error('Failed to load Space Racer leaderboard:', err);
         setError('Orbital leaderboard is warming up. Try again in a moment.');
       });
   };
@@ -133,7 +133,7 @@ function SpaceRunnerLeaderboard() {
       setSubmittedScore(finalScore);
       refreshScores();
     } catch (err) {
-      console.error('Failed to submit Space Runner score:', err);
+      console.error('Failed to submit Space Racer score:', err);
       setError(err instanceof Error ? err.message : 'Score submit failed.');
     } finally {
       setSubmitting(false);
@@ -201,7 +201,7 @@ function SpaceRunnerLeaderboard() {
 function SpaceRunner() {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Space Runner | The Honor Roll';
+    document.title = 'Space Racer | The Honor Roll';
     return () => {
       document.title = previousTitle;
     };
@@ -212,12 +212,12 @@ function SpaceRunner() {
       <header className="space-runner-header">
         <div>
           <p>Orbital arcade runner</p>
-          <h1>Space Runner</h1>
+          <h1>Space Racer</h1>
         </div>
       </header>
 
       <main className="space-runner-layout">
-        <section className="space-runner-stage" aria-label="Space Runner game">
+        <section className="space-runner-stage" aria-label="Space Racer game">
           <HUD />
           <Canvas
             shadows

@@ -211,7 +211,7 @@ export function ProfileModal({ isOpen, initialView = 'profile', onClose }: Profi
                       </div>
                       <div>
                         <Trophy size={18} />
-                        <span>Snake Rush</span>
+                        <span>Snake</span>
                         <strong>{dashboard.highScores.snakeRush.toLocaleString()}</strong>
                       </div>
                     </div>

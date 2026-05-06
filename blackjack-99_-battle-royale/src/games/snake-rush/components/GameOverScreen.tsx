@@ -29,7 +29,7 @@ export const GameOverScreen: React.FC<GameOverScreenProps> = ({ score, highScore
     addScore(playerName, score, gameMode, playerId, isGuest)
       .then(() => setSubmitted(true))
       .catch((error) => {
-        console.error('Failed to save Snake Rush score:', error);
+        console.error('Failed to save Snake score:', error);
         setSaveError('Score could not be saved. You can still play again.');
       })
       .finally(() => setSaving(false));

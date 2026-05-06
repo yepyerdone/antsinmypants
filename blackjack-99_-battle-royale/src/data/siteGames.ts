@@ -145,7 +145,7 @@ export const siteGames: GameCardData[] = [
   },
   {
     id: 'snake-rush',
-    title: 'Snake Rush',
+    title: 'Snake',
     description: 'High-speed snake with modes, board sizes, and online score chasing.',
     category: 'Arcade',
     meta: 'Leaderboard',
@@ -157,7 +157,7 @@ export const siteGames: GameCardData[] = [
   },
   {
     id: 'space-runner',
-    title: 'Space Runner',
+    title: 'Space Racer',
     description: 'Outrun an alien across glowing orbital lanes, dodging UFO fire and collecting star crystals.',
     category: 'Runner',
     meta: 'Top 10 scores',
