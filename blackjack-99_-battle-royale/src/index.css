@@ -4789,15 +4789,30 @@ body {
 }
 
 .mole-mania-header {
+  display: grid;
+  grid-template-columns: minmax(17rem, 1fr) auto minmax(12rem, 1fr);
+  gap: 1rem;
+  align-items: center;
   background:
     radial-gradient(circle at 8% 10%, rgba(255, 255, 255, 0.42) 0 0.55rem, transparent 0.62rem),
     radial-gradient(circle at 72% 22%, rgba(255, 255, 255, 0.35) 0 0.3rem, transparent 0.36rem),
     linear-gradient(135deg, #ffd166, #ffbd59 58%, #f5a623);
 }
 
+.mole-mania-header-stats {
+  min-width: 0;
+}
+
+.mole-mania-header-actions {
+  min-width: 0;
+  justify-content: flex-end;
+}
+
 .mole-mania-stat {
   position: relative;
   overflow: hidden;
+  min-width: 8.25rem;
+  isolation: isolate;
 }
 
 .mole-mania-stat::after {
@@ -4826,6 +4841,10 @@ body {
 }
 
 .mole-mania-title {
+  justify-self: center;
+  max-width: min(32vw, 28rem);
+  overflow: hidden;
+  white-space: nowrap;
   text-shadow:
     0 4px 0 rgba(255, 255, 255, 0.45),
     0 10px 18px rgba(139, 69, 19, 0.22);
@@ -5124,6 +5143,59 @@ body {
   }
   50% {
     transform: translate(-50%, -68%) rotate(7deg);
+  }
+}
+
+@media (max-width: 1120px) {
+  .mole-mania-header {
+    grid-template-columns: 1fr auto;
+    row-gap: 0.85rem;
+  }
+
+  .mole-mania-title {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    max-width: 100%;
+    justify-self: center;
+    font-size: 2.7rem;
+  }
+
+  .mole-mania-header-stats,
+  .mole-mania-header-actions {
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 720px) {
+  .mole-mania-header {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+
+  .mole-mania-title {
+    display: block;
+    font-size: 2.1rem;
+  }
+
+  .mole-mania-header-stats,
+  .mole-mania-header-actions {
+    grid-row: auto;
+    justify-content: center;
+  }
+
+  .mole-mania-header-stats {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .mole-mania-stat {
+    min-width: 7.35rem;
+    padding-inline: 1rem;
+  }
+
+  .mole-mania-audio-button {
+    width: 3rem;
+    height: 3rem;
   }
 }
 

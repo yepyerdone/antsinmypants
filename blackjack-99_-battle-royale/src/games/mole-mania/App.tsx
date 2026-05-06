@@ -330,7 +330,7 @@ export default function App() {
     <div className="mole-mania-shell min-h-screen bg-[#FFDE59] font-sans flex flex-col select-none">
       {/* Header Section */}
       <header className="mole-mania-header flex items-center justify-between px-8 py-6 bg-[#FFBD59] shadow-md border-b-4 border-[#F5A623] sticky top-0 z-30">
-        <div className="flex items-center gap-6">
+        <div className="mole-mania-header-stats flex items-center gap-6">
           <div className="mole-mania-stat mole-mania-stat--time bg-[#FF5757] text-white px-6 py-2 rounded-full border-4 border-white shadow-lg flex flex-col items-center">
             <span className="text-[10px] uppercase font-black tracking-widest block opacity-80">Time Left</span>
             <span
@@ -348,14 +348,14 @@ export default function App() {
         
         <h1 className="mole-mania-title hidden md:block text-5xl lg:text-6xl font-black text-[#8B4513] drop-shadow-sm uppercase tracking-tighter italic">Mole Mania!</h1>
         
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex bg-white p-3 rounded-2xl shadow-inner border-2 border-[#8B4513] flex-col items-end">
+        <div className="mole-mania-header-actions flex items-center gap-4">
+          <div className="mole-mania-player-card hidden sm:flex bg-white p-3 rounded-2xl shadow-inner border-2 border-[#8B4513] flex-col items-end">
             <span className="text-[10px] font-bold text-[#8B4513] uppercase leading-none mb-1">Signed In As</span>
             <span className="text-sm font-black text-[#8B4513]">{user ? user.displayName?.split(' ')[0] : 'Guest'}</span>
           </div>
           <button 
             onClick={() => setIsMuted(!isMuted)}
-            className="w-14 h-14 bg-[#7ED957] rounded-full border-4 border-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+            className="mole-mania-audio-button w-14 h-14 bg-[#7ED957] rounded-full border-4 border-white shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
           >
             {isMuted ? <VolumeX className="text-white" size={24} /> : <Volume2 className="text-white" size={24} />}
           </button>
