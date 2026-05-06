@@ -1079,9 +1079,9 @@ body {
 .site-home-main {
   position: relative;
   z-index: 1;
-  width: min(100%, 1200px);
+  width: min(100%, 1160px);
   margin: 0 auto;
-  padding: 3rem 1.25rem 4rem;
+  padding: 2rem 1.25rem 3rem;
 }
 
 .site-home-hero {
@@ -1089,7 +1089,7 @@ body {
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
   gap: 1rem;
   align-items: stretch;
-  min-height: 420px;
+  min-height: 330px;
 }
 
 .site-home-hero__copy,
@@ -1109,7 +1109,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 2.4rem;
+  padding: 1.8rem;
 }
 
 .site-home-pill {
@@ -1128,9 +1128,9 @@ body {
 
 .site-home-hero h1 {
   max-width: 760px;
-  margin: 1.1rem 0 0;
+  margin: 0.9rem 0 0;
   color: #fff7ed;
-  font-size: 4.7rem;
+  font-size: 3.8rem;
   font-weight: 950;
   line-height: 0.95;
   text-transform: uppercase;
@@ -1139,9 +1139,9 @@ body {
 
 .site-home-hero p {
   max-width: 590px;
-  margin: 1.1rem 0 0;
+  margin: 0.8rem 0 0;
   color: rgb(255 237 213 / 0.78);
-  font-size: 1.08rem;
+  font-size: 1rem;
   font-weight: 750;
   line-height: 1.55;
 }
@@ -1151,16 +1151,16 @@ body {
   flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
-  margin-top: 1.5rem;
+  margin-top: 1.15rem;
 }
 
 .site-home-primary,
 .site-home-secondary {
   gap: 0.5rem;
   border-radius: 8px;
-  min-height: 3.15rem;
-  padding: 0 1rem;
-  font-size: 0.78rem;
+  min-height: 2.75rem;
+  padding: 0 0.85rem;
+  font-size: 0.72rem;
   font-weight: 950;
   text-decoration: none;
   text-transform: uppercase;
@@ -1187,26 +1187,26 @@ body {
 
 .site-home-stats {
   display: grid;
-  gap: 0.8rem;
-  padding: 1rem;
+  gap: 0.65rem;
+  padding: 0.85rem;
 }
 
 .site-home-stat {
   display: grid;
   align-content: center;
   gap: 0.35rem;
-  min-height: 7.3rem;
+  min-height: 5.8rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   color: #fed7aa;
   background: rgba(255, 255, 255, 0.045);
-  padding: 1rem;
+  padding: 0.85rem;
   font-weight: 950;
 }
 
 .site-home-stat strong {
   color: #fff7ed;
-  font-size: 2.1rem;
+  font-size: 1.65rem;
   line-height: 1;
 }
 
@@ -1216,23 +1216,23 @@ body {
 }
 
 .site-games-section {
-  padding-top: 3rem;
+  padding-top: 2rem;
 }
 
 .site-games-rows {
   display: grid;
-  gap: 2.25rem;
+  gap: 1.45rem;
 }
 
 .site-game-row {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .site-game-row h3 {
   margin: 0;
   color: #fff7ed;
-  font-size: 2.2rem;
+  font-size: 1.75rem;
   font-weight: 950;
   letter-spacing: 0;
   line-height: 1;
@@ -1244,13 +1244,13 @@ body {
   justify-content: space-between;
   gap: 1rem;
   align-items: end;
-  margin-bottom: 1.2rem;
+  margin-bottom: 0.85rem;
 }
 
 .site-section-heading h2 {
-  margin: 0.85rem 0 0;
+  margin: 0.65rem 0 0;
   color: #fff7ed;
-  font-size: 2.2rem;
+  font-size: 1.85rem;
   font-weight: 950;
   line-height: 1;
   text-transform: uppercase;
@@ -1260,7 +1260,7 @@ body {
   max-width: 390px;
   margin: 0;
   color: #a8a29e;
-  font-size: 0.94rem;
+  font-size: 0.86rem;
   font-weight: 700;
   line-height: 1.5;
 }
@@ -1268,7 +1268,7 @@ body {
 .site-games-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .site-featured-carousel {
@@ -1276,7 +1276,7 @@ body {
 }
 
 .site-games-grid--featured {
-  grid-auto-columns: calc((100% - 2rem) / 3);
+  grid-auto-columns: calc((100% - 1.5rem) / 3);
   grid-auto-flow: column;
   grid-template-columns: none;
   overflow-x: auto;
@@ -1303,8 +1303,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: 1px solid rgba(251, 191, 36, 0.42);
   border-radius: 999px;
   color: #1c0d02;
@@ -1330,8 +1330,8 @@ body {
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-rows: 190px 1fr;
-  min-height: 430px;
+  grid-template-rows: 140px 1fr;
+  min-height: 315px;
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -1340,7 +1340,7 @@ body {
 
 .site-game-card:hover,
 .site-game-card:focus-visible {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   border-color: rgba(251, 191, 36, 0.58);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.42), 0 0 38px rgba(249, 115, 22, 0.16);
   outline: 0;
@@ -1349,15 +1349,15 @@ body {
 .site-game-card__body {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  padding: 1.1rem;
+  gap: 0.55rem;
+  padding: 0.8rem;
 }
 
 .site-game-card__meta {
   justify-content: space-between;
-  gap: 0.7rem;
+  gap: 0.5rem;
   color: #fbbf24;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 950;
 }
 
@@ -1369,7 +1369,7 @@ body {
 
 .site-game-card strong {
   color: #fff7ed;
-  font-size: 1.65rem;
+  font-size: 1.3rem;
   font-weight: 950;
   line-height: 1;
   text-transform: uppercase;
@@ -1377,20 +1377,20 @@ body {
 
 .site-game-card__description {
   color: #d6d3d1;
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 650;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .site-game-card__cta {
   width: fit-content;
-  gap: 0.45rem;
+  gap: 0.35rem;
   margin-top: auto;
   border-radius: 8px;
   color: #1c0d02;
   background: linear-gradient(135deg, #fbbf24, #f97316);
-  padding: 0.7rem 0.85rem;
-  font-size: 0.72rem;
+  padding: 0.55rem 0.68rem;
+  font-size: 0.64rem;
   font-weight: 950;
   text-transform: uppercase;
   box-shadow: 0 12px 26px rgba(249, 115, 22, 0.22);
@@ -2124,7 +2124,7 @@ body {
   }
 
   .site-games-grid--featured {
-    grid-auto-columns: calc((100% - 1rem) / 2);
+    grid-auto-columns: calc((100% - 0.75rem) / 2);
   }
 }
 
@@ -2138,7 +2138,7 @@ body {
   }
 
   .site-home-hero h1 {
-    font-size: 2.7rem;
+    font-size: 2.35rem;
   }
 
   .site-home-actions,
@@ -2189,7 +2189,8 @@ body {
   }
 
   .site-game-card {
-    min-height: 400px;
+    grid-template-rows: 132px 1fr;
+    min-height: 300px;
   }
 }
 
