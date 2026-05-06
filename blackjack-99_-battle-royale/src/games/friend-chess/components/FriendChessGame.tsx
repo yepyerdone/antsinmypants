@@ -80,6 +80,12 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
   const [botThinking, setBotThinking] = useState(false);
   const isBotGame = Boolean(botConfig);
 
+  const resetHumanMoveState = useCallback(() => {
+    setPendingMove(false);
+    setMoveFrom(null);
+    setOptionSquares({});
+  }, []);
+
   useEffect(() => {
     return auth.onAuthStateChanged((u) => setUser(u));
   }, [auth]);
@@ -231,6 +237,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
 
       const safeMove = makeSafeMove(new Chess(lobby.fen), sourceSquare, targetSquare);
       if (!safeMove) {
+        resetHumanMoveState();
         return false;
       }
       const { game: g, move } = safeMove;
@@ -258,20 +265,28 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
       setErrorMsg(null);
       return true;
     },
-    [lobby, localClocks],
+    [lobby, localClocks, resetHumanMoveState],
   );
 
   const submitMove = useCallback(
     async (sourceSquare: string, targetSquare: string) => {
       if (!sourceSquare || !targetSquare || sourceSquare === targetSquare) {
         console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare });
+        resetHumanMoveState();
         return false;
       }
-      if (pendingMove) return false;
+      if (pendingMove) {
+        console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare, reason: 'move already pending' });
+        return false;
+      }
 
-      if (!lobby || !user) return false;
+      if (!lobby || !user) {
+        resetHumanMoveState();
+        return false;
+      }
       if (botThinking || game.isGameOver()) {
         console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare, reason: 'not ready for a human move' });
+        resetHumanMoveState();
         return false;
       }
 
@@ -280,6 +295,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
       const myColor = isBotGame ? 'w' : isPlayerW ? 'w' : isPlayerB ? 'b' : null;
 
       if (lobby.status !== 'playing' || !myColor || lobby.turn !== myColor) {
+        resetHumanMoveState();
         return false;
       }
 
@@ -374,12 +390,13 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         if (message && message !== 'Illegal move.') {
           setErrorMsg(message || 'Failed to sync move with server.');
         }
+        resetHumanMoveState();
         return false;
       } finally {
         setPendingMove(false);
       }
     },
-    [applyLocalMove, botThinking, db, game, isBotGame, lobby, lobbyId, pendingMove, user],
+    [applyLocalMove, botThinking, db, game, isBotGame, lobby, lobbyId, pendingMove, resetHumanMoveState, user],
   );
 
   useEffect(() => {
@@ -469,10 +486,12 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
       const { sourceSquare, targetSquare } = args;
       if (!sourceSquare || !targetSquare || sourceSquare === targetSquare) {
         console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare });
+        resetHumanMoveState();
         return false;
       }
       if (!lobby || !user || lobby.status !== 'playing' || game.isGameOver() || pendingMove || botThinking) {
         console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare, reason: 'not ready for a human move' });
+        if (!pendingMove) resetHumanMoveState();
         return false;
       }
 
@@ -481,16 +500,20 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
       const myColor = isBotGame ? 'w' : isPlayerW ? 'w' : isPlayerB ? 'b' : null;
       if (!myColor || lobby.turn !== myColor) {
         console.warn('Invalid move ignored:', { from: sourceSquare, to: targetSquare, reason: 'not your turn' });
+        resetHumanMoveState();
         return false;
       }
 
       const safeMove = makeSafeMove(game, sourceSquare, targetSquare);
-      if (!safeMove) return false;
+      if (!safeMove) {
+        resetHumanMoveState();
+        return false;
+      }
 
       void submitMove(sourceSquare, targetSquare);
       return true;
     },
-    [botThinking, game, isBotGame, lobby, pendingMove, submitMove, user],
+    [botThinking, game, isBotGame, lobby, pendingMove, resetHumanMoveState, submitMove, user],
   );
 
   const getMoveOptions = (square: string) => {
@@ -539,7 +562,9 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
     }
 
     if (moveFrom) {
-      void submitMove(moveFrom, square);
+      void submitMove(moveFrom, square).then((moved) => {
+        if (!moved) resetHumanMoveState();
+      });
       return;
     }
 
