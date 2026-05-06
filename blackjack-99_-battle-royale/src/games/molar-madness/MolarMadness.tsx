@@ -354,79 +354,353 @@ export const Game: React.FC = () => {
     ctx.save();
     ctx.translate(cx, cy + bob);
     ctx.rotate(directionAngle[entity.dir] * 0.06);
+    ctx.imageSmoothingEnabled = false;
 
-    const glow = powerTimer > 0 ? '#7dd3fc' : '#ffffff';
+    const glow = powerTimer > 0 ? '#00ff88' : '#ffffff';
     ctx.shadowColor = glow;
-    ctx.shadowBlur = powerTimer > 0 ? 16 : 8;
-    const toothGradient = ctx.createLinearGradient(-8, -10, 8, 11);
-    toothGradient.addColorStop(0, '#ffffff');
-    toothGradient.addColorStop(0.58, powerTimer > 0 ? '#dff7ff' : '#eef7f6');
-    toothGradient.addColorStop(1, '#b9d9dc');
-    ctx.fillStyle = toothGradient;
+    ctx.shadowBlur = powerTimer > 0 ? 10 : 5;
 
-    ctx.beginPath();
-    ctx.moveTo(-8, -8);
-    ctx.quadraticCurveTo(-12, -2, -9, 7);
-    ctx.quadraticCurveTo(-7, 13, -3, 8);
-    ctx.quadraticCurveTo(0, 4, 3, 8);
-    ctx.quadraticCurveTo(7, 13, 9, 7);
-    ctx.quadraticCurveTo(12, -2, 8, -8);
-    ctx.quadraticCurveTo(2, -13, -8, -8);
-    ctx.fill();
+    // === MOLAR TOOTH PIXEL ART (20x20 centered, 2px per pixel) ===
+    const px = 2; // pixel scale
+    const drawPixel = (dx: number, dy: number, color: string) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(dx * px, dy * px, px, px);
+    };
 
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#11313c';
-    ctx.beginPath();
-    ctx.arc(-3.5, -4, 1.55, 0, Math.PI * 2);
-    ctx.arc(4.2, -4, 1.55, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#1f8da0';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(0, 1.5, 4.5, 0.15, Math.PI - 0.15);
-    ctx.stroke();
+    // Molar crown - wide top with two cusps (bumps)
+    // Row by row pixel placement for authentic pixel-art look
+    const white = '#ffffff';
+    const lightGray = '#e8e8e8';
+    const midGray = '#d0d0d0';
+    const darkGray = '#a0a0a0';
+    const eyeColor = '#11313c';
+
+    // Crown top row (cusps/bumps)
+    drawPixel(-4, -6, white); drawPixel(-3, -6, white); drawPixel(-2, -7, white); // left cusp
+    drawPixel(2, -7, white); drawPixel(3, -6, white); drawPixel(4, -6, white); // right cusp
+
+    // Upper crown
+    for (let x = -5; x <= 5; x++) drawPixel(x, -5, white);
+    for (let x = -6; x <= 6; x++) drawPixel(x, -4, white);
+    for (let x = -6; x <= 6; x++) drawPixel(x, -3, x === -6 || x === 6 ? lightGray : white);
+
+    // Mid body with eyes
+    for (let x = -6; x <= 6; x++) {
+      let color = white;
+      if (x === -6 || x === 6) color = lightGray;
+      if (x === -5) color = midGray;
+      if (x === 5) color = midGray;
+      drawPixel(x, -2, color);
+    }
+
+    // Eyes row
+    for (let x = -6; x <= 6; x++) {
+      let color = white;
+      if (x === -4 || x === -3) color = eyeColor; // left eye
+      if (x === 3 || x === 4) color = eyeColor; // right eye
+      if (x === -6 || x === 6) color = lightGray;
+      drawPixel(x, -1, color);
+    }
+
+    // Eye highlights
+    drawPixel(-3, -1, white);
+    drawPixel(4, -1, white);
+
+    // Smile row
+    for (let x = -6; x <= 6; x++) {
+      let color = white;
+      if (x === -2 || x === 2) color = eyeColor; // smile corners
+      if (x === -1 || x === 0 || x === 1) color = eyeColor; // smile bottom
+      if (x === -6 || x === 6) color = lightGray;
+      drawPixel(x, 0, color);
+    }
+
+    // Lower body narrowing to neck
+    for (let x = -5; x <= 5; x++) drawPixel(x, 1, x === -5 || x === 5 ? lightGray : white);
+    for (let x = -5; x <= 5; x++) drawPixel(x, 2, x === -5 || x === 5 ? midGray : white);
+
+    // Neck
+    for (let x = -4; x <= 4; x++) drawPixel(x, 3, x === -4 || x === 4 ? lightGray : white);
+    for (let x = -4; x <= 4; x++) drawPixel(x, 4, x === -4 || x === 4 ? midGray : lightGray);
+
+    // Split to roots
+    for (let x = -4; x <= -1; x++) drawPixel(x, 5, x === -4 ? midGray : white); // left root start
+    for (let x = 1; x <= 4; x++) drawPixel(x, 5, x === 4 ? midGray : white); // right root start
+    drawPixel(0, 5, darkGray); // gap between roots
+
+    // Roots extending down
+    for (let x = -3; x <= -1; x++) drawPixel(x, 6, white);
+    for (let x = 1; x <= 3; x++) drawPixel(x, 6, white);
+    drawPixel(-4, 6, midGray); drawPixel(4, 6, midGray);
+
+    for (let x = -3; x <= -1; x++) drawPixel(x, 7, x === -3 ? midGray : white);
+    for (let x = 1; x <= 3; x++) drawPixel(x, 7, x === 3 ? midGray : white);
+
+    // Root tips (rounded)
+    drawPixel(-2, 8, white); drawPixel(-1, 8, white);
+    drawPixel(1, 8, white); drawPixel(2, 8, white);
+
+    // Shading/highlight details
+    drawPixel(-5, -4, lightGray);
+    drawPixel(5, -4, lightGray);
+    drawPixel(-5, -3, midGray);
+    drawPixel(5, -3, midGray);
+
+    // Power glow outline
+    if (powerTimer > 0) {
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-14, -16, 28, 36);
+      ctx.strokeRect(-12, -14, 24, 32);
+    }
+
     ctx.restore();
   };
 
-  const drawWrappedCandy = (
+  const drawPixelCandy = (
     ctx: CanvasRenderingContext2D,
-    baseColor: string,
-    stripeColor: string,
-    wrapperColor: string
+    x: number,
+    y: number,
+    size: number,
+    color: string,
+    candyType: string,
+    outlineColor: string = '#000000'
   ) => {
-    ctx.fillStyle = wrapperColor;
-    ctx.beginPath();
-    ctx.moveTo(-11, -5);
-    ctx.lineTo(-18, -10);
-    ctx.lineTo(-17, -1);
-    ctx.lineTo(-18, 8);
-    ctx.lineTo(-11, 5);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(11, -5);
-    ctx.lineTo(18, -10);
-    ctx.lineTo(17, -1);
-    ctx.lineTo(18, 8);
-    ctx.lineTo(11, 5);
-    ctx.closePath();
-    ctx.fill();
+    ctx.imageSmoothingEnabled = false;
+    const px = 2;
+    const drawPixel = (dx: number, dy: number, col: string) => {
+      ctx.fillStyle = col;
+      ctx.fillRect(x + dx * px, y + dy * px, px, px);
+    };
 
-    const candyGradient = ctx.createRadialGradient(-4, -5, 2, 0, 0, 11);
-    candyGradient.addColorStop(0, '#ffffff');
-    candyGradient.addColorStop(0.18, stripeColor);
-    candyGradient.addColorStop(0.42, baseColor);
-    candyGradient.addColorStop(1, '#4c0519');
-    ctx.fillStyle = candyGradient;
-    ctx.beginPath();
-    ctx.arc(0, 0, 11, 0, Math.PI * 2);
-    ctx.fill();
+    if (candyType === 'LOLLIPOP') {
+      // === PIXEL ART LOLLIPOP ===
+      const stick = '#8B6914';
+      const stickDark = '#5C440E';
+      const brightColor = color;
+      const darkColor = outlineColor;
+      const white = '#ffffff';
 
-    ctx.strokeStyle = stripeColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 6.2, 0.25, Math.PI * 1.18);
-    ctx.stroke();
+      // Stick handle (vertical)
+      for (let sy = 3; sy <= 8; sy++) {
+        drawPixel(0, sy, stick);
+        drawPixel(1, sy, stickDark);
+      }
+      // Stick bottom rounded
+      drawPixel(0, 9, stickDark);
+
+      // Candy head - round circle pixel art (radius ~4)
+      // Top row
+      drawPixel(-1, -5, darkColor); drawPixel(0, -5, darkColor); drawPixel(1, -5, darkColor); drawPixel(2, -5, darkColor);
+      // Upper rows
+      drawPixel(-3, -4, darkColor); drawPixel(-2, -4, brightColor); drawPixel(-1, -4, brightColor); 
+      drawPixel(0, -4, white); drawPixel(1, -4, brightColor); drawPixel(2, -4, brightColor); drawPixel(3, -4, darkColor);
+      
+      drawPixel(-4, -3, darkColor); drawPixel(-3, -3, brightColor); drawPixel(-2, -3, brightColor); 
+      drawPixel(-1, -3, white); drawPixel(0, -3, brightColor); drawPixel(1, -3, white); 
+      drawPixel(2, -3, brightColor); drawPixel(3, -3, brightColor); drawPixel(4, -3, darkColor);
+
+      drawPixel(-4, -2, darkColor); drawPixel(-3, -2, brightColor); drawPixel(-2, -2, white); 
+      drawPixel(-1, -2, brightColor); drawPixel(0, -2, brightColor); drawPixel(1, -2, brightColor); 
+      drawPixel(2, -2, white); drawPixel(3, -2, brightColor); drawPixel(4, -2, darkColor);
+
+      // Center row (widest)
+      drawPixel(-5, -1, darkColor); drawPixel(-4, -1, brightColor); drawPixel(-3, -1, brightColor); 
+      drawPixel(-2, -1, brightColor); drawPixel(-1, -1, white); drawPixel(0, -1, white); 
+      drawPixel(1, -1, brightColor); drawPixel(2, -1, brightColor); drawPixel(3, -1, brightColor); 
+      drawPixel(4, -1, brightColor); drawPixel(5, -1, darkColor);
+
+      drawPixel(-5, 0, darkColor); drawPixel(-4, 0, brightColor); drawPixel(-3, 0, white); 
+      drawPixel(-2, 0, brightColor); drawPixel(-1, 0, brightColor); drawPixel(0, 0, brightColor); 
+      drawPixel(1, 0, brightColor); drawPixel(2, 0, white); drawPixel(3, 0, brightColor); 
+      drawPixel(4, 0, brightColor); drawPixel(5, 0, darkColor);
+
+      drawPixel(-5, 1, darkColor); drawPixel(-4, 1, brightColor); drawPixel(-3, 1, brightColor); 
+      drawPixel(-2, 1, white); drawPixel(-1, 1, brightColor); drawPixel(0, 1, brightColor); 
+      drawPixel(1, 1, white); drawPixel(2, 1, brightColor); drawPixel(3, 1, brightColor); 
+      drawPixel(4, 1, brightColor); drawPixel(5, 1, darkColor);
+
+      drawPixel(-4, 2, darkColor); drawPixel(-3, 2, brightColor); drawPixel(-2, 2, brightColor); 
+      drawPixel(-1, 2, brightColor); drawPixel(0, 2, white); drawPixel(1, 2, brightColor); 
+      drawPixel(2, 2, brightColor); drawPixel(3, 2, brightColor); drawPixel(4, 2, darkColor);
+
+      drawPixel(-3, 3, darkColor); drawPixel(-2, 3, brightColor); drawPixel(-1, 3, brightColor); 
+      drawPixel(0, 3, brightColor); drawPixel(1, 3, brightColor); drawPixel(2, 3, brightColor); drawPixel(3, 3, darkColor);
+
+      // Bottom row
+      drawPixel(-1, 4, darkColor); drawPixel(0, 4, darkColor); drawPixel(1, 4, darkColor); drawPixel(2, 4, darkColor);
+
+      // Swirl detail in center
+      drawPixel(-1, 0, white); drawPixel(0, -1, white); drawPixel(1, 1, white);
+
+    } else if (candyType === 'GUMMY') {
+      // === PIXEL ART GUMMY BEAR ===
+      const body = color;
+      const dark = outlineColor;
+      const belly = '#ffffff';
+      const eye = '#000000';
+      const white = '#ffffff';
+
+      // Ears (top)
+      drawPixel(-4, -8, dark); drawPixel(-3, -8, dark);
+      drawPixel(-5, -7, dark); drawPixel(-4, -7, body); drawPixel(-3, -7, body); drawPixel(-2, -7, dark);
+      
+      drawPixel(2, -8, dark); drawPixel(3, -8, dark);
+      drawPixel(2, -7, dark); drawPixel(3, -7, body); drawPixel(4, -7, body); drawPixel(5, -7, dark);
+
+      // Head
+      drawPixel(-5, -6, dark); drawPixel(-4, -6, body); drawPixel(-3, -6, body); drawPixel(-2, -6, body); 
+      drawPixel(-1, -6, dark); drawPixel(0, -6, dark); drawPixel(1, -6, dark); 
+      drawPixel(2, -6, body); drawPixel(3, -6, body); drawPixel(4, -6, body); drawPixel(5, -6, dark);
+
+      drawPixel(-5, -5, dark); drawPixel(-4, -5, body); drawPixel(-3, -5, body); drawPixel(-2, -5, body); 
+      drawPixel(-1, -5, body); drawPixel(0, -5, body); drawPixel(1, -5, body); 
+      drawPixel(2, -5, body); drawPixel(3, -5, body); drawPixel(4, -5, body); drawPixel(5, -5, dark);
+
+      // Eyes
+      drawPixel(-3, -4, eye); drawPixel(-2, -4, white); // left eye
+      drawPixel(2, -4, white); drawPixel(3, -4, eye); // right eye
+
+      // Snout/nose area
+      drawPixel(-5, -4, dark); drawPixel(-4, -4, body); drawPixel(-1, -4, body); 
+      drawPixel(0, -4, dark); drawPixel(1, -4, body); drawPixel(4, -4, body); drawPixel(5, -4, dark);
+
+      drawPixel(-5, -3, dark); drawPixel(-4, -3, body); drawPixel(-3, -3, body); drawPixel(-2, -3, body); 
+      drawPixel(-1, -3, body); drawPixel(0, -3, body); drawPixel(1, -3, body); 
+      drawPixel(2, -3, body); drawPixel(3, -3, body); drawPixel(4, -3, body); drawPixel(5, -3, dark);
+
+      // Body (wider)
+      drawPixel(-6, -2, dark); drawPixel(-5, -2, body); drawPixel(-4, -2, body); drawPixel(-3, -2, body); 
+      drawPixel(-2, -2, body); drawPixel(-1, -2, belly); drawPixel(0, -2, belly); drawPixel(1, -2, belly); 
+      drawPixel(2, -2, body); drawPixel(3, -2, body); drawPixel(4, -2, body); drawPixel(5, -2, body); drawPixel(6, -2, dark);
+
+      drawPixel(-6, -1, dark); drawPixel(-5, -1, body); drawPixel(-4, -1, body); drawPixel(-3, -1, body); 
+      drawPixel(-2, -1, belly); drawPixel(-1, -1, belly); drawPixel(0, -1, belly); 
+      drawPixel(1, -1, belly); drawPixel(2, -1, belly); drawPixel(3, -1, body); drawPixel(4, -1, body); 
+      drawPixel(5, -1, body); drawPixel(6, -1, dark);
+
+      drawPixel(-6, 0, dark); drawPixel(-5, 0, body); drawPixel(-4, 0, body); drawPixel(-3, 0, belly); 
+      drawPixel(-2, 0, belly); drawPixel(-1, 0, belly); drawPixel(0, 0, belly); 
+      drawPixel(1, 0, belly); drawPixel(2, 0, belly); drawPixel(3, 0, belly); drawPixel(4, 0, body); 
+      drawPixel(5, 0, body); drawPixel(6, 0, dark);
+
+      drawPixel(-6, 1, dark); drawPixel(-5, 1, body); drawPixel(-4, 1, body); drawPixel(-3, 1, body); 
+      drawPixel(-2, 1, belly); drawPixel(-1, 1, belly); drawPixel(0, 1, belly); 
+      drawPixel(1, 1, belly); drawPixel(2, 1, belly); drawPixel(3, 1, body); drawPixel(4, 1, body); 
+      drawPixel(5, 1, body); drawPixel(6, 1, dark);
+
+      // Arms
+      drawPixel(-7, -1, dark); drawPixel(-7, 0, dark); // left arm
+      drawPixel(7, -1, dark); drawPixel(7, 0, dark); // right arm
+
+      // Lower body narrowing
+      drawPixel(-5, 2, dark); drawPixel(-4, 2, body); drawPixel(-3, 2, body); drawPixel(-2, 2, body); 
+      drawPixel(-1, 2, belly); drawPixel(0, 2, belly); drawPixel(1, 2, belly); 
+      drawPixel(2, 2, body); drawPixel(3, 2, body); drawPixel(4, 2, body); drawPixel(5, 2, dark);
+
+      // Legs
+      drawPixel(-4, 3, dark); drawPixel(-3, 3, body); drawPixel(-2, 3, dark); // left leg start
+      drawPixel(2, 3, dark); drawPixel(3, 3, body); drawPixel(4, 3, dark); // right leg start
+
+      drawPixel(-4, 4, dark); drawPixel(-3, 4, body); drawPixel(-2, 4, dark); // left foot
+      drawPixel(2, 4, dark); drawPixel(3, 4, body); drawPixel(4, 4, dark); // right foot
+
+    } else if (candyType === 'WRAPPED') {
+      // === PIXEL ART WRAPPED CANDY ===
+      const wrap = color;
+      const dark = outlineColor;
+      const paper = '#ffffff';
+      const shadow = 'rgba(0,0,0,0.2)';
+
+      // Left wrapper twist
+      drawPixel(-6, -2, dark); drawPixel(-7, -2, dark);
+      drawPixel(-7, -1, paper); drawPixel(-6, -1, wrap); drawPixel(-5, -1, dark);
+      drawPixel(-7, 0, paper); drawPixel(-6, 0, wrap); drawPixel(-5, 0, dark);
+      drawPixel(-7, 1, paper); drawPixel(-6, 1, wrap); drawPixel(-5, 1, dark);
+      drawPixel(-6, 2, dark); drawPixel(-7, 2, dark);
+
+      // Right wrapper twist
+      drawPixel(5, -2, dark); drawPixel(6, -2, dark);
+      drawPixel(4, -1, dark); drawPixel(5, -1, wrap); drawPixel(6, -1, paper);
+      drawPixel(4, 0, dark); drawPixel(5, 0, wrap); drawPixel(6, 0, paper);
+      drawPixel(4, 1, dark); drawPixel(5, 1, wrap); drawPixel(6, 1, paper);
+      drawPixel(5, 2, dark); drawPixel(6, 2, dark);
+
+      // Main candy body (oval)
+      // Top
+      drawPixel(-4, -3, dark); drawPixel(-3, -3, wrap); drawPixel(-2, -3, wrap); drawPixel(-1, -3, wrap); 
+      drawPixel(0, -3, wrap); drawPixel(1, -3, wrap); drawPixel(2, -3, wrap); drawPixel(3, -3, wrap); drawPixel(4, -3, dark);
+
+      // Upper mid
+      drawPixel(-5, -2, dark); drawPixel(-4, -2, wrap); drawPixel(-3, -2, wrap); drawPixel(-2, -2, wrap); 
+      drawPixel(-1, -2, paper); drawPixel(0, -2, paper); drawPixel(1, -2, wrap); drawPixel(2, -2, wrap); 
+      drawPixel(3, -2, wrap); drawPixel(4, -2, wrap); drawPixel(5, -2, dark);
+
+      // Center rows (widest)
+      drawPixel(-5, -1, dark); drawPixel(-4, -1, wrap); drawPixel(-3, -1, wrap); drawPixel(-2, -1, paper); 
+      drawPixel(-1, -1, paper); drawPixel(0, -1, paper); drawPixel(1, -1, paper); drawPixel(2, -1, wrap); 
+      drawPixel(3, -1, wrap); drawPixel(4, -1, wrap); drawPixel(5, -1, dark);
+
+      drawPixel(-5, 0, dark); drawPixel(-4, 0, wrap); drawPixel(-3, 0, wrap); drawPixel(-2, 0, wrap); 
+      drawPixel(-1, 0, paper); drawPixel(0, 0, paper); drawPixel(1, 0, wrap); drawPixel(2, 0, wrap); 
+      drawPixel(3, 0, wrap); drawPixel(4, 0, wrap); drawPixel(5, 0, dark);
+
+      drawPixel(-5, 1, dark); drawPixel(-4, 1, wrap); drawPixel(-3, 1, wrap); drawPixel(-2, 1, wrap); 
+      drawPixel(-1, 1, wrap); drawPixel(0, 1, wrap); drawPixel(1, 1, wrap); drawPixel(2, 1, wrap); 
+      drawPixel(3, 1, wrap); drawPixel(4, 1, wrap); drawPixel(5, 1, dark);
+
+      // Bottom
+      drawPixel(-4, 2, dark); drawPixel(-3, 2, wrap); drawPixel(-2, 2, wrap); drawPixel(-1, 2, wrap); 
+      drawPixel(0, 2, wrap); drawPixel(1, 2, wrap); drawPixel(2, 2, wrap); drawPixel(3, 2, wrap); drawPixel(4, 2, dark);
+
+      // Wrapper fold lines
+      drawPixel(-3, 0, shadow); drawPixel(3, -1, shadow);
+
+    } else {
+      // === PIXEL ART JELLY BEAN ===
+      const bean = color;
+      const dark = outlineColor;
+      const shine = '#ffffff';
+
+      // Top curve
+      drawPixel(-3, -4, dark); drawPixel(-2, -4, dark); drawPixel(-1, -4, dark); 
+      drawPixel(0, -4, dark); drawPixel(1, -4, dark); drawPixel(2, -4, dark);
+
+      drawPixel(-4, -3, dark); drawPixel(-3, -3, bean); drawPixel(-2, -3, bean); drawPixel(-1, -3, bean); 
+      drawPixel(0, -3, bean); drawPixel(1, -3, bean); drawPixel(2, -3, bean); drawPixel(3, -3, dark);
+
+      // Upper mid
+      drawPixel(-5, -2, dark); drawPixel(-4, -2, bean); drawPixel(-3, -2, bean); drawPixel(-2, -2, bean); 
+      drawPixel(-1, -2, shine); drawPixel(0, -2, bean); drawPixel(1, -2, bean); drawPixel(2, -2, bean); 
+      drawPixel(3, -2, bean); drawPixel(4, -2, dark);
+
+      // Center (widest)
+      drawPixel(-5, -1, dark); drawPixel(-4, -1, bean); drawPixel(-3, -1, bean); drawPixel(-2, -1, bean); 
+      drawPixel(-1, -1, bean); drawPixel(0, -1, bean); drawPixel(1, -1, bean); drawPixel(2, -1, bean); 
+      drawPixel(3, -1, bean); drawPixel(4, -1, dark);
+
+      drawPixel(-5, 0, dark); drawPixel(-4, 0, bean); drawPixel(-3, 0, bean); drawPixel(-2, 0, bean); 
+      drawPixel(-1, 0, bean); drawPixel(0, 0, bean); drawPixel(1, 0, bean); drawPixel(2, 0, bean); 
+      drawPixel(3, 0, bean); drawPixel(4, 0, dark);
+
+      // Lower mid - kidney bean curve
+      drawPixel(-4, 1, dark); drawPixel(-3, 1, bean); drawPixel(-2, 1, bean); drawPixel(-1, 1, bean); 
+      drawPixel(0, 1, bean); drawPixel(1, 1, bean); drawPixel(2, 1, bean); drawPixel(3, 1, dark);
+
+      drawPixel(-3, 2, dark); drawPixel(-2, 2, bean); drawPixel(-1, 2, bean); drawPixel(0, 2, bean); 
+      drawPixel(1, 2, bean); drawPixel(2, 2, dark);
+
+      // Indentation for bean shape (right side curves in)
+      drawPixel(3, 0, dark);
+      drawPixel(3, 1, dark);
+      
+      // Bottom tip
+      drawPixel(-1, 3, dark); drawPixel(0, 3, dark); drawPixel(1, 3, dark);
+
+      // Shine spots
+      drawPixel(-1, -2, shine);
+      drawPixel(-2, -1, shine);
+    }
   };
 
   const drawGummyDrop = (ctx: CanvasRenderingContext2D, baseColor: string) => {
@@ -497,57 +771,71 @@ export const Game: React.FC = () => {
     const cx = ghost.x + TILE_SIZE / 2;
     const cy = ghost.y + TILE_SIZE / 2;
     const scared = powerTimer > 0 && !ghost.isDead;
-    const candyStyles: Record<string, { base: string; stripe: string; wrapper: string }> = {
-      RED: { base: '#ef4444', stripe: '#fef2f2', wrapper: '#fecaca' },
-      PINK: { base: '#f472b6', stripe: '#fff1f2', wrapper: '#fbcfe8' },
-      CYAN: { base: '#22c55e', stripe: '#dcfce7', wrapper: '#bbf7d0' },
-      ORANGE: { base: '#f59e0b', stripe: '#fffbeb', wrapper: '#fde68a' }
+    const candyColors: Record<string, string> = {
+      RED: '#ff1744',
+      PINK: '#ff4081',
+      CYAN: '#00e5ff',
+      ORANGE: '#ff9100'
     };
-    const style = candyStyles[ghost.type || 'RED'] || candyStyles.RED;
+    const color = candyColors[ghost.type || 'RED'] || candyColors.RED;
 
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.shadowBlur = 0;
-
+    ctx.imageSmoothingEnabled = false;
+    
     if (ghost.isDead) {
-      ctx.globalAlpha = 0.58;
-      drawHardCandy(ctx, '#cbd5e1', '#ffffff');
+      // Dead ghost - pixelated eyes
+      ctx.globalAlpha = 0.6;
+      drawPixelCandy(ctx, 0, 0, 16, '#808080', 'HARD', '#000000');
+      // Eyes
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-4, -4, 8, 2);
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(-3, -3, 2, 2);
+      ctx.fillRect(2, -3, 2, 2);
     } else if (scared) {
-      drawHardCandy(ctx, '#60a5fa', '#dbeafe');
+      // Scared ghost - blue pixelated
+      drawPixelCandy(ctx, 0, 0, 16, '#60a5fa', 'HARD', '#000000');
+      // Scared eyes
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-4, -4, 8, 2);
+      ctx.fillStyle = '#0000ff';
+      ctx.fillRect(-3, -3, 2, 2);
+      ctx.fillRect(2, -3, 2, 2);
     } else {
-      if (ghost.type === 'RED') drawLollipop(ctx, style.base, style.stripe);
-      else if (ghost.type === 'PINK') drawWrappedCandy(ctx, style.base, style.stripe, style.wrapper);
-      else if (ghost.type === 'CYAN') drawGummyDrop(ctx, style.base);
-      else drawHardCandy(ctx, style.base, style.stripe);
+      // Normal ghost - distinct candy types per ghost
+      let candyType = 'WRAPPED';
+      if (ghost.type === 'RED') {
+        candyType = 'LOLLIPOP';
+      } else if (ghost.type === 'PINK') {
+        candyType = 'GUMMY';
+      } else if (ghost.type === 'CYAN') {
+        candyType = 'WRAPPED';
+      } else if (ghost.type === 'ORANGE') {
+        candyType = 'JELLY';
+      }
+      
+      drawPixelCandy(ctx, 0, 0, 20, color, candyType, '#000000');
     }
 
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(-4, -2, 2, 0, Math.PI * 2);
-    ctx.arc(4, -2, 2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#111827';
-    ctx.beginPath();
-    ctx.arc(-3.4, -1.6, 0.9, 0, Math.PI * 2);
-    ctx.arc(4.6, -1.6, 0.9, 0, Math.PI * 2);
-    ctx.fill();
     ctx.restore();
   };
 
   const draw = useCallback((ctx: CanvasRenderingContext2D) => {
     const currentColors = level === 2 ? COLORS_L2 : COLORS;
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    const bg = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
-    bg.addColorStop(0, currentColors.BG);
-    bg.addColorStop(1, level === 2 ? '#052e16' : '#111827');
-    ctx.fillStyle = bg;
+    
+    // Pixel art background
+    ctx.imageSmoothingEnabled = false;
+    
+    // Base background
+    ctx.fillStyle = currentColors.BG;
     ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    ctx.save();
-    ctx.globalAlpha = 0.16;
-    ctx.strokeStyle = level === 2 ? '#bbf7d0' : '#bae6fd';
+    
+    // Pixel grid pattern
+    ctx.strokeStyle = currentColors.GRID_LINE;
     ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.3;
     for (let x = 0; x < ctx.canvas.width; x += TILE_SIZE) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
@@ -560,7 +848,7 @@ export const Game: React.FC = () => {
       ctx.lineTo(ctx.canvas.width, y);
       ctx.stroke();
     }
-    ctx.restore();
+    ctx.globalAlpha = 1;
 
     maze.forEach((row, y) => {
       row.forEach((tile, x) => {
@@ -568,83 +856,53 @@ export const Game: React.FC = () => {
         const tileY = y * TILE_SIZE;
 
         if (tile === Tile.WALL) {
-          ctx.save();
-          ctx.shadowBlur = 11;
-          ctx.shadowColor = currentColors.WALL;
-          const wallGradient = ctx.createLinearGradient(tileX, tileY, tileX + TILE_SIZE, tileY + TILE_SIZE);
-          wallGradient.addColorStop(0, currentColors.WALL);
-          wallGradient.addColorStop(1, level === 2 ? '#15803d' : '#2563eb');
-          ctx.fillStyle = wallGradient;
-          roundedRect(ctx, tileX + 3, tileY + 3, TILE_SIZE - 6, TILE_SIZE - 6, 6);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-          ctx.strokeStyle = 'rgba(255,255,255,0.34)';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.restore();
+          // Pixel art wall
+          ctx.fillStyle = currentColors.WALL;
+          ctx.fillRect(tileX + 2, tileY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+          
+          // Wall highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          ctx.fillRect(tileX + 2, tileY + 2, TILE_SIZE - 4, 2);
+          ctx.fillRect(tileX + 2, tileY + 2, 2, TILE_SIZE - 4);
+          
+          // Wall shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.3)';
+          ctx.fillRect(tileX + TILE_SIZE - 4, tileY + 2, 2, TILE_SIZE - 4);
+          ctx.fillRect(tileX + 2, tileY + TILE_SIZE - 4, TILE_SIZE - 4, 2);
+          
+          // Wall border
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(tileX + 2, tileY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
         } else if (tile === Tile.PELLET) {
-          ctx.save();
-          const pelletGradient = ctx.createRadialGradient(
-            tileX + TILE_SIZE / 2 - 1.5,
-            tileY + TILE_SIZE / 2 - 1.5,
-            0.8,
-            tileX + TILE_SIZE / 2,
-            tileY + TILE_SIZE / 2,
-            4
-          );
-          pelletGradient.addColorStop(0, '#fff7ed');
-          pelletGradient.addColorStop(0.42, currentColors.PELLET);
-          pelletGradient.addColorStop(1, level === 2 ? '#a16207' : '#831843');
-          ctx.fillStyle = pelletGradient;
-          ctx.beginPath();
-          ctx.arc(tileX + TILE_SIZE / 2, tileY + TILE_SIZE / 2, 3.7, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-          ctx.lineWidth = 0.8;
-          ctx.stroke();
-          ctx.restore();
+          // Pixel art pellet
+          ctx.fillStyle = currentColors.PELLET;
+          ctx.fillRect(tileX + TILE_SIZE/2 - 2, tileY + TILE_SIZE/2 - 2, 4, 4);
+          
+          // Pellet highlight
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(tileX + TILE_SIZE/2 - 1, tileY + TILE_SIZE/2 - 1, 2, 2);
         } else if (tile === Tile.POWER_PELLET) {
-          ctx.save();
-          ctx.fillStyle = level === 2 ? '#fde68a' : '#bfdbfe';
-          ctx.beginPath();
-          ctx.moveTo(tileX + 5, tileY + 8);
-          ctx.lineTo(tileX + 1, tileY + 4);
-          ctx.lineTo(tileX + 2, tileY + 12);
-          ctx.lineTo(tileX + 1, tileY + 19);
-          ctx.lineTo(tileX + 5, tileY + 16);
-          ctx.closePath();
-          ctx.fill();
-          ctx.beginPath();
-          ctx.moveTo(tileX + TILE_SIZE - 5, tileY + 8);
-          ctx.lineTo(tileX + TILE_SIZE - 1, tileY + 4);
-          ctx.lineTo(tileX + TILE_SIZE - 2, tileY + 12);
-          ctx.lineTo(tileX + TILE_SIZE - 1, tileY + 19);
-          ctx.lineTo(tileX + TILE_SIZE - 5, tileY + 16);
-          ctx.closePath();
-          ctx.fill();
-          const powerGradient = ctx.createRadialGradient(
-            tileX + TILE_SIZE / 2 - 3,
-            tileY + TILE_SIZE / 2 - 4,
-            2,
-            tileX + TILE_SIZE / 2,
-            tileY + TILE_SIZE / 2,
-            8
-          );
-          powerGradient.addColorStop(0, '#ffffff');
-          powerGradient.addColorStop(0.28, '#a7f3d0');
-          powerGradient.addColorStop(1, '#0f766e');
-          ctx.fillStyle = powerGradient;
-          ctx.beginPath();
-          ctx.arc(tileX + TILE_SIZE / 2, tileY + TILE_SIZE / 2, TILE_SIZE / 2 - 5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#ffffff';
-          ctx.lineWidth = 1.2;
-          ctx.stroke();
-          ctx.restore();
+          // Pixel art power pellet - animated
+          const pulse = Math.sin(Date.now() / 200) * 2;
+          const size = 8 + pulse;
+          
+          ctx.fillStyle = currentColors.POWER_GLOW;
+          ctx.fillRect(tileX + TILE_SIZE/2 - size/2, tileY + TILE_SIZE/2 - size/2, size, size);
+          
+          // Power pellet highlight
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(tileX + TILE_SIZE/2 - size/2 + 2, tileY + TILE_SIZE/2 - size/2 + 2, size - 4, size - 4);
+          
+          // Power pellet border
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(tileX + TILE_SIZE/2 - size/2, tileY + TILE_SIZE/2 - size/2, size, size);
         }
       });
     });
 
+    // Pixel art effects
     effectsRef.current = effectsRef.current
       .map((effect) => ({ ...effect, age: effect.age + 1 }))
       .filter((effect) => effect.age < effect.maxAge);
@@ -654,15 +912,31 @@ export const Game: React.FC = () => {
       const alpha = 1 - progress;
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.strokeStyle = effect.kind === 'caught' ? '#fb7185' : effect.kind === 'bonus' ? '#facc15' : '#7dd3fc';
+      ctx.imageSmoothingEnabled = false;
+      
+      ctx.strokeStyle = effect.kind === 'caught' ? '#ff1744' : effect.kind === 'bonus' ? '#ffeb3b' : '#00ff88';
       ctx.fillStyle = ctx.strokeStyle;
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(effect.x, effect.y, 4 + progress * 22, 0, Math.PI * 2);
-      ctx.stroke();
+      
+      // Pixelated expanding ring
+      const radius = 4 + progress * 22;
+      const segments = 8;
+      for (let i = 0; i < segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        const x1 = effect.x + Math.cos(angle) * radius;
+        const y1 = effect.y + Math.sin(angle) * radius;
+        const x2 = effect.x + Math.cos(angle + (Math.PI * 2 / segments)) * radius;
+        const y2 = effect.y + Math.sin(angle + (Math.PI * 2 / segments)) * radius;
+        
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+      
       if (effect.kind === 'bonus') {
-        ctx.font = '700 11px Inter, sans-serif';
-        ctx.fillText('+200', effect.x - 13, effect.y - progress * 18);
+        ctx.font = '700 11px "Press Start 2P"';
+        ctx.fillText('+200', effect.x - 20, effect.y - progress * 18);
       }
       ctx.restore();
     });
@@ -670,10 +944,21 @@ export const Game: React.FC = () => {
     drawTooth(ctx, playerRef.current);
     ghostsRef.current.forEach((ghost) => drawCandy(ctx, ghost));
 
+    // Hit cooldown flash effect - pixelated
     if (hitCooldownRef.current > 0 && Math.floor(hitCooldownRef.current / 6) % 2 === 0) {
       ctx.save();
-      ctx.fillStyle = 'rgba(248, 113, 113, 0.08)';
+      ctx.fillStyle = 'rgba(255, 23, 68, 0.15)';
       ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      
+      // Add pixel pattern overlay
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+      for (let x = 0; x < ctx.canvas.width; x += 8) {
+        for (let y = 0; y < ctx.canvas.height; y += 8) {
+          if ((x + y) % 16 === 0) {
+            ctx.fillRect(x, y, 4, 4);
+          }
+        }
+      }
       ctx.restore();
     }
   }, [level, maze, powerTimer]);

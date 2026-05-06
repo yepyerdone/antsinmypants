@@ -1,10 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&family=Luckiest+Guy&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&family=Luckiest+Guy&family=Space+Grotesk:wght@400;500;600;700;800&family=Press+Start+2P&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-display: "Luckiest Guy", cursive;
+  --font-pixel: "Press Start 2P", cursive;
   
   --color-bg-dark: #0f212e;
   --color-bg-accent: #1a2c38;
@@ -3669,15 +3670,16 @@ body {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  color: #f8fafc;
+  color: #ffffff;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    radial-gradient(circle at 18% 18%, rgba(45, 212, 191, 0.14), transparent 28%),
-    radial-gradient(circle at 86% 8%, rgba(244, 114, 182, 0.12), transparent 30%),
-    linear-gradient(135deg, #06121f 0%, #101827 45%, #1f1235 100%);
-  background-size: 34px 34px, 34px 34px, 100% 100%, 100% 100%, 100% 100%;
-  font-family: var(--font-sans);
+    repeating-linear-gradient(0deg, #1a1a2e 0px, #1a1a2e 2px, #16213e 2px, #16213e 4px),
+    repeating-linear-gradient(90deg, #1a1a2e 0px, #1a1a2e 2px, #16213e 2px, #16213e 4px),
+    linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  font-family: var(--font-pixel);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
   user-select: none;
 }
 
@@ -3686,9 +3688,9 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at center, transparent 0 58%, rgba(0, 0, 0, 0.38) 100%),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.026) 0 1px, transparent 1px 5px);
-  opacity: 0.5;
+    repeating-linear-gradient(0deg, rgba(255, 235, 59, 0.03) 0px, transparent 2px, transparent 8px, rgba(255, 235, 59, 0.03) 10px),
+    repeating-linear-gradient(90deg, rgba(0, 229, 255, 0.03) 0px, transparent 2px, transparent 8px, rgba(0, 229, 255, 0.03) 10px);
+  opacity: 0.8;
 }
 
 .molar-madness-menu,
@@ -3712,17 +3714,17 @@ body {
 .molar-madness-menu-card,
 .molar-madness-panel,
 .molar-madness-canvas-shell {
-  border: 1px solid rgba(125, 211, 252, 0.24);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(7, 12, 24, 0.95)),
-    linear-gradient(135deg, rgba(45, 212, 191, 0.12), rgba(244, 114, 182, 0.08));
+  border: 3px solid #ff6b35;
+  border-radius: 0px;
+  background: #0f0f23;
   box-shadow:
-    0 24px 58px rgba(0, 0, 0, 0.38),
-    0 0 28px rgba(34, 211, 238, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+    0 0 0 2px #000000,
+    0 0 0 4px #ff6b35,
+    0 0 20px rgba(255, 107, 53, 0.5),
+    inset 0 0 10px rgba(0, 0, 0, 0.8);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .molar-madness-hero {
@@ -3752,37 +3754,47 @@ body {
 .molar-madness-badge {
   width: fit-content;
   gap: 0.48rem;
-  border: 1px solid rgba(125, 211, 252, 0.32);
-  border-radius: 8px;
-  color: #bae6fd;
-  background: rgba(14, 165, 233, 0.11);
+  border: 2px solid #ffeb3b;
+  border-radius: 0px;
+  color: #ffeb3b;
+  background: #0f0f23;
   padding: 0.5rem 0.72rem;
-  font-size: 0.76rem;
-  font-weight: 950;
+  font-size: 0.6rem;
+  font-weight: 400;
   text-transform: uppercase;
+  font-family: var(--font-pixel);
+  box-shadow: 0 0 0 1px #000000, 0 0 10px rgba(255, 235, 59, 0.3);
 }
 
 .molar-madness-hero h1 {
   max-width: 11ch;
   margin: 0.95rem 0 0;
-  color: #ffffff;
-  font-size: clamp(3.35rem, 8.4vw, 6.9rem);
-  font-weight: 950;
-  line-height: 0.88;
+  color: #ffeb3b;
+  font-size: clamp(2.5rem, 6.4vw, 5.2rem);
+  font-weight: 400;
+  line-height: 1.1;
   text-transform: uppercase;
   overflow-wrap: anywhere;
+  font-family: var(--font-pixel);
   text-shadow:
-    0 0 18px rgba(45, 212, 191, 0.28),
-    0 7px 0 rgba(236, 72, 153, 0.2);
+    2px 2px 0px #ff6b35,
+    4px 4px 0px #000000,
+    6px 6px 10px rgba(255, 107, 53, 0.5);
+  letter-spacing: 0.05em;
 }
 
 .molar-madness-hero p {
   max-width: 620px;
   margin: 1.35rem 0 1.7rem;
-  color: rgba(226, 232, 240, 0.84);
-  font-size: 1.08rem;
-  font-weight: 760;
-  line-height: 1.58;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.6;
+  font-family: var(--font-sans);
+  background: rgba(15, 15, 35, 0.8);
+  padding: 1rem;
+  border: 2px solid #ff6b35;
+  box-shadow: 0 0 0 1px #000000;
 }
 
 .molar-madness-actions {
@@ -3797,30 +3809,47 @@ body {
   justify-content: center;
   gap: 0.52rem;
   min-height: 3rem;
-  border-radius: 8px;
-  font-weight: 950;
+  border-radius: 0px;
+  font-weight: 400;
   letter-spacing: 0;
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  font-family: var(--font-pixel);
+  font-size: 0.75rem;
+  transition: all 0.1s ease;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .molar-madness-primary {
-  border: 1px solid rgba(255, 255, 255, 0.72);
-  color: #04131d;
-  background: linear-gradient(135deg, #f8fafc 0%, #67e8f9 48%, #f9a8d4 100%);
+  border: 3px solid #ffeb3b;
+  color: #000000;
+  background: #ffeb3b;
   padding: 0.9rem 1.15rem;
   text-shadow: none;
-  box-shadow: 0 14px 30px rgba(45, 212, 191, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 0 0 2px #000000,
+    0 4px 0 #ff6b35,
+    0 6px 0 #000000,
+    0 8px 10px rgba(0, 0, 0, 0.5);
+  position: relative;
+  top: 0;
 }
 
 .molar-madness-secondary,
 .molar-madness-icon-button {
-  border: 1px solid rgba(125, 211, 252, 0.42);
-  color: #f8fafc;
-  background: rgba(8, 18, 34, 0.9);
+  border: 3px solid #00e5ff;
+  color: #00e5ff;
+  background: #0f0f23;
   padding: 0.84rem 1rem;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 0 0 2px #000000,
+    0 4px 0 #0066cc,
+    0 6px 0 #000000,
+    0 8px 10px rgba(0, 0, 0, 0.5);
+  position: relative;
+  top: 0;
 }
 
 .molar-madness-primary span,
@@ -3831,30 +3860,38 @@ body {
 .molar-madness-primary:hover,
 .molar-madness-secondary:hover,
 .molar-madness-icon-button:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 255, 255, 0.82);
+  transform: translateY(-2px);
+  filter: brightness(1.2);
 }
 
 .molar-madness-primary:hover {
-  background: linear-gradient(135deg, #ffffff 0%, #a5f3fc 48%, #fbcfe8 100%);
+  background: #ffff00;
+  border-color: #ffff00;
 }
 
 .molar-madness-secondary:hover,
 .molar-madness-icon-button:hover {
-  color: #ffffff;
-  background: rgba(15, 33, 57, 0.96);
+  color: #00ffff;
+  border-color: #00ffff;
+  background: #1a1a2e;
 }
 
 .molar-madness-icon-button:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.5;
   transform: none;
+  filter: grayscale(1);
 }
 
 .molar-madness-primary:active,
 .molar-madness-secondary:active,
 .molar-madness-icon-button:active {
-  transform: translateY(0);
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 2px #000000,
+    0 2px 0 #ff6b35,
+    0 4px 0 #000000,
+    0 6px 5px rgba(0, 0, 0, 0.5);
 }
 
 .molar-madness-instructions {
@@ -3866,11 +3903,12 @@ body {
 
 .molar-madness-instructions div,
 .molar-madness-menu-stats div {
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.055);
+  border: 2px solid #ff6b35;
+  border-radius: 0px;
+  background: #0f0f23;
   min-width: 0;
   padding: 0.85rem;
+  box-shadow: 0 0 0 1px #000000;
 }
 
 .molar-madness-instructions span,
@@ -3879,20 +3917,24 @@ body {
 .molar-madness-brand span,
 .molar-madness-overlay-card > span {
   display: block;
-  color: #67e8f9;
-  font-size: 0.68rem;
-  font-weight: 950;
+  color: #00e5ff;
+  font-size: 0.6rem;
+  font-weight: 400;
   text-transform: uppercase;
+  font-family: var(--font-pixel);
+  letter-spacing: 0.05em;
 }
 
 .molar-madness-instructions strong,
 .molar-madness-menu-stats strong {
   display: block;
   margin-top: 0.22rem;
-  color: #fff7ed;
-  font-size: clamp(0.78rem, 1.2vw, 0.88rem);
-  font-weight: 950;
+  color: #ffeb3b;
+  font-size: 0.65rem;
+  font-weight: 400;
   line-height: 1.22;
+  font-family: var(--font-pixel);
+  letter-spacing: 0.05em;
 }
 
 .molar-madness-menu-card {
@@ -3907,22 +3949,28 @@ body {
   position: relative;
   height: 220px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 0px;
   background:
-    linear-gradient(rgba(125, 211, 252, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(125, 211, 252, 0.12) 1px, transparent 1px),
-    radial-gradient(circle at 50% 50%, rgba(45, 212, 191, 0.2), transparent 42%),
-    #050816;
-  background-size: 24px 24px, 24px 24px, 100% 100%, 100% 100%;
+    repeating-linear-gradient(0deg, #1a1a2e 0px, #1a1a2e 2px, #16213e 2px, #16213e 4px),
+    repeating-linear-gradient(90deg, #1a1a2e 0px, #1a1a2e 2px, #16213e 2px, #16213e 4px),
+    #0f0f23;
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  border: 2px solid #ff6b35;
+  box-shadow: 0 0 0 1px #000000;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .molar-madness-preview::before,
 .molar-madness-preview::after {
   position: absolute;
   content: "";
-  border-radius: 8px;
-  background: linear-gradient(135deg, #67e8f9, #2563eb);
-  box-shadow: 0 0 26px rgba(103, 232, 249, 0.44);
+  border-radius: 0px;
+  background: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+  width: 8px;
+  height: 8px;
 }
 
 .molar-madness-preview::before {
@@ -3937,11 +3985,14 @@ body {
 
 .molar-madness-preview span {
   position: absolute;
-  width: 0.42rem;
-  height: 0.42rem;
-  border-radius: 999px;
-  background: #f9a8d4;
-  box-shadow: 0 0 12px rgba(249, 168, 212, 0.8);
+  width: 6px;
+  height: 6px;
+  border-radius: 0px;
+  background: #ff6b35;
+  box-shadow: 0 0 8px rgba(255, 107, 53, 0.8);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .molar-madness-preview span:nth-child(2) {
@@ -3965,10 +4016,14 @@ body {
   top: 44%;
   width: 3rem;
   height: 3.25rem;
-  border-radius: 45% 45% 36% 36%;
-  background: linear-gradient(135deg, #ffffff, #c7f9ff);
-  box-shadow: 0 0 28px rgba(255, 255, 255, 0.58);
+  border-radius: 0px;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px #000000, 0 0 15px rgba(255, 255, 255, 0.8);
   transform: translate(-50%, -50%) rotate(-8deg);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  clip-path: polygon(20% 0%, 80% 0%, 100% 30%, 100% 70%, 80% 100%, 20% 100%, 0% 70%, 0% 30%);
 }
 
 .molar-madness-preview-tooth::before,
@@ -3977,9 +4032,10 @@ body {
   bottom: -0.25rem;
   width: 0.8rem;
   height: 0.75rem;
-  border-radius: 0 0 0.55rem 0.55rem;
-  background: inherit;
+  border-radius: 0px;
+  background: #ffffff;
   content: "";
+  box-shadow: 0 0 0 1px #000000;
 }
 
 .molar-madness-preview-tooth::before {
@@ -3994,22 +4050,46 @@ body {
   position: absolute;
   width: 2.5rem;
   height: 2.5rem;
-  border-radius: 999px;
-  box-shadow: 0 0 22px currentColor;
+  border-radius: 0px;
+  box-shadow: 0 0 0 2px #000000, 0 0 15px currentColor;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  transform: rotate(45deg);
 }
 
 .molar-madness-preview-candy--one {
   right: 28%;
   top: 32%;
-  color: #fb7185;
-  background: radial-gradient(circle at 35% 24%, #ffffff 0 12%, #fb7185 13% 100%);
+  color: #ff1744;
+  background: #ff1744;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  box-shadow: 0 0 0 3px #ffffff, 0 0 0 5px #000000, 0 0 15px rgba(255, 23, 68, 0.8);
+}
+
+.molar-madness-preview-candy--one::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 12px;
+  background: #8B4513;
+  border: 2px solid #000000;
 }
 
 .molar-madness-preview-candy--two {
   right: 17%;
   bottom: 20%;
-  color: #facc15;
-  background: radial-gradient(circle at 35% 24%, #ffffff 0 12%, #facc15 13% 100%);
+  color: #ff4081;
+  background: #ff4081;
+  width: 2.2rem;
+  height: 2rem;
+  clip-path: polygon(50% 0%, 80% 20%, 100% 50%, 80% 80%, 50% 100%, 20% 80%, 0% 50%, 20% 20%);
+  box-shadow: 0 0 0 2px #000000, 0 0 15px rgba(255, 64, 129, 0.8);
 }
 
 .molar-madness-menu-stats {
@@ -4025,14 +4105,16 @@ body {
 .molar-madness-panel-heading {
   justify-content: space-between;
   gap: 0.65rem;
-  color: #bae6fd;
-  border-bottom: 1px solid rgba(125, 211, 252, 0.16);
+  color: #00e5ff;
+  border-bottom: 2px solid #ff6b35;
   padding-bottom: 0.72rem;
   margin-bottom: 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 950;
+  font-size: 0.7rem;
+  font-weight: 400;
   text-transform: uppercase;
   line-height: 1.1;
+  font-family: var(--font-pixel);
+  letter-spacing: 0.05em;
 }
 
 .molar-madness-score-list {
@@ -4046,10 +4128,11 @@ body {
   align-items: center;
   gap: 0.6rem;
   min-height: 2.45rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid #ff6b35;
+  border-radius: 0px;
+  background: #0f0f23;
   padding: 0.45rem 0.55rem;
+  box-shadow: 0 0 0 1px #000000;
 }
 
 .molar-madness-score-row span {
@@ -4057,35 +4140,42 @@ body {
   place-items: center;
   width: 1.7rem;
   height: 1.7rem;
-  border-radius: 8px;
-  color: #06121f;
-  background: #67e8f9;
-  font-size: 0.78rem;
-  font-weight: 950;
+  border-radius: 0px;
+  color: #000000;
+  background: #ffeb3b;
+  font-size: 0.65rem;
+  font-weight: 400;
+  font-family: var(--font-pixel);
+  box-shadow: 0 0 0 1px #000000;
 }
 
 .molar-madness-score-row strong,
 .molar-madness-score-row b {
   overflow: hidden;
-  color: #fff7ed;
-  font-size: 0.78rem;
-  font-weight: 950;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 400;
+  font-family: var(--font-pixel);
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.05em;
 }
 
 .molar-madness-score-row b {
-  color: #f9a8d4;
+  color: #ffeb3b;
   font-variant-numeric: tabular-nums;
 }
 
 .molar-madness-empty {
-  border-radius: 8px;
-  color: #bae6fd;
-  background: rgba(125, 211, 252, 0.08);
+  border-radius: 0px;
+  color: #00e5ff;
+  background: #0f0f23;
+  border: 2px solid #ff6b35;
   padding: 0.85rem;
-  font-size: 0.82rem;
-  font-weight: 850;
+  font-size: 0.7rem;
+  font-weight: 400;
+  font-family: var(--font-pixel);
+  box-shadow: 0 0 0 1px #000000;
 }
 
 .molar-madness-play {
@@ -4100,13 +4190,14 @@ body {
   flex: none;
   justify-content: space-between;
   gap: 0.6rem;
-  border: 1px solid rgba(125, 211, 252, 0.22);
-  border-radius: 8px;
-  background: rgba(2, 6, 23, 0.86);
+  border: 3px solid #ff6b35;
+  border-radius: 0px;
+  background: #0f0f23;
   padding: 0.42rem 0.55rem;
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  box-shadow:
+    0 0 0 2px #000000,
+    0 0 0 4px #ff6b35,
+    0 8px 15px rgba(0, 0, 0, 0.5);
 }
 
 .molar-madness-brand {
@@ -4117,15 +4208,18 @@ body {
 
 .molar-madness-brand strong {
   display: block;
-  color: #ffffff;
+  color: #ffeb3b;
   max-width: min(54vw, 34rem);
   overflow: hidden;
-  font-size: clamp(1.05rem, 2.4vw, 1.85rem);
-  font-weight: 950;
+  font-size: clamp(0.9rem, 2vw, 1.4rem);
+  font-weight: 400;
   line-height: 1.05;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
+  font-family: var(--font-pixel);
+  letter-spacing: 0.05em;
+  text-shadow: 2px 2px 0px #ff6b35, 4px 4px 0px #000000;
 }
 
 .molar-madness-topbar-actions {
@@ -4150,27 +4244,30 @@ body {
   min-width: 0;
   justify-content: space-between;
   gap: 0.75rem;
-  border: 1px solid rgba(125, 211, 252, 0.18);
-  border-radius: 8px;
-  background: rgba(8, 18, 34, 0.86);
+  border: 2px solid #ff6b35;
+  border-radius: 0px;
+  background: #0f0f23;
   padding: 0.55rem 0.72rem;
+  box-shadow: 0 0 0 1px #000000;
 }
 
 .molar-madness-hud strong {
-  color: #fff7ed;
+  color: #ffeb3b;
   overflow: hidden;
-  font-size: clamp(0.88rem, 1.35vw, 1rem);
-  font-weight: 950;
+  font-size: clamp(0.75rem, 1.2vw, 0.85rem);
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-family: var(--font-pixel);
+  letter-spacing: 0.05em;
 }
 
 .molar-madness-lives strong {
   gap: 0.2rem;
-  color: #fb7185;
+  color: #ff1744;
 }
 
 .molar-madness-stage {
@@ -4189,8 +4286,10 @@ body {
   place-items: center;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(8, 18, 34, 0.96), rgba(3, 7, 18, 0.96)),
-    linear-gradient(135deg, rgba(45, 212, 191, 0.1), rgba(244, 114, 182, 0.06));
+    repeating-linear-gradient(0deg, #1a1a2e 0px, #1a1a2e 2px, #16213e 2px, #16213e 4px),
+    repeating-linear-gradient(90deg, #1a1a2e 0px, #1a1a2e 2px, #16213e 2px, #16213e 4px),
+    #0f0f23;
+  background-size: 100% 100%, 100% 100%, 100% 100%;
   padding: clamp(0.35rem, 0.9vw, 0.7rem);
 }
 
@@ -4201,13 +4300,16 @@ body {
   width: min(calc(100vh - 8.7rem), 100%, 860px);
   max-height: calc(100vh - 8.7rem);
   aspect-ratio: 19 / 21;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #050816;
+  border-radius: 0px;
+  border: 3px solid #ff6b35;
+  background: #0f0f23;
   box-shadow:
-    0 0 0 0.32rem rgba(2, 6, 23, 0.78),
-    0 18px 44px rgba(0, 0, 0, 0.38),
-    0 0 26px rgba(45, 212, 191, 0.12);
+    0 0 0 2px #000000,
+    0 0 0 4px #ff6b35,
+    0 0 20px rgba(255, 107, 53, 0.5);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .molar-madness-play-aside {
@@ -4233,13 +4335,14 @@ body {
   display: grid;
   min-height: 2.05rem;
   place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  color: #f8fafc;
-  background: rgba(15, 33, 57, 0.85);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-  font-weight: 950;
+  border: 2px solid #ff6b35;
+  border-radius: 0px;
+  color: #ffeb3b;
+  background: #0f0f23;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  font-weight: 400;
+  box-shadow: 0 0 0 1px #000000;
 }
 
 .molar-madness-overlay {
@@ -4248,27 +4351,40 @@ body {
   z-index: 4;
   display: grid;
   place-items: center;
-  background: rgba(2, 6, 23, 0.76);
+  background:
+    repeating-linear-gradient(0deg, rgba(26, 26, 46, 0.9) 0px, rgba(22, 33, 62, 0.9) 2px, rgba(26, 26, 46, 0.9) 4px, rgba(22, 33, 62, 0.9) 6px),
+    repeating-linear-gradient(90deg, rgba(26, 26, 46, 0.9) 0px, rgba(22, 33, 62, 0.9) 2px, rgba(26, 26, 46, 0.9) 4px, rgba(22, 33, 62, 0.9) 6px),
+    rgba(15, 15, 35, 0.95);
+  background-size: 100% 100%, 100% 100%, 100% 100%;
   padding: 1rem;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .molar-madness-overlay--score {
   z-index: 7;
-  background: rgba(2, 6, 23, 0.86);
+  background:
+    repeating-linear-gradient(0deg, rgba(26, 26, 46, 0.95) 0px, rgba(22, 33, 62, 0.95) 2px, rgba(26, 26, 46, 0.95) 4px, rgba(22, 33, 62, 0.95) 6px),
+    repeating-linear-gradient(90deg, rgba(26, 26, 46, 0.95) 0px, rgba(22, 33, 62, 0.95) 2px, rgba(26, 26, 46, 0.95) 4px, rgba(22, 33, 62, 0.95) 6px),
+    rgba(15, 15, 35, 0.98);
+  background-size: 100% 100%, 100% 100%, 100% 100%;
 }
 
 .molar-madness-overlay-card {
   width: min(440px, 100%);
-  border: 1px solid rgba(125, 211, 252, 0.3);
-  border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(45, 212, 191, 0.18), transparent 44%),
-    rgba(15, 23, 42, 0.94);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 38px rgba(45, 212, 191, 0.16);
+  border: 3px solid #ff6b35;
+  border-radius: 0px;
+  background: #0f0f23;
+  box-shadow:
+    0 0 0 2px #000000,
+    0 0 0 4px #ff6b35,
+    0 0 30px rgba(255, 107, 53, 0.5);
   padding: clamp(1rem, 3vw, 1.35rem);
   text-align: center;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
 }
 
 .molar-madness-score-modal {
@@ -4291,35 +4407,84 @@ body {
 }
 
 .molar-madness-overlay-card > span {
-  color: #f9a8d4;
+  color: #00e5ff;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
 }
 
 .molar-madness-overlay-card h2 {
   margin: 0.25rem 0 0;
-  color: #fff;
-  font-size: clamp(1.9rem, 6vw, 3.8rem);
-  font-weight: 950;
+  color: #ffeb3b;
+  font-size: clamp(1.5rem, 4vw, 2.8rem);
+  font-weight: 400;
   line-height: 0.94;
   text-transform: uppercase;
   overflow-wrap: anywhere;
+  font-family: var(--font-pixel);
+  letter-spacing: 0.05em;
+  text-shadow: 2px 2px 0px #ff6b35, 4px 4px 0px #000000;
 }
 
 .molar-madness-overlay-card p {
   margin: 0.8rem 0 1rem;
-  color: #bae6fd;
-  font-size: 1rem;
-  font-weight: 850;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 400;
+  font-family: var(--font-pixel);
+  letter-spacing: 0.05em;
 }
 
 .molar-madness-overlay-card small {
   display: block;
   margin-top: 0.8rem;
-  color: #bae6fd;
-  font-weight: 850;
+  color: #00e5ff;
+  font-weight: 400;
+  font-family: var(--font-pixel);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
 }
 
-.molar-madness-error {
-  color: #fecaca !important;
+/* Pixel Art Arcade Animations */
+@keyframes pixel-bob {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes pixel-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes pixel-glow {
+  0%, 100% { box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ff6b35, 0 0 20px rgba(255, 107, 53, 0.5); }
+  50% { box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ffeb3b, 0 0 25px rgba(255, 235, 59, 0.7); }
+}
+
+@keyframes pixel-flash {
+  0%, 100% { background-color: #0f0f23; }
+  50% { background-color: #1a1a2e; }
+}
+
+.molar-madness-primary:hover {
+  animation: pixel-glow 1s ease-in-out infinite;
+}
+
+.molar-madness-secondary:hover,
+.molar-madness-icon-button:hover {
+  animation: pixel-glow 1s ease-in-out infinite;
+}
+
+.molar-madness-preview-tooth {
+  animation: pixel-bob 2s ease-in-out infinite;
+}
+
+.molar-madness-preview-candy {
+  animation: pixel-pulse 1.5s ease-in-out infinite;
+}
+
+.molar-madness-canvas {
+  animation: pixel-flash 4s ease-in-out infinite;
 }
 
 .molar-madness-overlay-actions {
