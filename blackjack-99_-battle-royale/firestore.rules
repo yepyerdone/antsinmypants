@@ -110,6 +110,19 @@ service cloud.firestore {
         && incoming().gameMode is string;
     }
 
+    // Mole Mania Leaderboard Rules
+    match /scores/{entryId} {
+      allow list, get: if true;
+      allow create: if isSignedIn()
+        && incoming().playerName is string
+        && incoming().playerName.size() >= 1
+        && incoming().playerName.size() <= 15
+        && incoming().score is number
+        && incoming().score >= 0
+        && incoming().userId == request.auth.uid
+        && incoming().timestamp is number;
+    }
+
     // Space Runner Leaderboard Rules
     match /neon_rush_leaderboard/{entryId} {
       allow list, get: if true;

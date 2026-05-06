@@ -9,7 +9,7 @@ interface IntroScreenProps {
   onLaunchGame: (gameId: string) => void;
 }
 
-type PreviewType = 'blackjack' | 'neon-snake' | 'space-runner' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs' | 'ascension';
+type PreviewType = 'blackjack' | 'neon-snake' | 'space-runner' | 'punchy' | 'chess' | 'snake' | 'molar' | 'chairs' | 'ascension' | 'mole';
 
 type GameCardData = {
   id: string;
@@ -59,6 +59,15 @@ const games: GameCardData[] = [
     meta: 'Top 10 scores',
     preview: 'ascension',
     internalPath: '/the-ascension',
+  },
+  {
+    id: 'mole-mania',
+    title: 'Mole Mania',
+    description: 'A bright global whack-a-mole rush with bonus moles, penalties, and live rankings.',
+    category: 'Arcade',
+    meta: 'Global scores',
+    preview: 'mole',
+    internalPath: '/mole-mania',
   },
   {
     id: 'friend-chess',
@@ -113,7 +122,7 @@ const games: GameCardData[] = [
 const gameSections = [
   {
     title: 'Featured Games',
-    gameIds: ['blackjack-99', 'punchy', 'the-ascension'],
+    gameIds: ['blackjack-99', 'punchy', 'the-ascension', 'mole-mania'],
   },
   {
     title: 'Arcade Classics',
@@ -206,6 +215,20 @@ function GamePreview({ type, title, coverImage }: { type: PreviewType; title: st
         <span className="preview-candy preview-candy--one" />
         <span className="preview-candy preview-candy--two" />
         <span className="preview-ghost" />
+      </div>
+    );
+  }
+
+  if (type === 'mole') {
+    return (
+      <div className="site-game-preview site-game-preview--mole" aria-label={`${title} preview`}>
+        <span className="preview-mole-hole preview-mole-hole--one" />
+        <span className="preview-mole-hole preview-mole-hole--two" />
+        <span className="preview-mole-hole preview-mole-hole--three" />
+        <span className="preview-mole-body" />
+        <span className="preview-mole-face" />
+        <span className="preview-mole-mallet" />
+        <span className="preview-score">BONK</span>
       </div>
     );
   }
