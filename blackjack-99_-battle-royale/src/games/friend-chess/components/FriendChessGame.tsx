@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
-import { doc, onSnapshot, updateDoc, serverTimestamp, collection, runTransaction } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, serverTimestamp, collection, runTransaction, setDoc, writeBatch } from 'firebase/firestore';
 import { getFriendChessFirebase } from '../lib/friendChessFirebase';
 import { StockfishEngine } from '../../../lib/stockfishEngine';
-import type { BotGameConfig, LobbyData } from '../types';
+import type { BotGameConfig, LobbyData, MoveRecord } from '../types';
 import { BOARD_THEMES, DEFAULT_THEME, FC_COLLECTIONS } from '../constants';
 import { Trophy, User, ArrowLeft, Copy, Check, Info, History } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -68,6 +68,8 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
   const { db, auth } = getFriendChessFirebase();
   const engineRef = useRef<StockfishEngine | null>(null);
   const botSearchInFlightRef = useRef(false);
+  const botMovesRef = useRef<MoveRecord[]>([]);
+  const botHistorySavedRef = useRef(false);
   const [game, setGame] = useState(new Chess());
   const [lobby, setLobby] = useState<LobbyData | null>(null);
   const [copied, setCopied] = useState(false);
@@ -132,6 +134,8 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
 
     engineRef.current?.terminate();
     engineRef.current = new StockfishEngine();
+    botMovesRef.current = [];
+    botHistorySavedRef.current = false;
 
     const localPlayerId = user?.uid || 'local-player';
     const initialLobby: LobbyData = {
@@ -174,6 +178,82 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
       engineRef.current = null;
     };
   }, [botConfig, user?.uid]);
+
+  const recordBotMove = useCallback((move: string, fenBefore: string, fenAfter: string, player: string) => {
+    botMovesRef.current = [
+      ...botMovesRef.current,
+      {
+        move,
+        fenBefore,
+        fenAfter,
+        player,
+        index: botMovesRef.current.length,
+        timestamp: new Date(),
+      },
+    ];
+  }, []);
+
+  const saveBotGameToHistory = useCallback(
+    async (finishedLobby: LobbyData) => {
+      if (!botConfig || !user || botHistorySavedRef.current || finishedLobby.status !== 'finished') return;
+
+      botHistorySavedRef.current = true;
+      try {
+        const historyRef = doc(collection(db, FC_COLLECTIONS.lobbies));
+        await setDoc(historyRef, {
+          code: `BOT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`,
+          playerW: user.uid,
+          playerB: 'stockfish',
+          whiteName: botConfig.playerName,
+          blackName: botConfig.difficulty.name,
+          fen: finishedLobby.fen,
+          initialFen: finishedLobby.initialFen || STANDARD_INITIAL_FEN,
+          status: 'finished',
+          turn: finishedLobby.turn,
+          variant: 'standard',
+          winner: finishedLobby.winner || 'Draw',
+          moveCount: botMovesRef.current.length,
+          isBotGame: true,
+          botDifficulty: botConfig.difficulty.id,
+          theme: finishedLobby.theme || botConfig.theme || DEFAULT_THEME.id,
+          timeControl: botConfig.timeControl,
+          clocks: finishedLobby.clocks || {
+            w: localClocks.w,
+            b: localClocks.b,
+            lastTickAt: serverTimestamp(),
+          },
+          moves: botMovesRef.current.map((move) => move.move),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        if (botMovesRef.current.length > 0) {
+          const batch = writeBatch(db);
+          botMovesRef.current.forEach((move) => {
+            const moveRef = doc(collection(db, FC_COLLECTIONS.lobbies, historyRef.id, 'moves'));
+            batch.set(moveRef, {
+              move: move.move,
+              fenBefore: move.fenBefore,
+              fenAfter: move.fenAfter,
+              index: move.index,
+              player: move.player,
+              timestamp: serverTimestamp(),
+            });
+          });
+          await batch.commit();
+        }
+      } catch (error) {
+        botHistorySavedRef.current = false;
+        console.error('Failed to save Stockfish game to history:', error);
+      }
+    },
+    [botConfig, db, localClocks.b, localClocks.w, user],
+  );
+
+  useEffect(() => {
+    if (!isBotGame || !lobby || lobby.status !== 'finished') return;
+    void saveBotGameToHistory(lobby);
+  }, [isBotGame, lobby, saveBotGameToHistory]);
 
   useEffect(() => {
     if (!lobby?.fen) return;
@@ -240,6 +320,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         resetHumanMoveState();
         return false;
       }
+      const fenBefore = lobby.fen;
       const { game: g, move } = safeMove;
 
       const status = g.isGameOver() ? 'finished' : 'playing';
@@ -262,10 +343,13 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         updatedAt: { seconds: Math.floor(Date.now() / 1000) },
       });
       setGame(g);
+      if (isBotGame) {
+        recordBotMove(move.san, fenBefore, g.fen(), playerId);
+      }
       setErrorMsg(null);
       return true;
     },
-    [lobby, localClocks, resetHumanMoveState],
+    [isBotGame, lobby, localClocks, recordBotMove, resetHumanMoveState],
   );
 
   const submitMove = useCallback(
@@ -417,6 +501,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
         if (cancelled) return;
 
         const g = new Chess(lobby.fen);
+        const fenBefore = g.fen();
         const sourceSquare = bestMove.slice(0, 2);
         const targetSquare = bestMove.slice(2, 4);
         const safeMove = buildSafeMove(g, sourceSquare, targetSquare);
@@ -460,6 +545,7 @@ export default function FriendChessGame({ lobbyId, botConfig, onExit }: FriendCh
           updatedAt: { seconds: Math.floor(Date.now() / 1000) },
         });
         setGame(g);
+        recordBotMove(move.san, fenBefore, g.fen(), 'stockfish');
       } catch (err) {
         if (!cancelled) {
           console.error('Stockfish move failed:', err);
