@@ -2958,6 +2958,361 @@ body {
   background: #bdbdbd;
 }
 
+.mole-mania-shell {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 14%, rgba(255, 255, 255, 0.6) 0 0.35rem, transparent 0.42rem),
+    radial-gradient(circle at 86% 10%, rgba(255, 255, 255, 0.5) 0 0.24rem, transparent 0.32rem),
+    radial-gradient(circle at 78% 72%, rgba(126, 217, 87, 0.34) 0 7rem, transparent 7.2rem),
+    linear-gradient(180deg, #ffde59 0%, #ffc45f 50%, #ffbd59 100%);
+}
+
+.mole-mania-shell::before,
+.mole-mania-shell::after {
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+}
+
+.mole-mania-shell::before {
+  inset: 5.5rem 0 auto;
+  height: 8rem;
+  opacity: 0.4;
+  background:
+    radial-gradient(ellipse at 18% 70%, rgba(126, 217, 87, 0.85) 0 7rem, transparent 7.2rem),
+    radial-gradient(ellipse at 55% 78%, rgba(76, 175, 80, 0.72) 0 9rem, transparent 9.2rem),
+    radial-gradient(ellipse at 84% 70%, rgba(126, 217, 87, 0.78) 0 6rem, transparent 6.2rem);
+}
+
+.mole-mania-shell::after {
+  inset: 0;
+  opacity: 0.23;
+  background-image:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.24) 0 1px, transparent 1px),
+    linear-gradient(60deg, rgba(139, 69, 19, 0.12) 0 1px, transparent 1px);
+  background-size: 46px 46px;
+}
+
+.mole-mania-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.mole-mania-header {
+  background:
+    radial-gradient(circle at 8% 10%, rgba(255, 255, 255, 0.42) 0 0.55rem, transparent 0.62rem),
+    radial-gradient(circle at 72% 22%, rgba(255, 255, 255, 0.35) 0 0.3rem, transparent 0.36rem),
+    linear-gradient(135deg, #ffd166, #ffbd59 58%, #f5a623);
+}
+
+.mole-mania-stat {
+  position: relative;
+  overflow: hidden;
+}
+
+.mole-mania-stat::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 18%, rgba(255, 255, 255, 0.35) 45%, transparent 72%);
+  content: "";
+  transform: translateX(-120%);
+  animation: mole-mania-shine 3s ease-in-out infinite;
+}
+
+.mole-mania-title {
+  text-shadow:
+    0 4px 0 rgba(255, 255, 255, 0.45),
+    0 10px 18px rgba(139, 69, 19, 0.22);
+}
+
+.mole-mania-board {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.16) 0 0.4rem, transparent 0.46rem),
+    radial-gradient(circle at 86% 18%, rgba(255, 255, 255, 0.12) 0 0.34rem, transparent 0.4rem),
+    radial-gradient(ellipse at 50% 100%, #2f7d32 0%, #3f9f42 47%, #5ec04b 100%);
+}
+
+.mole-mania-board::before {
+  position: absolute;
+  inset: 0;
+  opacity: 0.32;
+  background-image:
+    linear-gradient(90deg, transparent 0 96%, rgba(255, 255, 255, 0.17) 96% 100%),
+    linear-gradient(0deg, transparent 0 96%, rgba(27, 94, 32, 0.22) 96% 100%);
+  background-size: 38px 38px;
+  content: "";
+}
+
+.mole-mania-board::after {
+  position: absolute;
+  inset: auto -8% -8% -8%;
+  height: 28%;
+  background:
+    radial-gradient(ellipse at 18% 85%, rgba(46, 125, 50, 0.78) 0 8rem, transparent 8.2rem),
+    radial-gradient(ellipse at 50% 95%, rgba(27, 94, 32, 0.45) 0 10rem, transparent 10.2rem),
+    radial-gradient(ellipse at 78% 84%, rgba(46, 125, 50, 0.76) 0 7rem, transparent 7.2rem);
+  content: "";
+}
+
+.mole-mania-skyline {
+  position: absolute;
+  inset: 1rem 1rem auto;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.mole-mania-skyline span {
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 999px;
+  opacity: 0.45;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.4);
+  animation: mole-mania-float 4.5s ease-in-out infinite;
+}
+
+.mole-mania-skyline span:nth-child(2) {
+  width: 0.75rem;
+  height: 0.75rem;
+  animation-delay: -1.4s;
+}
+
+.mole-mania-skyline span:nth-child(3) {
+  width: 1rem;
+  height: 1rem;
+  animation-delay: -2.2s;
+}
+
+.mole-mania-skyline span:nth-child(4) {
+  width: 0.65rem;
+  height: 0.65rem;
+  animation-delay: -3s;
+}
+
+.mole-mania-grid {
+  position: relative;
+  z-index: 2;
+}
+
+.mole-mania-hole {
+  overflow: visible;
+  background:
+    radial-gradient(ellipse at center, #100a06 0%, #24130d 52%, #3e2723 72%, #25140e 100%);
+  box-shadow:
+    inset 0 14px 24px rgba(0, 0, 0, 0.72),
+    0 9px 0 rgba(46, 125, 50, 0.55),
+    0 18px 30px rgba(26, 70, 28, 0.26);
+  transition: transform 0.16s ease, filter 0.16s ease;
+}
+
+.mole-mania-hole:hover {
+  filter: brightness(1.07);
+  transform: translateY(-2px);
+}
+
+.mole-mania-hole--active {
+  animation: mole-mania-hole-pop 0.38s ease;
+}
+
+.mole-mania-hole-rim {
+  position: absolute;
+  inset: -0.28rem;
+  z-index: 0;
+  border-radius: 999px;
+  background:
+    radial-gradient(ellipse at center, transparent 0 55%, #7b4a22 56% 64%, #a46a2e 65% 74%, transparent 75%),
+    radial-gradient(ellipse at 50% 72%, rgba(255, 189, 89, 0.24) 0 44%, transparent 45%);
+  pointer-events: none;
+}
+
+.mole-mania-hole-shadow {
+  position: absolute;
+  inset: 13% 7% 4%;
+  z-index: 3;
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent 42%, rgba(0, 0, 0, 0.36));
+  pointer-events: none;
+}
+
+.mole-mania-mole {
+  overflow: visible;
+  background-image:
+    radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.24) 0 0.42rem, transparent 0.5rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 52%);
+  transform-origin: bottom center;
+  animation: mole-mania-wiggle 0.9s ease-in-out infinite;
+}
+
+.mole-mania-ear {
+  position: absolute;
+  top: -6%;
+  width: 26%;
+  height: 26%;
+  border: 3px solid inherit;
+  border-radius: 999px;
+  background: inherit;
+}
+
+.mole-mania-ear--left {
+  left: 5%;
+}
+
+.mole-mania-ear--right {
+  right: 5%;
+}
+
+.mole-mania-eye::after {
+  position: absolute;
+  top: 17%;
+  left: 17%;
+  width: 32%;
+  height: 32%;
+  border-radius: 999px;
+  background: #fff;
+  content: "";
+}
+
+.mole-mania-nose::after {
+  position: absolute;
+  left: 50%;
+  top: 70%;
+  width: 150%;
+  height: 1px;
+  background: rgba(62, 39, 35, 0.55);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.mole-mania-tooth {
+  position: absolute;
+  top: 60%;
+  width: 10%;
+  height: 14%;
+  border-radius: 0 0 4px 4px;
+  background: #fff7ed;
+}
+
+.mole-mania-tooth--left {
+  left: 42%;
+}
+
+.mole-mania-tooth--right {
+  right: 42%;
+}
+
+.mole-mania-paw {
+  position: absolute;
+  bottom: 10%;
+  width: 23%;
+  height: 15%;
+  border-radius: 999px;
+  background: rgba(62, 39, 35, 0.28);
+}
+
+.mole-mania-paw--left {
+  left: 7%;
+  transform: rotate(14deg);
+}
+
+.mole-mania-paw--right {
+  right: 7%;
+  transform: rotate(-14deg);
+}
+
+.mole-mania-crown,
+.mole-mania-target {
+  animation: mole-mania-badge-bounce 0.72s ease-in-out infinite;
+}
+
+.mole-mania-hit-burst {
+  position: absolute;
+  left: 50%;
+  top: 18%;
+  z-index: 20;
+  min-width: 2.6rem;
+  padding: 0.24rem 0.45rem;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.16);
+  transform: translateX(-50%);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.mole-mania-hit-burst--standard {
+  background: #54d2d2;
+}
+
+.mole-mania-hit-burst--golden {
+  background: #fbbf24;
+}
+
+.mole-mania-hit-burst--red {
+  background: #ff5757;
+}
+
+@keyframes mole-mania-shine {
+  0%,
+  58% {
+    transform: translateX(-120%);
+  }
+  78%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes mole-mania-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-0.65rem) scale(1.08);
+  }
+}
+
+@keyframes mole-mania-hole-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes mole-mania-wiggle {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes mole-mania-badge-bounce {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(-8deg);
+  }
+  50% {
+    transform: translate(-50%, -68%) rotate(7deg);
+  }
+}
+
 @media (max-width: 980px) {
   .ascension-layout {
     flex-direction: column;

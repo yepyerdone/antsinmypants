@@ -55,6 +55,13 @@ interface FirestoreErrorInfo {
   }
 }
 
+type HitBurst = {
+  id: number;
+  moleId: number;
+  label: string;
+  type: Mole['type'];
+};
+
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
@@ -82,6 +89,7 @@ export default function App() {
   const [playerName, setPlayerName] = useState('');
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hitBursts, setHitBursts] = useState<HitBurst[]>([]);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
@@ -261,6 +269,13 @@ export default function App() {
         bonus = 1;
       }
 
+      const burstId = Date.now() + Math.random();
+      const label = mole.type === 'golden' ? '+3s' : mole.type === 'red' ? '-5s' : '+1';
+      setHitBursts((bursts) => [...bursts, { id: burstId, moleId: id, label, type: mole.type }]);
+      window.setTimeout(() => {
+        setHitBursts((bursts) => bursts.filter((burst) => burst.id !== burstId));
+      }, 700);
+
       const newMoles = [...prev];
       newMoles[id] = { ...newMoles[id], active: false };
       
@@ -312,21 +327,21 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFDE59] font-sans flex flex-col select-none">
+    <div className="mole-mania-shell min-h-screen bg-[#FFDE59] font-sans flex flex-col select-none">
       {/* Header Section */}
-      <header className="flex items-center justify-between px-8 py-6 bg-[#FFBD59] shadow-md border-b-4 border-[#F5A623] sticky top-0 z-30">
+      <header className="mole-mania-header flex items-center justify-between px-8 py-6 bg-[#FFBD59] shadow-md border-b-4 border-[#F5A623] sticky top-0 z-30">
         <div className="flex items-center gap-6">
-          <div className="bg-[#FF5757] text-white px-6 py-2 rounded-full border-4 border-white shadow-lg flex flex-col items-center">
+          <div className="mole-mania-stat mole-mania-stat--time bg-[#FF5757] text-white px-6 py-2 rounded-full border-4 border-white shadow-lg flex flex-col items-center">
             <span className="text-[10px] uppercase font-black tracking-widest block opacity-80">Time Left</span>
             <span className={`text-3xl font-bold leading-none tabular-nums ${timeLeft < 10 ? 'animate-pulse' : ''}`}>{timeLeft}s</span>
           </div>
-          <div className="bg-[#54D2D2] text-white px-6 py-2 rounded-full border-4 border-white shadow-lg flex flex-col items-center">
+          <div className="mole-mania-stat mole-mania-stat--score bg-[#54D2D2] text-white px-6 py-2 rounded-full border-4 border-white shadow-lg flex flex-col items-center">
             <span className="text-[10px] uppercase font-black tracking-widest block opacity-80">Score</span>
             <span className="text-3xl font-bold leading-none tabular-nums">{score.toLocaleString()}</span>
           </div>
         </div>
         
-        <h1 className="hidden md:block text-5xl lg:text-6xl font-black text-[#8B4513] drop-shadow-sm uppercase tracking-tighter italic">Mole Mania!</h1>
+        <h1 className="mole-mania-title hidden md:block text-5xl lg:text-6xl font-black text-[#8B4513] drop-shadow-sm uppercase tracking-tighter italic">Mole Mania!</h1>
         
         <div className="flex items-center gap-4">
           <div className="hidden sm:flex bg-white p-3 rounded-2xl shadow-inner border-2 border-[#8B4513] flex-col items-end">
@@ -346,48 +361,77 @@ export default function App() {
       <main className="flex-1 flex flex-col lg:flex-row px-4 sm:px-6 py-4 gap-6 max-w-[1400px] mx-auto w-full">
         
         {/* Game Area */}
-        <div className="relative flex-1 bg-[#4CAF50] rounded-[32px] border-b-[10px] border-[#388E3C] shadow-2xl p-4 sm:p-6 flex flex-col items-center justify-center min-h-[400px]">
-          <div className="grid grid-cols-5 gap-2 sm:gap-3 w-full max-w-3xl">
+        <div className="mole-mania-board relative flex-1 bg-[#4CAF50] rounded-[32px] border-b-[10px] border-[#388E3C] shadow-2xl p-4 sm:p-6 flex flex-col items-center justify-center min-h-[400px]">
+          <div className="mole-mania-skyline" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+
+          <div className="mole-mania-grid grid grid-cols-5 gap-2 sm:gap-3 w-full max-w-3xl">
             {moles.map((mole) => (
               <div 
                 key={mole.id}
-                className="relative bg-[#3E2723] rounded-full aspect-square shadow-[inset_0_10px_20px_rgba(0,0,0,0.6)] flex items-center justify-center cursor-crosshair overflow-hidden"
+                className={`mole-mania-hole relative bg-[#3E2723] rounded-full aspect-square shadow-[inset_0_10px_20px_rgba(0,0,0,0.6)] flex items-center justify-center cursor-crosshair overflow-hidden ${mole.active ? 'mole-mania-hole--active' : ''} ${mole.active ? `mole-mania-hole--${mole.type}` : ''}`}
                 onClick={() => whackMole(mole.id)}
               >
+                <span className="mole-mania-hole-rim" />
+                <span className="mole-mania-hole-shadow" />
                 <AnimatePresence>
                   {mole.active && (
                     <motion.div
-                      initial={{ y: 100 }}
-                      animate={{ y: 0 }}
-                      exit={{ y: 100 }}
+                      initial={{ y: 110, rotate: -8, scale: 0.84 }}
+                      animate={{ y: 0, rotate: 0, scale: 1 }}
+                      exit={{ y: 105, rotate: 8, scale: 0.82 }}
                       transition={{ type: 'spring', damping: 15, stiffness: 300 }}
-                      className="absolute inset-0 flex items-center justify-center p-2 sm:p-4"
+                      className="absolute inset-0 flex items-center justify-center p-2 sm:p-4 z-10"
                     >
-                      <div className={`w-full h-full rounded-t-full border-4 shadow-lg relative ${
+                      <div className={`mole-mania-mole w-full h-full rounded-t-full border-4 shadow-lg relative ${
                         mole.type === 'golden' ? 'bg-yellow-400 border-yellow-600 shadow-[0_0_15px_rgba(253,224,71,0.5)]' : 
                         mole.type === 'red' ? 'bg-red-500 border-red-700 shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
                         'bg-[#8D6E63] border-[#5D4037]'
                       }`}>
-                        <div className="absolute top-1/4 left-[15%] w-[18%] h-[18%] bg-black rounded-full" />
-                        <div className="absolute top-1/4 right-[15%] w-[18%] h-[18%] bg-black rounded-full" />
-                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 w-[25%] h-[12%] rounded-full ${
+                        <span className="mole-mania-ear mole-mania-ear--left" />
+                        <span className="mole-mania-ear mole-mania-ear--right" />
+                        <div className="mole-mania-eye absolute top-1/4 left-[15%] w-[18%] h-[18%] bg-black rounded-full" />
+                        <div className="mole-mania-eye absolute top-1/4 right-[15%] w-[18%] h-[18%] bg-black rounded-full" />
+                        <div className={`mole-mania-nose absolute top-1/2 left-1/2 -translate-x-1/2 w-[25%] h-[12%] rounded-full ${
                           mole.type === 'golden' ? 'bg-orange-300' : 
                           mole.type === 'red' ? 'bg-red-300' :
                           'bg-[#F48FB1]'
                         }`} />
+                        <span className="mole-mania-tooth mole-mania-tooth--left" />
+                        <span className="mole-mania-tooth mole-mania-tooth--right" />
+                        <span className="mole-mania-paw mole-mania-paw--left" />
+                        <span className="mole-mania-paw mole-mania-paw--right" />
                         {mole.type === 'golden' && (
-                          <div className="absolute -top-4 left-1/2 -translate-y-1/2">
+                          <div className="mole-mania-crown absolute -top-4 left-1/2 -translate-y-1/2">
                             <Crown size={16} className="text-yellow-600 fill-yellow-400" />
                           </div>
                         )}
                         {mole.type === 'red' && (
-                          <div className="absolute -top-4 left-1/2 -translate-y-1/2">
+                          <div className="mole-mania-target absolute -top-4 left-1/2 -translate-y-1/2">
                             <Target size={16} className="text-red-700" />
                           </div>
                         )}
                       </div>
                     </motion.div>
                   )}
+                </AnimatePresence>
+                <AnimatePresence>
+                  {hitBursts.filter((burst) => burst.moleId === mole.id).map((burst) => (
+                    <motion.span
+                      key={burst.id}
+                      initial={{ opacity: 0, y: 8, scale: 0.6 }}
+                      animate={{ opacity: 1, y: -30, scale: 1.1 }}
+                      exit={{ opacity: 0, y: -44, scale: 0.9 }}
+                      transition={{ duration: 0.55, ease: 'easeOut' }}
+                      className={`mole-mania-hit-burst mole-mania-hit-burst--${burst.type}`}
+                    >
+                      {burst.label}
+                    </motion.span>
+                  ))}
                 </AnimatePresence>
               </div>
             ))}
