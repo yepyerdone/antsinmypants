@@ -29,7 +29,7 @@ export const COLORS = {
 
 export const COLORS_L2 = {
   BG: '#020613',
-  WALL: '#00f5ff',
+  WALL: '#39ff14',
   PLAYER: '#ffffff',
   PELLET: '#ff2edb',
   GHOST_RED: '#ff1744',

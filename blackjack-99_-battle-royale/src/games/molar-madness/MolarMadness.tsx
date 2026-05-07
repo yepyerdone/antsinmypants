@@ -352,15 +352,16 @@ export const Game: React.FC = () => {
     ctx.rotate(directionAngle[entity.dir] * 0.03);
     ctx.imageSmoothingEnabled = false;
 
-    const px = 2;
+    const px = 1;
     const drawPixel = (dx: number, dy: number, color: string) => {
       ctx.fillStyle = color;
       ctx.fillRect(dx * px, dy * px, px, px);
     };
 
-    const white = ARCADE_COLORS.text;
-    const shade = ARCADE_COLORS.toothShadow;
-    const dark = '#07131f';
+    const white = '#f8f8f8';
+    const shade = '#d8d8d8';
+    const dark = '#020613';
+    const blush = '#ff9fe8';
 
     if (powerTimer > 0) {
       ctx.fillStyle = ARCADE_COLORS.powerPellet;
@@ -369,61 +370,104 @@ export const Game: React.FC = () => {
       ctx.globalAlpha = 1;
     }
 
-    for (let x = -4; x <= 4; x++) drawPixel(x, -5, x === -4 || x === 4 ? shade : white);
-    for (let x = -5; x <= 5; x++) drawPixel(x, -4, x === -5 || x === 5 ? shade : white);
-    for (let y = -3; y <= 1; y++) {
-      for (let x = -5; x <= 5; x++) drawPixel(x, y, x >= 4 || y === 1 ? shade : white);
-    }
-    drawPixel(-2, -1, dark);
-    drawPixel(2, -1, dark);
-    drawPixel(-1, 1, dark);
-    drawPixel(0, 1, dark);
-    drawPixel(1, 1, dark);
+    const toothSprite = [
+      '....SSSSSS.....SSSSSS....',
+      '..SSWWWWWWSS.SSWWWWWWSS..',
+      '.SWWWWWWWWWSSSWWWWWWWWWS.',
+      'SWWWWWWWWWWW.WWWWWWWWWWWS',
+      'SWWWWWWWWWWW.WWWWWWWWWWWS',
+      'WWWWWWWWWWWWWWWWWWWWWWWS.',
+      'WWWWWWWWWWWWWWWWWWWWWWWS.',
+      'WWWWWW.BBBWWWWWW.BBBWWWS.',
+      'WWWWWW.BBBWWWWWW.BBBWWWS.',
+      'WWWWWW.BBBWWWWWW.BBBWWWS.',
+      'WWWWWW.BBBWWWWW..BBBWWWS.',
+      'WWWW.PPPPWWWWWWWWPPPPWWS.',
+      'WWWWWWWWWWBWWBWWWWWWWWWS.',
+      'WWWWWWWWWWBWWBWWWWWWWWWS.',
+      'WWWWWWWWWW.BB.WWWWWWWWWS.',
+      'SWWWWWWWWWBBBBWWWWWWWWWS.',
+      '.WWWWWWWWWWWWWWWWWWWWWS..',
+      '.SWWWWWWWWWWWWWWWWWWWS...',
+      '..SWWWWWWWW...WWWWWWWS...',
+      '..SWWWWWWW.....WWWWWWS...',
+      '...SWWWWW.......WWWWWS...',
+      '...SWWWWW.......SWWWW....',
+      '....SSSS.........SSS.....',
+    ];
 
-    for (let y = 2; y <= 4; y++) {
-      drawPixel(-3, y, y === 4 ? shade : white);
-      drawPixel(-2, y, white);
-      drawPixel(2, y, white);
-      drawPixel(3, y, y === 4 ? shade : white);
-    }
+    const palette: Record<string, string> = {
+      W: white,
+      S: shade,
+      B: dark,
+      P: blush,
+    };
+
+    toothSprite.forEach((row, y) => {
+      [...row].forEach((pixel, x) => {
+        const color = palette[pixel];
+        if (color) drawPixel(x - 13, y - 13, color);
+      });
+    });
 
     ctx.restore();
   };
 
-  const drawPowerCandy = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
+  const drawToothpasteTube = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number) => {
     const bounce = Math.round(Math.sin(Date.now() / 180) * 1);
 
     ctx.save();
     ctx.translate(Math.round(centerX), Math.round(centerY + bounce));
     ctx.imageSmoothingEnabled = false;
 
+    const dark = '#020613';
+    ctx.fillStyle = dark;
+    ctx.fillRect(-8, -12, 15, 3);
+    ctx.fillRect(-9, -9, 17, 2);
+    ctx.fillRect(-8, -7, 2, 14);
+    ctx.fillRect(6, -7, 2, 14);
+    ctx.fillRect(-6, 7, 12, 2);
+    ctx.fillRect(-4, 9, 8, 2);
+    ctx.fillRect(-2, 11, 4, 2);
+
+    ctx.fillStyle = '#4b4b55';
+    ctx.fillRect(-6, -11, 11, 2);
+    ctx.fillStyle = '#f8fbff';
+    ctx.fillRect(-7, -7, 14, 6);
+    ctx.fillRect(-6, -1, 12, 8);
+
+    ctx.fillStyle = '#bdfaff';
+    ctx.fillRect(-7, -5, 2, 10);
+    ctx.fillRect(5, -4, 2, 8);
+
+    ctx.fillStyle = '#ff1212';
+    ctx.fillRect(-5, 2, 10, 5);
+    ctx.fillRect(-4, 7, 8, 2);
+
     ctx.fillStyle = ARCADE_COLORS.powerPellet;
-    ctx.fillRect(-9, -5, 18, 10);
-    ctx.fillRect(-7, -7, 14, 14);
+    ctx.fillRect(-5, -1, 12, 2);
+    ctx.fillRect(-3, 1, 8, 2);
+    ctx.fillRect(1, -3, 5, 2);
 
-    ctx.fillStyle = ARCADE_COLORS.candyShadow;
-    ctx.fillRect(-9, 4, 18, 2);
-    ctx.fillRect(6, -5, 3, 10);
+    ctx.fillStyle = '#ff9fe8';
+    ctx.fillRect(-2, -4, 2, 7);
 
-    ctx.fillStyle = ARCADE_COLORS.candyStripe;
-    ctx.fillRect(-5, -6, 3, 12);
-    ctx.fillRect(1, -6, 3, 12);
+    ctx.fillStyle = '#cfd2dc';
+    ctx.fillRect(-3, 9, 6, 2);
+    ctx.fillStyle = '#8d91a0';
+    ctx.fillRect(-2, 11, 4, 2);
 
-    ctx.fillStyle = ARCADE_COLORS.text;
-    ctx.fillRect(-5, -5, 2, 2);
-
+    ctx.fillStyle = dark;
+    ctx.fillRect(-2, 13, 5, 2);
+    ctx.fillRect(-3, 15, 2, 4);
+    ctx.fillRect(2, 15, 2, 4);
+    ctx.fillRect(-2, 19, 5, 2);
+    ctx.fillStyle = '#ff1212';
+    ctx.fillRect(0, 13, 2, 7);
     ctx.fillStyle = ARCADE_COLORS.powerPellet;
-    ctx.fillRect(-14, -4, 5, 8);
-    ctx.fillRect(9, -4, 5, 8);
-    ctx.fillStyle = ARCADE_COLORS.candyShadow;
-    ctx.fillRect(-15, 3, 6, 2);
-    ctx.fillRect(9, 3, 6, 2);
-
-    ctx.strokeStyle = '#020613';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-9, -7, 18, 14);
-    ctx.strokeRect(-14, -4, 5, 8);
-    ctx.strokeRect(9, -4, 5, 8);
+    ctx.fillRect(-2, 14, 2, 5);
+    ctx.fillStyle = '#f8fbff';
+    ctx.fillRect(-2, 15, 1, 3);
 
     ctx.restore();
   };
@@ -599,7 +643,7 @@ export const Game: React.FC = () => {
           ctx.arc(tileX + TILE_SIZE / 2, tileY + TILE_SIZE / 2, 2.1, 0, Math.PI * 2);
           ctx.fill();
         } else if (tile === Tile.POWER_PELLET) {
-          drawPowerCandy(ctx, tileX + TILE_SIZE / 2, tileY + TILE_SIZE / 2);
+          drawToothpasteTube(ctx, tileX + TILE_SIZE / 2, tileY + TILE_SIZE / 2);
         }
       });
     });
