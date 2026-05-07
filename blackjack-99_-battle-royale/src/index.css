@@ -4742,6 +4742,21 @@ body {
   background: rgba(2, 6, 19, 0.9);
 }
 
+.molar-madness-page--menu .molar-madness-menu {
+  align-items: start;
+  min-height: var(--site-content-height, 100vh);
+  padding-top: clamp(0.85rem, 2vw, 1.35rem);
+}
+
+.molar-madness-page--menu .molar-madness-hero,
+.molar-madness-page--menu .molar-madness-menu-card {
+  min-height: auto;
+}
+
+.molar-madness-page--menu .molar-madness-hero {
+  justify-content: flex-start;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

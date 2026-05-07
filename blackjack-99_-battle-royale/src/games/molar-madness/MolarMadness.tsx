@@ -951,14 +951,6 @@ export const Game: React.FC = () => {
             </section>
 
             <aside className="molar-madness-menu-card">
-              <div className="molar-madness-preview">
-                <div className="molar-madness-preview-tooth" />
-                <span />
-                <span />
-                <span />
-                <div className="molar-madness-preview-candy molar-madness-preview-candy--one" />
-                <div className="molar-madness-preview-candy molar-madness-preview-candy--two" />
-              </div>
               <div className="molar-madness-menu-stats">
                 <div>
                   <span>Best</span>
