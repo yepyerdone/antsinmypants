@@ -10,35 +10,35 @@ export enum Tile {
 }
 
 export const COLORS = {
-  BG: '#0f0f23',
-  WALL: '#ff6b35',
+  BG: '#020613',
+  WALL: '#00f5ff',
   PLAYER: '#ffffff',
-  PELLET: '#ffeb3b',
+  PELLET: '#ff2edb',
   GHOST_RED: '#ff1744',
   GHOST_PINK: '#ff4081',
-  GHOST_CYAN: '#00e5ff',
+  GHOST_CYAN: '#2dfcff',
   GHOST_ORANGE: '#ff9100',
   TEXT: '#ffffff',
-  UI_BG: '#1a1a2e',
-  UI_ACCENT: '#ffeb3b',
-  UI_SECONDARY: '#00e5ff',
-  UI_PANEL: '#16213e',
-  GRID_LINE: '#2a2a4a',
-  POWER_GLOW: '#00ff88',
+  UI_BG: '#030713',
+  UI_ACCENT: '#00f5ff',
+  UI_SECONDARY: '#ff2edb',
+  UI_PANEL: '#06111f',
+  GRID_LINE: '#06283f',
+  POWER_GLOW: '#00f5ff',
 };
 
 export const COLORS_L2 = {
-  BG: '#0a1f0a',
-  WALL: '#4caf50',
+  BG: '#020613',
+  WALL: '#00f5ff',
   PLAYER: '#ffffff',
-  PELLET: '#ffeb3b',
+  PELLET: '#ff2edb',
   GHOST_RED: '#ff1744',
   GHOST_PINK: '#e91e63',
-  GHOST_CYAN: '#00bcd4',
+  GHOST_CYAN: '#2dfcff',
   GHOST_ORANGE: '#ff9800',
   TEXT: '#ffffff',
-  GRID_LINE: '#1a3a1a',
-  POWER_GLOW: '#76ff03',
+  GRID_LINE: '#06283f',
+  POWER_GLOW: '#00f5ff',
 };
 
 // 0: Path, 1: Wall, 2: Pellet

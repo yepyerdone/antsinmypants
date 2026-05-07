@@ -4621,6 +4621,127 @@ body {
   }
 }
 
+.molar-madness-page {
+  color: #f8fbff;
+  background: #020613;
+  font-family: var(--font-pixel);
+}
+
+.molar-madness-backdrop {
+  background-image:
+    linear-gradient(rgba(0, 245, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.035) 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 1;
+}
+
+.molar-madness-hero,
+.molar-madness-menu-card,
+.molar-madness-panel,
+.molar-madness-topbar,
+.molar-madness-hud > div,
+.molar-madness-canvas-shell,
+.molar-madness-overlay-card {
+  border-color: #00f5ff;
+  background: #030713;
+  box-shadow:
+    0 0 0 2px #020613,
+    0 0 0 4px #00f5ff,
+    0 0 18px rgba(0, 245, 255, 0.35);
+}
+
+.molar-madness-hero h1,
+.molar-madness-brand strong,
+.molar-madness-overlay-card h2 {
+  color: #f8fbff;
+  text-shadow:
+    2px 2px 0 #ff2edb,
+    4px 4px 0 #020613;
+}
+
+.molar-madness-badge,
+.molar-madness-panel-heading,
+.molar-madness-instructions span,
+.molar-madness-menu-stats span,
+.molar-madness-hud span,
+.molar-madness-brand span,
+.molar-madness-overlay-card > span {
+  color: #00f5ff;
+}
+
+.molar-madness-hero p,
+.molar-madness-instructions div,
+.molar-madness-menu-stats div,
+.molar-madness-score-row,
+.molar-madness-empty,
+.molar-madness-control-grid kbd {
+  border-color: #00f5ff;
+  color: #f8fbff;
+  background: #020613;
+  box-shadow: 0 0 0 1px #020613;
+}
+
+.molar-madness-instructions strong,
+.molar-madness-menu-stats strong,
+.molar-madness-hud strong,
+.molar-madness-score-row b,
+.molar-madness-control-grid kbd {
+  color: #ff2edb;
+}
+
+.molar-madness-primary {
+  border-color: #00f5ff;
+  color: #020613;
+  background: #00f5ff;
+  box-shadow:
+    0 0 0 2px #020613,
+    0 4px 0 #077d91,
+    0 6px 0 #020613;
+}
+
+.molar-madness-secondary,
+.molar-madness-icon-button {
+  border-color: #ff2edb;
+  color: #ff2edb;
+  background: #020613;
+  box-shadow:
+    0 0 0 2px #020613,
+    0 4px 0 #7d136e,
+    0 6px 0 #020613;
+}
+
+.molar-madness-preview,
+.molar-madness-canvas-shell {
+  background: #020613;
+}
+
+.molar-madness-preview::before,
+.molar-madness-preview::after {
+  background: #00f5ff;
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.78);
+}
+
+.molar-madness-preview span {
+  background: #ff2edb;
+  box-shadow: 0 0 8px rgba(255, 46, 219, 0.8);
+}
+
+.molar-madness-canvas {
+  aspect-ratio: 456 / 526;
+  border-color: #00f5ff;
+  background: #020613;
+  animation: none;
+  box-shadow:
+    0 0 0 2px #020613,
+    0 0 0 4px #00f5ff,
+    0 0 20px rgba(0, 245, 255, 0.48);
+}
+
+.molar-madness-overlay,
+.molar-madness-overlay--score {
+  background: rgba(2, 6, 19, 0.9);
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

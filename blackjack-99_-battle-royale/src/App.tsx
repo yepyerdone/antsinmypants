@@ -82,7 +82,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!firebaseUser) {
+    if (!firebaseUser || firebaseUser.isAnonymous) {
       setUserWins(0);
       return;
     }
