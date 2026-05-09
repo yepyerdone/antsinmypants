@@ -1,17 +1,126 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800;900&display=swap');
-@import "tailwindcss";
-
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  
-  --color-slate-950: #020617;
-  --color-slate-900: #0f172a;
-  --color-slate-800: #1e293b;
-  --color-amber-400: #fbbf24;
-  --color-emerald-900: #065f46;
+.eight-ball-pool-page {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(34, 211, 238, 0.22), transparent 30%),
+    radial-gradient(circle at 82% 18%, rgba(20, 184, 166, 0.2), transparent 30%),
+    linear-gradient(180deg, #020617 0%, #071827 48%, #020617 100%);
 }
 
-body {
-  background-color: var(--color-slate-950);
-  color: white;
+.eight-ball-pool-hud {
+  background:
+    linear-gradient(90deg, rgba(8, 47, 73, 0.92), rgba(15, 23, 42, 0.9), rgba(6, 78, 59, 0.88));
+  box-shadow: 0 18px 60px rgba(8, 145, 178, 0.16);
+}
+
+.eight-ball-pool-status-pill {
+  border: 1px solid rgba(103, 232, 249, 0.24);
+  background: rgba(8, 47, 73, 0.42);
+}
+
+.eight-ball-pool-stage {
+  background:
+    linear-gradient(rgba(103, 232, 249, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(103, 232, 249, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 50% 50%, rgba(20, 184, 166, 0.28), transparent 30%),
+    radial-gradient(circle at 50% 110%, rgba(8, 145, 178, 0.36), transparent 42%),
+    linear-gradient(135deg, #03111f, #020617 58%, #042f2e);
+  background-size: 36px 36px, 36px 36px, 100% 100%, 100% 100%, 100% 100%;
+}
+
+.eight-ball-pool-stage::before,
+.eight-ball-pool-stage::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.eight-ball-pool-stage::before {
+  inset: 0;
+  background:
+    linear-gradient(125deg, transparent 0 23%, rgba(34, 211, 238, 0.13) 23% 23.5%, transparent 23.5% 58%),
+    linear-gradient(65deg, transparent 0 48%, rgba(45, 212, 191, 0.11) 48% 48.4%, transparent 48.4%);
+}
+
+.eight-ball-pool-stage::after {
+  left: 50%;
+  bottom: -7rem;
+  width: 28rem;
+  height: 14rem;
+  border-radius: 50% 50% 0 0;
+  background: rgba(14, 116, 144, 0.22);
+  filter: blur(32px);
+  transform: translateX(-50%);
+}
+
+.eight-ball-pool-menu {
+  background:
+    radial-gradient(circle at 50% 16%, rgba(34, 211, 238, 0.24), transparent 28%),
+    radial-gradient(circle at 16% 78%, rgba(45, 212, 191, 0.2), transparent 30%),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.96), rgba(3, 18, 32, 0.98));
+}
+
+.eight-ball-pool-menu::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(115deg, transparent 0 35%, rgba(103, 232, 249, 0.1) 35% 35.3%, transparent 35.3% 66%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 58px);
+  pointer-events: none;
+}
+
+.eight-ball-shark-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 11rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(103, 232, 249, 0.36);
+  border-radius: 999px;
+  color: #cffafe;
+  background: rgba(8, 47, 73, 0.62);
+  box-shadow: 0 0 34px rgba(34, 211, 238, 0.2);
+  font-size: 0.65rem;
+  font-weight: 950;
+  letter-spacing: 0.22em;
+}
+
+.eight-ball-pool-title {
+  filter: drop-shadow(0 0 34px rgba(34, 211, 238, 0.2));
+}
+
+.eight-ball-shark-fin {
+  position: absolute;
+  width: 9rem;
+  height: 10rem;
+  border-radius: 78% 22% 50% 50%;
+  background: linear-gradient(135deg, rgba(103, 232, 249, 0.24), rgba(15, 23, 42, 0.04));
+  clip-path: polygon(50% 0, 100% 100%, 0 76%);
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+.eight-ball-shark-fin--left {
+  left: 9%;
+  top: 18%;
+  transform: rotate(-24deg);
+}
+
+.eight-ball-shark-fin--right {
+  right: 10%;
+  bottom: 16%;
+  transform: rotate(148deg);
+}
+
+.eight-ball-shark-teeth {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(46rem, 86vw);
+  height: 4rem;
+  background:
+    linear-gradient(135deg, #e0f2fe 25%, transparent 25%) 0 0 / 2rem 4rem,
+    linear-gradient(225deg, #e0f2fe 25%, transparent 25%) 1rem 0 / 2rem 4rem;
+  opacity: 0.1;
+  transform: translateX(-50%);
+  pointer-events: none;
 }

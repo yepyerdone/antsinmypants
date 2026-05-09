@@ -193,8 +193,8 @@ export const siteGames: GameCardData[] = [
   },
   {
     id: 'eight-ball-arcade',
-    title: '8 Ball Arcade',
-    description: 'A polished pool table with local, bot, and online 8-ball matches.',
+    title: '8 Ball Pool',
+    description: 'A shark-themed pool table with local, bot, and online 8-ball matches.',
     category: 'Sports',
     meta: 'Local or online',
     preview: 'eight-ball',

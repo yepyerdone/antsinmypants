@@ -4,6 +4,7 @@
  */
 
 import PoolGame from './components/PoolGame';
+import './index.css';
 
 export default function App() {
   return (

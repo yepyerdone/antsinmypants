@@ -1129,12 +1129,12 @@ export default function PoolGame() {
 
   // Main Table Area
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-sans flex flex-col items-center overflow-hidden">
+    <div className="eight-ball-pool-page min-h-screen bg-slate-950 text-white font-sans flex flex-col items-center overflow-hidden">
       <Toaster position="top-center" richColors />
       
       {/* HUD Scoreboard */}
       {!menuOpen && displayState && (
-        <div className="w-full bg-slate-900/90 border-b border-white/10 backdrop-blur-xl flex justify-between items-stretch px-8 z-10 shadow-2xl">
+        <div className="eight-ball-pool-hud w-full bg-slate-900/90 border-b border-white/10 backdrop-blur-xl flex justify-between items-stretch px-8 z-10 shadow-2xl">
           <div className="flex-1 py-4 max-w-sm">
              <ScoreCard 
                 player={displayState.players[0]} 
@@ -1146,9 +1146,9 @@ export default function PoolGame() {
           </div>
 
           <div className="flex flex-col items-center justify-center px-8 border-x border-white/5">
-             <div className="bg-white/5 px-4 py-1.5 rounded-full flex items-center gap-3 mb-2">
+             <div className="eight-ball-pool-status-pill bg-white/5 px-4 py-1.5 rounded-full flex items-center gap-3 mb-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Live Match</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50">Shark Table</span>
              </div>
              
              {displayState.winner ? (
@@ -1190,7 +1190,7 @@ export default function PoolGame() {
       )}
 
       {/* Main Table Area */}
-      <div className="flex-1 w-full bg-[radial-gradient(circle_at_50%_50%,#1e293b,0%,#020617_100%)] flex items-center justify-center relative p-8 gap-12">
+      <div className="eight-ball-pool-stage flex-1 w-full flex items-center justify-center relative p-8 gap-12">
         <div className="relative group">
           {/* Status Indicators (Top Centered) */}
           <div className="absolute -top-16 left-0 right-0 flex justify-center gap-3 pointer-events-none z-30">
@@ -1232,7 +1232,7 @@ export default function PoolGame() {
           
           {/* Logo overlay on table */}
           <div className="absolute top-6 right-8 text-white/5 text-4xl font-black italic tracking-tighter pointer-events-none select-none">
-             8-BALL ELITE
+             8 BALL POOL
           </div>
 
           {displayState?.isBallInHand && !displayState.isMoving && (
@@ -1417,22 +1417,28 @@ export default function PoolGame() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-neutral-900/95 backdrop-blur-xl flex items-center justify-center p-6"
+            className="eight-ball-pool-menu fixed inset-0 z-50 bg-neutral-900/95 backdrop-blur-xl flex items-center justify-center p-6"
           >
+            <div className="eight-ball-shark-fin eight-ball-shark-fin--left" />
+            <div className="eight-ball-shark-fin eight-ball-shark-fin--right" />
+            <div className="eight-ball-shark-teeth" />
             <div className="max-w-md w-full">
               {menuStage === 'main' ? (
                 <>
                   <div className="text-center mb-12">
+                    <div className="eight-ball-shark-badge mx-auto mb-5">
+                      <span>SHARK TABLE</span>
+                    </div>
                     <motion.h1 
                       initial={{ y: 20 }}
                       animate={{ y: 0 }}
-                      className="text-7xl font-black italic tracking-tighter mb-2 bg-gradient-to-b from-white to-slate-500 bg-clip-text text-transparent"
+                      className="eight-ball-pool-title text-7xl font-black italic tracking-tighter mb-2 bg-gradient-to-b from-white to-slate-500 bg-clip-text text-transparent"
                     >
-                      8 BALL <span className="text-amber-400">ELITE</span>
+                      8 BALL <span className="text-cyan-300">POOL</span>
                     </motion.h1>
                     <div className="flex flex-col items-center gap-2">
-                       <p className="text-slate-400 font-black tracking-[0.2em] uppercase text-[10px]">Premium Billiards Simulation</p>
-                       <div className="h-px w-24 bg-amber-400/30" />
+                       <p className="text-slate-400 font-black tracking-[0.2em] uppercase text-[10px]">Shark-themed billiards matches</p>
+                       <div className="h-px w-24 bg-cyan-300/40" />
                     </div>
                   </div>
 
