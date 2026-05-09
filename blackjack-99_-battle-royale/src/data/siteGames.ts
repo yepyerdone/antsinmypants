@@ -237,7 +237,7 @@ export const homeGameSections = [
   },
   {
     title: 'Multiplayer',
-    gameIds: ['friend-chess', 'neon-snake', 'chairs-io', 'eight-ball-arcade'],
+    gameIds: ['friend-chess', 'eight-ball-arcade', 'chairs-io', 'neon-snake'],
   },
   {
     title: 'Academic Weapon',
