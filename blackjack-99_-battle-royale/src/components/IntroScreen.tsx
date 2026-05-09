@@ -17,7 +17,9 @@ interface IntroScreenProps {
 export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
   const navigate = useNavigate();
   const [showFeaturedBackButton, setShowFeaturedBackButton] = useState(false);
+  const [showArcadeBackButton, setShowArcadeBackButton] = useState(false);
   const featuredScrollerRef = useRef<HTMLDivElement>(null);
+  const arcadeScrollerRef = useRef<HTMLDivElement>(null);
 
   const launchGame = (game: GameCardData) => {
     if (game.internalPath) {
@@ -55,6 +57,30 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       return;
     }
     setShowFeaturedBackButton(featuredScroller.scrollLeft > 12);
+  };
+
+  const scrollArcadeToTachymetry = () => {
+    arcadeScrollerRef.current?.scrollTo({
+      left: arcadeScrollerRef.current.scrollWidth,
+      behavior: 'smooth',
+    });
+    setShowArcadeBackButton(true);
+  };
+
+  const scrollArcadeToStart = () => {
+    arcadeScrollerRef.current?.scrollTo({
+      left: 0,
+      behavior: 'smooth',
+    });
+    setShowArcadeBackButton(false);
+  };
+
+  const handleArcadeScroll = () => {
+    const arcadeScroller = arcadeScrollerRef.current;
+    if (!arcadeScroller) {
+      return;
+    }
+    setShowArcadeBackButton(arcadeScroller.scrollLeft > 12);
   };
 
   const renderGameCard = (game: GameCardData) => (
@@ -152,6 +178,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
           <div className="site-games-rows">
             {gameSections.map((section) => {
               const isFeatured = section.title === 'Featured Games';
+              const isArcadeClassics = section.title === 'Arcade Classics';
               const sectionTitleId = isFeatured ? 'site-games-title' : `site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`;
               const sectionGames = getSectionGames(section.gameIds);
 
@@ -183,6 +210,34 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
                         className="site-featured-scroll-button"
                         onClick={scrollFeaturedToMoleMania}
                         aria-label="Scroll to Mole Mania"
+                      >
+                        <ChevronRight size={28} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ) : isArcadeClassics ? (
+                    <div className="site-featured-carousel">
+                      <div
+                        ref={arcadeScrollerRef}
+                        className="site-games-grid site-games-grid--featured"
+                        onScroll={handleArcadeScroll}
+                      >
+                        {sectionGames.map(renderGameCard)}
+                      </div>
+                      {showArcadeBackButton && (
+                        <button
+                          type="button"
+                          className="site-featured-scroll-button site-featured-scroll-button--back"
+                          onClick={scrollArcadeToStart}
+                          aria-label="Scroll back to first arcade classic"
+                        >
+                          <ChevronLeft size={28} strokeWidth={3} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="site-featured-scroll-button"
+                        onClick={scrollArcadeToTachymetry}
+                        aria-label="Scroll to Tachymetry"
                       >
                         <ChevronRight size={28} strokeWidth={3} />
                       </button>
