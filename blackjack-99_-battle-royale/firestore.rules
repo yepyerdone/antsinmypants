@@ -55,6 +55,22 @@ service cloud.firestore {
         && data.searchName.size() <= 32;
     }
 
+    function isValidUsernameClaim(data, claimId) {
+      return data.uid == request.auth.uid
+        && data.username is string
+        && data.username.size() >= 3
+        && data.username.size() <= 32
+        && data.searchName == claimId
+        && data.searchName is string
+        && data.searchName.size() >= 3
+        && data.searchName.size() <= 32
+        && data.updatedAt is timestamp;
+    }
+
+    function hasMatchingUsernameClaim(userId, searchName) {
+      return getAfter(/databases/$(database)/documents/usernameClaims/$(searchName)).data.uid == userId;
+    }
+
     function isValidFriend(data, friendId) {
       return data.uid == friendId
         && data.displayName is string
@@ -85,6 +101,7 @@ service cloud.firestore {
         && data.playerName.size() <= 32
         && data.timeSeconds is number
         && data.timeSeconds > 0
+        && data.statesGuessed == 50
         && data.completedAt is timestamp;
     }
 
@@ -367,7 +384,21 @@ service cloud.firestore {
 
     match /publicProfiles/{userId} {
       allow get, list: if isSignedIn();
-      allow create, update: if isOwner(userId) && isValidPublicProfile(incoming(), userId);
+      allow create, update: if isOwner(userId)
+        && isValidPublicProfile(incoming(), userId)
+        && hasMatchingUsernameClaim(userId, incoming().searchName);
+    }
+
+    match /usernameClaims/{claimId} {
+      allow get: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidUsernameClaim(incoming(), claimId);
+      allow update: if isSignedIn()
+        && existing().uid == request.auth.uid
+        && incoming().uid == existing().uid
+        && isValidUsernameClaim(incoming(), claimId);
+      allow delete: if isSignedIn()
+        && existing().uid == request.auth.uid;
     }
 
     // Friend Chess Rules

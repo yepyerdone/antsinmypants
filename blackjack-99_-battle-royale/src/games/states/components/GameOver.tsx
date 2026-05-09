@@ -18,13 +18,14 @@ export default function GameOver({ time, onRestart, onClose, isVictory }: GameOv
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!playerName.trim() || submitting || submitted) return;
+    if (!isVictory || !playerName.trim() || submitting || submitted) return;
 
     setSubmitting(true);
     try {
       await addDoc(collection(db, 'states_leaderboard'), {
         playerName: playerName.trim(),
         timeSeconds: time,
+        statesGuessed: 50,
         completedAt: serverTimestamp()
       });
       setSubmitted(true);
@@ -72,7 +73,7 @@ export default function GameOver({ time, onRestart, onClose, isVictory }: GameOv
         </div>
 
         <div className="p-10 space-y-8">
-          {!submitted ? (
+          {isVictory && !submitted ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <label className="block text-sm font-bold text-slate-500 uppercase tracking-wider text-center">
                 Submit to Global Leaderboard
@@ -97,9 +98,15 @@ export default function GameOver({ time, onRestart, onClose, isVictory }: GameOv
                 </button>
               </div>
             </form>
-          ) : (
+          ) : isVictory ? (
             <div className="bg-emerald-500/10 p-6 rounded-2xl border border-emerald-500/20 flex items-center gap-4 text-emerald-400 font-bold justify-center">
               Score submitted successfully!
+            </div>
+          ) : (
+            <div className="bg-slate-950/60 p-6 rounded-2xl border border-slate-800 text-center">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+                Finish all 50 states to submit a leaderboard time.
+              </p>
             </div>
           )}
 

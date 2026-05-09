@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, collection, query, orderBy, limit, getDocs, runTransaction } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
 
 export interface UserStats {
@@ -41,6 +41,8 @@ const getSavedName = (data: Partial<UserStats> | undefined) => {
   const saved = data?.displayName || data?.username;
   return typeof saved === 'string' ? saved.trim() : '';
 };
+
+const getUsernameClaimId = (displayName: string) => displayName.trim().replace(/\s+/g, ' ').toLowerCase();
 
 export async function getUserStats(userId: string): Promise<UserStats | null> {
   const path = `users/${userId}`;
@@ -105,7 +107,8 @@ export async function saveUserProfile({ uid, displayName, email = null, provider
   try {
     const docRef = doc(db, 'users', uid);
     const publicProfileRef = doc(db, 'publicProfiles', uid);
-    const snap = await getDoc(docRef);
+    const searchName = getUsernameClaimId(displayName);
+    const usernameClaimRef = doc(db, 'usernameClaims', searchName);
     const baseProfile = {
       uid,
       username: displayName,
@@ -115,28 +118,58 @@ export async function saveUserProfile({ uid, displayName, email = null, provider
       updatedAt: serverTimestamp(),
     };
 
-    if (!snap.exists()) {
-      await setDoc(docRef, {
-        ...baseProfile,
-        winsOffline: 0,
-        gamesOffline: 0,
-        winsOnline: 0,
-        gamesOnline: 0,
-        totalWins: 0,
-        createdAt: serverTimestamp(),
-      });
-    } else {
-      await setDoc(docRef, baseProfile, { merge: true });
-    }
+    await runTransaction(db, async (transaction) => {
+      const [userSnap, claimSnap] = await Promise.all([
+        transaction.get(docRef),
+        transaction.get(usernameClaimRef),
+      ]);
 
-    await setDoc(publicProfileRef, {
-      uid,
-      username: displayName,
-      displayName,
-      searchName: displayName.toLowerCase(),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+      const claimedBy = claimSnap.exists() ? claimSnap.data().uid : null;
+      if (claimedBy && claimedBy !== uid) {
+        throw new Error('That username is already taken. Choose a different username.');
+      }
+
+      const previousSearchName = userSnap.exists()
+        ? getUsernameClaimId(getSavedName(userSnap.data() as Partial<UserStats>))
+        : '';
+
+      if (!userSnap.exists()) {
+        transaction.set(docRef, {
+          ...baseProfile,
+          winsOffline: 0,
+          gamesOffline: 0,
+          winsOnline: 0,
+          gamesOnline: 0,
+          totalWins: 0,
+          createdAt: serverTimestamp(),
+        });
+      } else {
+        transaction.set(docRef, baseProfile, { merge: true });
+      }
+
+      transaction.set(publicProfileRef, {
+        uid,
+        username: displayName,
+        displayName,
+        searchName,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
+      transaction.set(usernameClaimRef, {
+        uid,
+        username: displayName,
+        searchName,
+        updatedAt: serverTimestamp(),
+      });
+
+      if (previousSearchName && previousSearchName !== searchName) {
+        transaction.delete(doc(db, 'usernameClaims', previousSearchName));
+      }
+    });
   } catch (error) {
+    if (error instanceof Error && error.message.includes('username is already taken')) {
+      throw error;
+    }
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }

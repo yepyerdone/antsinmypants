@@ -6,6 +6,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -91,13 +92,33 @@ export async function getProfileDashboard(uid: string): Promise<ProfileDashboard
 export async function ensurePublicProfile(uid: string, displayName: string) {
   const path = `publicProfiles/${uid}`;
   try {
-    await setDoc(doc(db, 'publicProfiles', uid), {
-      uid,
-      username: displayName,
-      displayName,
-      searchName: normalizeUsername(displayName),
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    const searchName = normalizeUsername(displayName);
+    const publicProfileRef = doc(db, 'publicProfiles', uid);
+    const usernameClaimRef = doc(db, 'usernameClaims', searchName);
+
+    await runTransaction(db, async (transaction) => {
+      const claimSnap = await transaction.get(usernameClaimRef);
+      const claimedBy = claimSnap.exists() ? claimSnap.data().uid : null;
+
+      if (claimedBy && claimedBy !== uid) {
+        throw new Error('That username is already taken. Choose a different username.');
+      }
+
+      transaction.set(usernameClaimRef, {
+        uid,
+        username: displayName,
+        searchName,
+        updatedAt: serverTimestamp(),
+      });
+
+      transaction.set(publicProfileRef, {
+        uid,
+        username: displayName,
+        displayName,
+        searchName,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    });
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
