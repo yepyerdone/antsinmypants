@@ -18,8 +18,10 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
   const navigate = useNavigate();
   const [showFeaturedBackButton, setShowFeaturedBackButton] = useState(false);
   const [showArcadeBackButton, setShowArcadeBackButton] = useState(false);
+  const [showMultiplayerBackButton, setShowMultiplayerBackButton] = useState(false);
   const featuredScrollerRef = useRef<HTMLDivElement>(null);
   const arcadeScrollerRef = useRef<HTMLDivElement>(null);
+  const multiplayerScrollerRef = useRef<HTMLDivElement>(null);
 
   const launchGame = (game: GameCardData) => {
     if (game.internalPath) {
@@ -81,6 +83,30 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
       return;
     }
     setShowArcadeBackButton(arcadeScroller.scrollLeft > 12);
+  };
+
+  const scrollMultiplayerToEightBall = () => {
+    multiplayerScrollerRef.current?.scrollTo({
+      left: multiplayerScrollerRef.current.scrollWidth,
+      behavior: 'smooth',
+    });
+    setShowMultiplayerBackButton(true);
+  };
+
+  const scrollMultiplayerToStart = () => {
+    multiplayerScrollerRef.current?.scrollTo({
+      left: 0,
+      behavior: 'smooth',
+    });
+    setShowMultiplayerBackButton(false);
+  };
+
+  const handleMultiplayerScroll = () => {
+    const multiplayerScroller = multiplayerScrollerRef.current;
+    if (!multiplayerScroller) {
+      return;
+    }
+    setShowMultiplayerBackButton(multiplayerScroller.scrollLeft > 12);
   };
 
   const renderGameCard = (game: GameCardData) => (
@@ -179,6 +205,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
             {gameSections.map((section) => {
               const isFeatured = section.title === 'Featured Games';
               const isArcadeClassics = section.title === 'Arcade Classics';
+              const isMultiplayer = section.title === 'Multiplayer';
               const sectionTitleId = isFeatured ? 'site-games-title' : `site-games-${section.title.toLowerCase().replace(/\s+/g, '-')}`;
               const sectionGames = getSectionGames(section.gameIds);
 
@@ -238,6 +265,34 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
                         className="site-featured-scroll-button"
                         onClick={scrollArcadeToTachymetry}
                         aria-label="Scroll to Tachymetry"
+                      >
+                        <ChevronRight size={28} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ) : isMultiplayer ? (
+                    <div className="site-featured-carousel">
+                      <div
+                        ref={multiplayerScrollerRef}
+                        className="site-games-grid site-games-grid--featured"
+                        onScroll={handleMultiplayerScroll}
+                      >
+                        {sectionGames.map(renderGameCard)}
+                      </div>
+                      {showMultiplayerBackButton && (
+                        <button
+                          type="button"
+                          className="site-featured-scroll-button site-featured-scroll-button--back"
+                          onClick={scrollMultiplayerToStart}
+                          aria-label="Scroll back to first multiplayer game"
+                        >
+                          <ChevronLeft size={28} strokeWidth={3} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="site-featured-scroll-button"
+                        onClick={scrollMultiplayerToEightBall}
+                        aria-label="Scroll to 8 Ball Arcade"
                       >
                         <ChevronRight size={28} strokeWidth={3} />
                       </button>
