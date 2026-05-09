@@ -88,6 +88,17 @@ service cloud.firestore {
         && data.completedAt is timestamp;
     }
 
+    function isValidTachymetryScore(data) {
+      return data.userId is string
+        && data.userId.size() <= 128
+        && data.username is string
+        && data.username.size() >= 1
+        && data.username.size() <= 32
+        && data.score is number
+        && data.score >= 0
+        && data.updatedAt is timestamp;
+    }
+
     // Daily Leaderboard Rules
     match /daily_leaderboard/{date}/players/{userId} {
       allow list: if true;
@@ -113,6 +124,22 @@ service cloud.firestore {
       allow create: if isValidId(entryId)
         && isValidStatesScore(incoming())
         && incoming().completedAt == request.time;
+    }
+
+    // Tachymetry Leaderboard Rules
+    match /tachymetry_leaderboard/{userId} {
+      allow list, get: if true;
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidTachymetryScore(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId)
+        && isValidTachymetryScore(incoming())
+        && incoming().userId == existing().userId
+        && incoming().score >= existing().score
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['score', 'updatedAt', 'username']);
     }
 
     // Snake Rush Leaderboard Rules

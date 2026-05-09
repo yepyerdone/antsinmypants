@@ -12,7 +12,8 @@ export type PreviewType =
   | 'chairs'
   | 'ascension'
   | 'mole'
-  | 'states';
+  | 'states'
+  | 'tachymetry';
 
 interface GamePreviewProps {
   type: PreviewType;
@@ -123,6 +124,19 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
           <MapIcon size={17} />
           50
         </span>
+      </div>
+    );
+  }
+
+  if (type === 'tachymetry') {
+    return (
+      <div className="site-game-preview site-game-preview--tachymetry" aria-label={`${title} preview`}>
+        <span className="preview-tachy-grid" />
+        <span className="preview-tachy-piece preview-tachy-piece--i" />
+        <span className="preview-tachy-piece preview-tachy-piece--t" />
+        <span className="preview-tachy-piece preview-tachy-piece--o" />
+        <span className="preview-tachy-line" />
+        <span className="preview-score">TETRIS</span>
       </div>
     );
   }

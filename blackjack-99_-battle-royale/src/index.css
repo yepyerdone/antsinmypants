@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;700&family=Luckiest+Guy&family=Space+Grotesk:wght@400;500;600;700;800&family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Luckiest+Guy&family=Space+Grotesk:wght@400;500;600;700;800&family=Press+Start+2P&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -1850,6 +1850,84 @@ body {
   background-size: 18px 18px, 18px 18px, 100% 100%, 100% 100%;
 }
 
+.site-game-preview--tachymetry {
+  background:
+    linear-gradient(rgba(34, 211, 238, 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.12) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgba(34, 211, 238, 0.3), transparent 34%),
+    linear-gradient(135deg, #050505, #0f172a 54%, #111827);
+  background-size: 18px 18px, 18px 18px, 100% 100%, 100% 100%;
+}
+
+.preview-tachy-grid,
+.preview-tachy-piece,
+.preview-tachy-line {
+  position: absolute;
+  z-index: 1;
+}
+
+.preview-tachy-grid {
+  left: 50%;
+  top: 50%;
+  width: 5.8rem;
+  height: 7.2rem;
+  border: 2px solid rgba(34, 211, 238, 0.45);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    rgba(0, 0, 0, 0.42);
+  background-size: 0.72rem 0.72rem;
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.32), inset 0 0 20px rgba(34, 211, 238, 0.1);
+  transform: translate(-50%, -46%);
+}
+
+.preview-tachy-piece {
+  width: 0.72rem;
+  height: 0.72rem;
+  box-shadow:
+    0.72rem 0 0 currentColor,
+    1.44rem 0 0 currentColor,
+    2.16rem 0 0 currentColor;
+}
+
+.preview-tachy-piece--i {
+  left: 36%;
+  top: 34%;
+  color: #00f0f0;
+  filter: drop-shadow(0 0 10px rgba(0, 240, 240, 0.8));
+}
+
+.preview-tachy-piece--t {
+  left: 44%;
+  top: 52%;
+  color: #a000f0;
+  box-shadow:
+    0.72rem 0 0 currentColor,
+    1.44rem 0 0 currentColor,
+    0.72rem 0.72rem 0 currentColor;
+  filter: drop-shadow(0 0 10px rgba(160, 0, 240, 0.8));
+}
+
+.preview-tachy-piece--o {
+  left: 33%;
+  bottom: 24%;
+  color: #f0f000;
+  box-shadow:
+    0.72rem 0 0 currentColor,
+    0 0.72rem 0 currentColor,
+    0.72rem 0.72rem 0 currentColor;
+  filter: drop-shadow(0 0 10px rgba(240, 240, 0, 0.75));
+}
+
+.preview-tachy-line {
+  left: 28%;
+  right: 28%;
+  bottom: 17%;
+  height: 0.18rem;
+  background: #00f0f0;
+  box-shadow: 0 0 16px rgba(0, 240, 240, 0.8);
+}
+
 .preview-states-map,
 .preview-states-pin,
 .preview-states-route {
@@ -2575,7 +2653,8 @@ body {
 
 .site-section-game-card__preview--punchy,
 .site-section-game-card__preview--ascension,
-.site-section-game-card__preview--mole {
+.site-section-game-card__preview--mole,
+.site-section-game-card__preview--tachymetry {
   background: radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.5), transparent 32%), linear-gradient(135deg, #fde68a, #fb923c);
 }
 
@@ -4772,6 +4851,75 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #bdbdbd;
+}
+
+.tachymetry-page,
+.tachymetry-page .font-sans {
+  font-family: "Press Start 2P", system-ui, sans-serif;
+}
+
+.tachymetry-page .font-mono {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+.tachymetry-page .glass {
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  background: rgba(20, 20, 20, 0.8);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.tachymetry-page .bg-grid-animate {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+  animation: tachymetry-grid-move 20s linear infinite;
+}
+
+.tachymetry-page .bg-vibrant-glow {
+  background: radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.1) 0%, rgba(139, 92, 246, 0.05) 50%, transparent 100%);
+  filter: blur(80px);
+}
+
+.tachymetry-page .custom-scrollbar::-webkit-scrollbar {
+  width: 2px;
+}
+
+.tachymetry-page .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 240, 240, 0.05);
+}
+
+.tachymetry-page .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 240, 240, 0.3);
+}
+
+.tachymetry-page .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 240, 240, 0.5);
+}
+
+.tachymetry-page .crt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 100vw;
+  height: 100vh;
+  background:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+}
+
+@keyframes tachymetry-grid-move {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 40px 40px;
+  }
 }
 
 .friend-chess-home-page {

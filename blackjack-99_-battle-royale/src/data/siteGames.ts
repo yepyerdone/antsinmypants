@@ -11,7 +11,8 @@ export type PreviewType =
   | 'chairs'
   | 'ascension'
   | 'mole'
-  | 'states';
+  | 'states'
+  | 'tachymetry';
 
 export type GameCardData = {
   id: string;
@@ -200,6 +201,17 @@ export const siteGames: GameCardData[] = [
     sections: ['academic-weapon'],
     internalPath: '/states-master',
   },
+  {
+    id: 'tachymetry',
+    title: 'Tachymetry',
+    description: 'A neon block-stacking arcade mission with hold pieces, combos, and global high scores.',
+    category: 'Arcade',
+    meta: 'Global scores',
+    preview: 'tachymetry',
+    primarySection: 'arcade',
+    sections: ['arcade'],
+    internalPath: '/tachymetry',
+  },
 ];
 
 export const homeGameSections = [
@@ -209,7 +221,7 @@ export const homeGameSections = [
   },
   {
     title: 'Arcade Classics',
-    gameIds: ['molar-madness', 'snake-rush', 'space-runner'],
+    gameIds: ['molar-madness', 'snake-rush', 'space-runner', 'tachymetry'],
   },
   {
     title: 'Multiplayer',

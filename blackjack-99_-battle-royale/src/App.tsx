@@ -30,6 +30,7 @@ import SpaceRunner from './games/neon-rush/NeonRush';
 import TheAscension from './games/the-ascension/TheAscension';
 import MoleMania from './games/mole-mania/App';
 import StatesMaster from './games/states/App';
+import Tachymetry from './games/tachymetry/App';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -70,6 +71,9 @@ export default function App() {
       setShowIntro(false);
     } else if (location.pathname === '/states-master') {
       setSelectedGame('states-master');
+      setShowIntro(false);
+    } else if (location.pathname === '/tachymetry') {
+      setSelectedGame('tachymetry');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -564,6 +568,14 @@ export default function App() {
     );
   }
 
+  if (selectedGame === 'tachymetry') {
+    return (
+      <div className="tachymetry-page min-h-screen bg-[#050505] text-white">
+        <Tachymetry />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-bg-dark text-white font-sans selection:bg-stake-green selection:text-bg-dark overflow-hidden flex flex-col">
       <AnimatePresence mode="wait">
@@ -590,6 +602,8 @@ export default function App() {
                   setSelectedGame('mole-mania');
                 } else if (gameId === 'states-master') {
                   setSelectedGame('states-master');
+                } else if (gameId === 'tachymetry') {
+                  setSelectedGame('tachymetry');
                 } else {
                   setShowIntro(false);
                 }
@@ -1000,5 +1014,4 @@ export default function App() {
     </div>
   );
 }
-
 
