@@ -351,6 +351,11 @@ export const useGameLogic = () => {
   // Input Handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const gameplayKeys = ['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' ', 'x', 'z', 'c', 'p'];
+      if (gameplayKeys.includes(e.key)) {
+        e.preventDefault();
+      }
+
       if (stateRef.current.gameOver) return;
 
       switch(e.key) {
@@ -360,7 +365,7 @@ export const useGameLogic = () => {
         case 'ArrowUp': 
         case 'x': rotatePiece(1); break;
         case 'z': rotatePiece(-1); break;
-        case ' ': e.preventDefault(); setState(s => ({ ...s, paused: !s.paused })); break;
+        case ' ': setState(s => ({ ...s, paused: !s.paused })); break;
         case 'c': holdPiece(); break;
         case 'p': setState(s => ({ ...s, paused: !s.paused })); break;
       }
