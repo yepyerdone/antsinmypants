@@ -15,19 +15,20 @@ export default function App() {
   const [gameStarted, setGameStarted] = useState(false);
 
   return (
-    <div className={`min-h-screen bg-[#050505] text-white flex items-center justify-center font-sans selection:bg-cyan-500/30 overflow-hidden relative ${gameStarted ? 'bg-grid-animate' : ''}`}>
+    <div className="tachymetry-stage min-h-screen bg-[#050505] text-white flex items-center justify-center font-sans selection:bg-cyan-500/30 overflow-hidden relative bg-grid-animate">
       {/* Dynamic Glow background */}
-      {gameStarted && (
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="bg-vibrant-glow absolute top-1/4 left-1/4 w-1/2 h-1/2 opacity-20" />
-          <div className="bg-vibrant-glow absolute bottom-1/4 right-1/4 w-1/2 h-1/2 opacity-20 hue-rotate-90" />
-        </div>
-      )}
+      <div className="tachymetry-bg-effects absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="tachymetry-bg-ribbon tachymetry-bg-ribbon--cyan" />
+        <div className="tachymetry-bg-ribbon tachymetry-bg-ribbon--violet" />
+        <div className="tachymetry-bg-ribbon tachymetry-bg-ribbon--gold" />
+        <div className="bg-vibrant-glow absolute top-1/4 left-1/4 w-1/2 h-1/2 opacity-30" />
+        <div className="bg-vibrant-glow absolute bottom-1/4 right-1/4 w-1/2 h-1/2 opacity-25 hue-rotate-90" />
+      </div>
 
       {/* CRT Scanline Overlay */}
       <div className="crt-overlay" />
 
-      <div className="relative z-10 flex items-center justify-center gap-8 p-8 h-full w-full max-w-7xl">
+      <div className="relative z-10 flex items-center justify-center gap-8 p-8 h-full w-full max-w-[1280px]">
         
         {/* Left Sidebar */}
         <AnimatePresence>
@@ -48,10 +49,10 @@ export default function App() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="glass p-12 flex flex-col items-center text-center space-y-8 rounded-[40px] w-full max-w-md"
+              className="tachymetry-start-panel glass p-12 flex flex-col items-center text-center space-y-8 rounded-[40px] w-full max-w-[520px]"
             >
               <div className="space-y-4 w-full">
-                <h1 className="text-5xl font-black tracking-tighter text-cyan-400 drop-shadow-[0_0_15px_rgba(0,240,240,0.5)]">
+                <h1 className="tachymetry-title text-5xl font-black text-cyan-400 drop-shadow-[0_0_15px_rgba(0,240,240,0.5)]">
                   TACHYMETRY
                 </h1>
                 <p className="text-white/30 font-mono tracking-[0.3em] text-[10px] w-full">ULTIMATE ARCADE v1.1.0</p>
@@ -180,5 +181,3 @@ export default function App() {
     </div>
   );
 }
-
-

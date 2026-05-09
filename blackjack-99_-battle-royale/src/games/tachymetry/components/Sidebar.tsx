@@ -75,11 +75,11 @@ export const Leaderboard: React.FC = () => {
   }, []);
 
   return (
-    <div className="border-4 border-cyan-500/30 bg-cyan-500/5 p-3 flex flex-col gap-2 mb-4 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-      <span className="text-[8px] uppercase tracking-[2px] text-cyan-400 font-bold font-sans">LEADERBOARD</span>
-      <div className="space-y-2 max-h-[160px] overflow-y-auto custom-scrollbar">
+    <div className="tachymetry-leaderboard border-4 border-cyan-500/30 bg-cyan-500/5 p-4 flex flex-col gap-3 mb-5 shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+      <span className="text-[9px] uppercase tracking-[2px] text-cyan-400 font-bold font-sans">LEADERBOARD</span>
+      <div className="space-y-2 max-h-[260px] overflow-y-auto custom-scrollbar">
         {entries.map((entry, i) => (
-          <div key={entry.userId} className="flex justify-between items-center text-[8px] font-mono border-b border-cyan-500/10 pb-1">
+          <div key={entry.userId} className="flex justify-between items-center text-[10px] font-mono border-b border-cyan-500/10 pb-2">
             <span className="text-cyan-500/40 mr-2">{i + 1}.</span>
             <span className="truncate flex-1 text-white/90">{entry.username}</span>
             <span className="text-cyan-400 font-bold ml-2">{entry.score}</span>
@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ state, side }) => {
   }
 
   return (
-    <div className="flex flex-col gap-2 w-48">
+    <div className="flex flex-col gap-2 w-64">
       <PiecePreview type={state.nextPiece} label="NEXT" />
       <div className="glass p-4 flex flex-col flex-grow rounded-none h-full">
         <Leaderboard />
@@ -148,4 +148,3 @@ export const Sidebar: React.FC<SidebarProps> = ({ state, side }) => {
     </div>
   );
 };
-
