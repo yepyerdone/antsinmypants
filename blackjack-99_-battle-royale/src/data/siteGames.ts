@@ -12,7 +12,8 @@ export type PreviewType =
   | 'ascension'
   | 'mole'
   | 'states'
-  | 'tachymetry';
+  | 'tachymetry'
+  | 'eight-ball';
 
 export type GameCardData = {
   id: string;
@@ -191,6 +192,17 @@ export const siteGames: GameCardData[] = [
     internalPath: '/chairs-io',
   },
   {
+    id: 'eight-ball-arcade',
+    title: '8 Ball Arcade',
+    description: 'A polished pool table with local, bot, and online 8-ball matches.',
+    category: 'Sports',
+    meta: 'Local or online',
+    preview: 'eight-ball',
+    primarySection: 'multiplayer',
+    sections: ['multiplayer'],
+    internalPath: '/eight-ball-arcade',
+  },
+  {
     id: 'states-master',
     title: 'States Master',
     description: 'A fast US geography challenge where every state you name lights up the map.',
@@ -225,7 +237,7 @@ export const homeGameSections = [
   },
   {
     title: 'Multiplayer',
-    gameIds: ['friend-chess', 'neon-snake', 'chairs-io'],
+    gameIds: ['friend-chess', 'neon-snake', 'chairs-io', 'eight-ball-arcade'],
   },
   {
     title: 'Academic Weapon',

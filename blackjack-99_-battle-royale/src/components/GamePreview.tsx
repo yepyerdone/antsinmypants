@@ -13,7 +13,8 @@ export type PreviewType =
   | 'ascension'
   | 'mole'
   | 'states'
-  | 'tachymetry';
+  | 'tachymetry'
+  | 'eight-ball';
 
 interface GamePreviewProps {
   type: PreviewType;
@@ -150,6 +151,22 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
         <span className="preview-chair preview-chair--three" />
         <span className="preview-player preview-player--one" />
         <span className="preview-player preview-player--two" />
+      </div>
+    );
+  }
+
+  if (type === 'eight-ball') {
+    return (
+      <div className="site-game-preview site-game-preview--eight-ball" aria-label={`${title} preview`}>
+        <span className="preview-pool-table" />
+        <span className="preview-pool-pocket preview-pool-pocket--one" />
+        <span className="preview-pool-pocket preview-pool-pocket--two" />
+        <span className="preview-pool-pocket preview-pool-pocket--three" />
+        <span className="preview-pool-cue" />
+        <span className="preview-pool-ball preview-pool-ball--cue" />
+        <span className="preview-pool-ball preview-pool-ball--eight">8</span>
+        <span className="preview-pool-ball preview-pool-ball--solid" />
+        <span className="preview-pool-ball preview-pool-ball--stripe" />
       </div>
     );
   }

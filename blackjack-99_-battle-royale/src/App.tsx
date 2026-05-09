@@ -31,6 +31,7 @@ import TheAscension from './games/the-ascension/TheAscension';
 import MoleMania from './games/mole-mania/App';
 import StatesMaster from './games/states/App';
 import Tachymetry from './games/tachymetry/App';
+import EightBallArcade from './games/eight-ball-arcade/App';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -74,6 +75,9 @@ export default function App() {
       setShowIntro(false);
     } else if (location.pathname === '/tachymetry') {
       setSelectedGame('tachymetry');
+      setShowIntro(false);
+    } else if (location.pathname === '/eight-ball-arcade') {
+      setSelectedGame('eight-ball-arcade');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -576,6 +580,10 @@ export default function App() {
     );
   }
 
+  if (selectedGame === 'eight-ball-arcade') {
+    return <EightBallArcade />;
+  }
+
   return (
     <div className="min-h-screen bg-bg-dark text-white font-sans selection:bg-stake-green selection:text-bg-dark overflow-hidden flex flex-col">
       <AnimatePresence mode="wait">
@@ -604,6 +612,8 @@ export default function App() {
                   setSelectedGame('states-master');
                 } else if (gameId === 'tachymetry') {
                   setSelectedGame('tachymetry');
+                } else if (gameId === 'eight-ball-arcade') {
+                  setSelectedGame('eight-ball-arcade');
                 } else {
                   setShowIntro(false);
                 }
@@ -1014,4 +1024,3 @@ export default function App() {
     </div>
   );
 }
-
