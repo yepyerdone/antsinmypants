@@ -11,6 +11,7 @@ import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import confetti from 'canvas-confetti';
 import { toast, Toaster } from 'sonner';
 import { clsx } from 'clsx';
+import { useAuth } from '../../../context/AuthContext';
 
 const BALL_COLORS: Record<number, string> = {
   0: '#ffffff', // Cue
@@ -150,6 +151,7 @@ function ScoreCard({ player, balls, isTurn, turnStartTime, mode }: { player: Gam
 }
 
 export default function PoolGame() {
+  const { displayName } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [mode, setMode] = useState<GameMode | null>(null);
@@ -177,12 +179,14 @@ export default function PoolGame() {
   const [isInteractingMeter, setIsInteractingMeter] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const strikeParamsRef = useRef<{ angle: number; power: number } | null>(null);
+  const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
 
   // Initialize game
   const startGame = useCallback((selectedMode: GameMode, diff?: BotDifficulty, p1?: string, p2?: string) => {
     const balls = Engine.createBalls();
+    const playerOneName = selectedMode === 'local' ? (p1 || 'Player 1') : (p1 || websitePlayerName);
     const players: [GamePlayer, GamePlayer] = [
-      { uid: 'p1', name: p1 || 'Player 1', group: null, violations: 0 },
+      { uid: 'p1', name: playerOneName, group: null, violations: 0 },
       { uid: 'p2', name: p2 || 'Player 2', group: null, violations: 0 },
     ];
 
@@ -215,7 +219,7 @@ export default function PoolGame() {
     setMenuOpen(false);
     setOnlineMatchId(null);
     setMyRole(null);
-  }, []);
+  }, [websitePlayerName]);
 
   const handleOnlineMatch = async () => {
     try {
@@ -228,7 +232,7 @@ export default function PoolGame() {
 
       setMatchmaking(true);
       await MultiplayerManager.startMatchmaking(
-        { uid: user.uid, name: user.displayName || 'Player', group: null },
+        { uid: user.uid, name: websitePlayerName, group: null },
         (matchId, role) => {
           setOnlineMatchId(matchId);
           setMyRole(role);
