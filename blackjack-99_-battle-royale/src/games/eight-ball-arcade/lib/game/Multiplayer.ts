@@ -1,12 +1,9 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, collection, onSnapshot, updateDoc, setDoc, deleteDoc, query, where, limit, getDocs } from 'firebase/firestore';
-import firebaseConfig from '../../../firebase-applet-config.json';
+import { doc, collection, onSnapshot, updateDoc, setDoc, deleteDoc, query, where, limit, getDocs } from 'firebase/firestore';
+import { auth, db } from '../../../../lib/firebase';
 import { GameState, GamePlayer } from './types';
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth();
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export { auth };
+export { db };
 
 export class MultiplayerManager {
   static async startMatchmaking(player: GamePlayer, onMatch: (matchId: string, role: 'white' | 'black') => void) {

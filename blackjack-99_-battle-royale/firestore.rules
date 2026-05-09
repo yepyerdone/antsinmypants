@@ -401,6 +401,39 @@ service cloud.firestore {
         && existing().uid == request.auth.uid;
     }
 
+    // 8 Ball Arcade Matchmaking Rules
+    match /queue/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId)
+        && incoming().uid == request.auth.uid
+        && incoming().name is string
+        && incoming().name.size() >= 1
+        && incoming().name.size() <= 32;
+      allow delete: if isSignedIn();
+    }
+
+    match /matches/{matchId} {
+      function isEightBallPlayer(data) {
+        return isSignedIn()
+          && (
+            data.players.white.uid == request.auth.uid ||
+            data.players.black.uid == request.auth.uid
+          );
+      }
+
+      allow read: if isEightBallPlayer(existing());
+      allow create: if isEightBallPlayer(incoming())
+        && incoming().status == 'playing'
+        && incoming().state == 'playing';
+      allow update: if isEightBallPlayer(existing())
+        && isEightBallPlayer(incoming())
+        && (
+          existing().turn == request.auth.uid ||
+          incoming().status == 'finished' ||
+          incoming().state == 'finished'
+        );
+    }
+
     // Friend Chess Rules
     match /friendChessUsers/{userId} {
       allow read: if isSignedIn();
