@@ -4,7 +4,6 @@
 */
 
 import { create } from 'zustand';
-import * as THREE from 'three';
 import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 
@@ -97,7 +96,57 @@ interface GameStore {
 const SETTINGS_KEY = 'fun-house-frenzy-settings';
 const SCORES_KEY = 'fun-house-frenzy-high-scores';
 const STARTING_HEARTS = 3;
-const SAFE_SPAWN_RADIUS = 18;
+const ARENA_SPAWN_LIMIT = 82;
+const PLAYER_SAFE_RADIUS = 28;
+const ENEMY_SPAWN_SPACING = 22;
+const OBSTACLE_SPAWN_PADDING = 4.5;
+
+type SpawnObstacle = {
+  x: number;
+  z: number;
+  halfWidth: number;
+  halfDepth: number;
+};
+
+function mulberry32(seed: number) {
+  return function random() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function createSpawnObstacles(): SpawnObstacle[] {
+  const random = mulberry32(12345);
+  const obstacles: SpawnObstacle[] = [];
+
+  for (let index = 0; index < 80; index += 1) {
+    const x = (random() - 0.5) * 170;
+    const z = (random() - 0.5) * 170;
+
+    if (Math.abs(x) < 20 && Math.abs(z) < 20) {
+      continue;
+    }
+
+    random();
+    const isHorizontal = random() > 0.5;
+    const width = isHorizontal ? random() * 25 + 10 : random() * 3 + 1;
+    const depth = isHorizontal ? random() * 3 + 1 : random() * 25 + 10;
+    random();
+
+    obstacles.push({
+      x,
+      z,
+      halfWidth: width / 2,
+      halfDepth: depth / 2,
+    });
+  }
+
+  return obstacles;
+}
+
+const SPAWN_OBSTACLES = createSpawnObstacles();
 
 function getEnemyCountForWave(wave: number) {
   return 4 + (wave * 2);
@@ -107,28 +156,83 @@ function getActiveEnemyCount(enemies: EnemyData[]) {
   return enemies.filter(enemy => enemy.disabledUntil !== Infinity).length;
 }
 
-function getSafeSpawnPosition(index: number, count: number, wave: number): [number, number, number] {
+function getDistance2D(a: [number, number, number], b: [number, number, number]) {
+  return Math.hypot(a[0] - b[0], a[2] - b[2]);
+}
+
+function isInsideObstacle(position: [number, number, number]) {
+  const [x, , z] = position;
+  return SPAWN_OBSTACLES.some(obstacle => (
+    Math.abs(x - obstacle.x) < obstacle.halfWidth + OBSTACLE_SPAWN_PADDING
+    && Math.abs(z - obstacle.z) < obstacle.halfDepth + OBSTACLE_SPAWN_PADDING
+  ));
+}
+
+function isValidSpawnPosition(position: [number, number, number], selectedPositions: [number, number, number][]) {
+  const distanceFromPlayer = Math.hypot(position[0], position[2]);
+  if (distanceFromPlayer < PLAYER_SAFE_RADIUS) return false;
+  if (isInsideObstacle(position)) return false;
+
+  return selectedPositions.every(selectedPosition => (
+    getDistance2D(position, selectedPosition) >= ENEMY_SPAWN_SPACING
+  ));
+}
+
+function createRandomSpawnPosition(): [number, number, number] {
+  return [
+    (Math.random() * 2 - 1) * ARENA_SPAWN_LIMIT,
+    1,
+    (Math.random() * 2 - 1) * ARENA_SPAWN_LIMIT,
+  ];
+}
+
+function createFallbackSpawnPosition(index: number, count: number, wave: number): [number, number, number] {
   const ring = Math.floor(index / 8);
   const ringIndex = index % 8;
   const ringCount = Math.min(8, count - (ring * 8));
-  const angleOffset = wave * 0.37 + ring * 0.19;
-  const angle = angleOffset + (ringIndex / ringCount) * Math.PI * 2;
-  const radius = Math.min(SAFE_SPAWN_RADIUS, 12 + ring * 3);
-  const x = Math.cos(angle) * radius;
-  const z = Math.sin(angle) * radius;
+  const angle = wave * 0.43 + ring * 0.29 + (ringIndex / ringCount) * Math.PI * 2;
+  const radius = Math.min(ARENA_SPAWN_LIMIT, PLAYER_SAFE_RADIUS + 12 + ring * 13);
 
-  return [x, 1, z];
+  return [
+    Math.cos(angle) * radius,
+    1,
+    Math.sin(angle) * radius,
+  ];
+}
+
+function getSafeSpawnPosition(index: number, count: number, wave: number, selectedPositions: [number, number, number][]): [number, number, number] {
+  for (let attempt = 0; attempt < 250; attempt += 1) {
+    const position = createRandomSpawnPosition();
+    if (isValidSpawnPosition(position, selectedPositions)) {
+      return position;
+    }
+  }
+
+  for (let fallbackIndex = 0; fallbackIndex < 48; fallbackIndex += 1) {
+    const position = createFallbackSpawnPosition(index + fallbackIndex, count + fallbackIndex, wave);
+    if (isValidSpawnPosition(position, selectedPositions)) {
+      return position;
+    }
+  }
+
+  return createFallbackSpawnPosition(index, count, wave);
 }
 
 function createWaveEnemies(wave: number): EnemyData[] {
   const enemyCount = getEnemyCountForWave(wave);
+  const selectedPositions: [number, number, number][] = [];
 
-  return Array.from({ length: enemyCount }, (_, index) => ({
-    id: `enemy-w${wave}-${index}`,
-    position: getSafeSpawnPosition(index, enemyCount, wave),
-    state: 'active',
-    disabledUntil: 0,
-  }));
+  return Array.from({ length: enemyCount }, (_, index) => {
+    const position = getSafeSpawnPosition(index, enemyCount, wave, selectedPositions);
+    selectedPositions.push(position);
+
+    return {
+      id: `enemy-w${wave}-${index}`,
+      position,
+      state: 'active',
+      disabledUntil: 0,
+    };
+  });
 }
 
 function loadSettings() {
