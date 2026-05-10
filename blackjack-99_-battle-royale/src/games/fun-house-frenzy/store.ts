@@ -52,6 +52,7 @@ interface GameStore {
   gameState: GameState;
   score: number;
   wave: number;
+  hearts: number;
   enemiesRemaining: number;
   playerState: EntityState;
   playerDisabledUntil: number;
@@ -95,6 +96,7 @@ interface GameStore {
 
 const SETTINGS_KEY = 'fun-house-frenzy-settings';
 const SCORES_KEY = 'fun-house-frenzy-high-scores';
+const STARTING_HEARTS = 3;
 const SAFE_SPAWN_RADIUS = 18;
 
 function getEnemyCountForWave(wave: number) {
@@ -211,6 +213,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameState: 'menu',
   score: 0,
   wave: 1,
+  hearts: STARTING_HEARTS,
   enemiesRemaining: 0,
   playerState: 'active',
   playerDisabledUntil: 0,
@@ -240,6 +243,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       gameState: 'playing',
       score: 0,
       wave: startWave,
+      hearts: STARTING_HEARTS,
       enemiesRemaining: getActiveEnemyCount(newEnemies),
       playerState: 'active',
       playerDisabledUntil: 0,
@@ -258,7 +262,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   leaveGame: () => {
     const state = get();
-    if (state.score > 0) {
+    if (state.gameState === 'playing' && state.score > 0) {
       get().addHighScore(state.score, state.wave);
     }
 
@@ -270,6 +274,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       events: [],
       score: 0,
       wave: 1,
+      hearts: STARTING_HEARTS,
       enemiesRemaining: 0,
       playerState: 'active'
     });
@@ -280,18 +285,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return state; // In offline mode, time doesn't necessarily end the game unless we want it to
   }),
 
-  hitPlayer: () => set((state) => {
+  hitPlayer: () => {
+    const state = get();
     if (state.playerState === 'disabled' || state.gameState !== 'playing') return state;
     
+    const nextHearts = Math.max(0, state.hearts - 1);
     const newScore = Math.max(0, state.score - 25);
-    // If player health was a thing, we'd handle it here. 
-    // For now, laser tag style: just disable for a bit.
-    return {
+    const nextEvents = [
+      ...state.events,
+      {
+        id: Math.random().toString(),
+        message: nextHearts > 0 ? `${nextHearts} HEARTS LEFT!` : 'NO HEARTS LEFT!',
+        timestamp: Date.now(),
+      },
+    ];
+
+    if (nextHearts === 0) {
+      get().addHighScore(newScore, state.wave);
+      set({
+        gameState: 'gameover',
+        playerState: 'disabled',
+        playerDisabledUntil: Infinity,
+        hearts: 0,
+        score: newScore,
+        events: nextEvents,
+      });
+      return;
+    }
+
+    set({
       playerState: 'disabled',
       playerDisabledUntil: Date.now() + 2000,
+      hearts: nextHearts,
       score: newScore,
-    };
-  }),
+      events: nextEvents,
+    });
+  },
 
   hitEnemy: (id, byPlayer = false) => set((state) => {
     if (state.gameState !== 'playing') return state;

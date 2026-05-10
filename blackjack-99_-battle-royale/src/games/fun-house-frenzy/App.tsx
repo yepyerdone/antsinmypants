@@ -14,6 +14,7 @@ function HUD() {
   const gameState = useGameStore(state => state.gameState);
   const score = useGameStore(state => state.score);
   const wave = useGameStore(state => state.wave);
+  const hearts = useGameStore(state => state.hearts);
   const enemiesRemaining = useGameStore(state => state.enemiesRemaining);
   const playerState = useGameStore(state => state.playerState);
   const events = useGameStore(state => state.events);
@@ -47,6 +48,21 @@ function HUD() {
           <div className="h-4 w-[2px] bg-red-700/20" />
           <div className="text-[10px] md:text-xs font-black uppercase">
              {enemiesRemaining} CLOWNS LEFT
+          </div>
+        </div>
+
+        <div className="bg-white text-red-600 px-3 py-2 border-2 border-red-600 rounded-md shadow-md mt-2">
+          <div className="text-[10px] font-black uppercase leading-none opacity-80">HEARTS</div>
+          <div className="mt-1 flex gap-1" aria-label={`${hearts} hearts left`}>
+            {Array.from({ length: 3 }, (_, index) => (
+              <span
+                key={index}
+                className={`text-xl md:text-2xl leading-none drop-shadow-sm ${index < hearts ? 'text-red-600' : 'text-red-200'}`}
+                aria-hidden="true"
+              >
+                ♥
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -246,6 +262,7 @@ export default function App() {
   const gameState = useGameStore(state => state.gameState);
   const score = useGameStore(state => state.score);
   const startGame = useGameStore(state => state.startGame);
+  const leaveGame = useGameStore(state => state.leaveGame);
   const setPlayerName = useGameStore(state => state.setPlayerName);
   const loadHighScores = useGameStore(state => state.loadHighScores);
   const [menuView, setMenuView] = useState<MenuView>('main');
@@ -312,7 +329,13 @@ export default function App() {
             onClick={() => startGame()}
             className="px-8 py-4 bg-yellow-400 border-4 border-red-600 text-red-600 text-2xl font-black rounded-xl hover:bg-white transition-all duration-200"
           >
-            TRY AGAIN?
+            START NEW GAME
+          </button>
+          <button
+            onClick={() => leaveGame()}
+            className="mt-4 px-7 py-3 bg-white border-4 border-red-600 text-red-600 text-xl font-black rounded-xl hover:bg-red-600 hover:text-white transition-all duration-200"
+          >
+            MAIN MENU
           </button>
         </div>
       )}
