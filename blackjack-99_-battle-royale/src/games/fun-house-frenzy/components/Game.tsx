@@ -59,17 +59,7 @@ export function Game() {
       <color attach="background" args={['#050510']} />
       <fogExp2 attach="fog" args={['#050510', isMobile ? 0.04 : 0.025]} />
       
-      <ambientLight intensity={isMobile ? 0.8 : 0.5} />
-      <pointLight position={[0, 8, 0]} intensity={1.5} castShadow={!isMobile} distance={60} />
-      
-      {!isMobile && (
-        <>
-          <pointLight position={[25, 8, 25]} intensity={1.2} castShadow distance={60} />
-          <pointLight position={[-25, 8, -25]} intensity={1.2} castShadow distance={60} />
-          <pointLight position={[25, 8, -25]} intensity={1.2} castShadow distance={60} />
-          <pointLight position={[-25, 8, 25]} intensity={1.2} castShadow distance={60} />
-        </>
-      )}
+      <ambientLight intensity={isMobile ? 0.42 : 0.18} />
       
       <Physics gravity={[0, -20, 0]}>
         <GameLoop />

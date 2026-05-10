@@ -61,6 +61,18 @@ const OBSTACLES = Array.from({ length: 150 }).map(() => {
   return { type, position: [x, height / 2 - 0.5, z], size: [width, height, depth], rotation: [0, rotation, 0], color };
 }).filter(Boolean);
 
+const CEILING_LIGHTS = [
+  [-60, 18.1, -60],
+  [0, 18.1, -60],
+  [60, 18.1, -60],
+  [-60, 18.1, 0],
+  [0, 18.1, 0],
+  [60, 18.1, 0],
+  [-60, 18.1, 60],
+  [0, 18.1, 60],
+  [60, 18.1, 60],
+] as const;
+
 export function Arena() {
   const isMobile = useIsMobile();
   const spawnDoorOpen = useGameStore(state => state.spawnDoorOpen);
@@ -116,13 +128,7 @@ export function Arena() {
         <CuboidCollider args={[100, 5, 100]} friction={0} />
       </RigidBody>
 
-      {/* Ceiling */}
-      <RigidBody type="fixed" name="ceiling">
-        <mesh receiveShadow={!isMobile} position={[0, 20, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[200, 200]} />
-          <meshStandardMaterial color="#444" roughness={1} />
-        </mesh>
-      </RigidBody>
+      <Ceiling isMobile={isMobile} />
 
       {/* Atmosphere */}
       {!isMobile && <AmbientParticles />}
@@ -168,6 +174,63 @@ export function Arena() {
           </RigidBody>
         );
       })}
+    </group>
+  );
+}
+
+function Ceiling({ isMobile }: { isMobile: boolean }) {
+  return (
+    <group>
+      <RigidBody type="fixed" name="ceiling" colliders={false} position={[0, 20.2, 0]}>
+        <CuboidCollider args={[100, 1, 100]} />
+        <mesh receiveShadow={!isMobile}>
+          <boxGeometry args={[200, 2, 200]} />
+          <meshStandardMaterial color="#1f2937" roughness={0.92} metalness={0.02} />
+        </mesh>
+      </RigidBody>
+
+      {[-75, -45, -15, 15, 45, 75].map((z) => (
+        <mesh key={`beam-z-${z}`} position={[0, 18.85, z]} receiveShadow={!isMobile}>
+          <boxGeometry args={[196, 0.7, 1.2]} />
+          <meshStandardMaterial color="#111827" roughness={0.86} />
+        </mesh>
+      ))}
+
+      {[-75, -45, -15, 15, 45, 75].map((x) => (
+        <mesh key={`beam-x-${x}`} position={[x, 18.8, 0]} receiveShadow={!isMobile}>
+          <boxGeometry args={[1.2, 0.65, 196]} />
+          <meshStandardMaterial color="#111827" roughness={0.86} />
+        </mesh>
+      ))}
+
+      {CEILING_LIGHTS.map(([x, y, z], index) => (
+        <group key={`ceiling-light-${index}`} position={[x, y, z]}>
+          <pointLight
+            color="#fff2b8"
+            intensity={isMobile ? 1.45 : 2.4}
+            distance={isMobile ? 42 : 58}
+            decay={1.65}
+            castShadow={!isMobile && index % 2 === 0}
+          />
+          <mesh position={[0, 0.38, 0]}>
+            <cylinderGeometry args={[1.25, 1.55, 0.55, 24]} />
+            <meshStandardMaterial color="#991b1b" roughness={0.48} metalness={0.2} />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.8, 24, 18]} />
+            <meshStandardMaterial
+              color="#fff7cc"
+              emissive="#ffd65a"
+              emissiveIntensity={isMobile ? 0.85 : 1.35}
+              roughness={0.18}
+            />
+          </mesh>
+          <mesh position={[0, -0.45, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[1.18, 0.05, 8, 28]} />
+            <meshBasicMaterial color="#facc15" toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
     </group>
   );
 }
