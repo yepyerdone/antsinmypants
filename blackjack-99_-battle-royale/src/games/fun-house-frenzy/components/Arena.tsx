@@ -212,6 +212,14 @@ function Ceiling({ isMobile }: { isMobile: boolean }) {
             decay={1.65}
             castShadow={!isMobile && index % 2 === 0}
           />
+          <mesh position={[0, 1.08, 0]}>
+            <cylinderGeometry args={[0.07, 0.07, 1.55, 10]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.62} metalness={0.35} />
+          </mesh>
+          <mesh position={[0, 1.88, 0]}>
+            <cylinderGeometry args={[0.62, 0.62, 0.16, 24]} />
+            <meshStandardMaterial color="#111827" roughness={0.55} metalness={0.28} />
+          </mesh>
           <mesh position={[0, 0.38, 0]}>
             <cylinderGeometry args={[1.25, 1.55, 0.55, 24]} />
             <meshStandardMaterial color="#991b1b" roughness={0.48} metalness={0.2} />
@@ -350,17 +358,21 @@ function Wall({ name, position, rotation, isMobile }: { name: string, position: 
     <RigidBody type="fixed" name={name} position={position} rotation={rotation}>
       {/* Striped Wall */}
       <mesh>
-        <boxGeometry args={[200, 10, 1]} />
+        <boxGeometry args={[200, 28.4, 1]} />
         <meshStandardMaterial map={stripeTexture} roughness={1} metalness={0} />
       </mesh>
       {/* Decorative Trim */}
-      <mesh position={[0, -4.75, 0.51]}>
+      <mesh position={[0, -13.95, 0.51]}>
         <planeGeometry args={[200, 0.5]} />
         <meshBasicMaterial color="#ffffff" />
       </mesh>
-      <mesh position={[0, 4.75, 0.51]}>
+      <mesh position={[0, 13.95, 0.51]}>
         <planeGeometry args={[200, 0.5]} />
         <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[0, 5.1, 0.52]}>
+        <boxGeometry args={[200, 0.24, 0.08]} />
+        <meshBasicMaterial color="#facc15" toneMapped={false} />
       </mesh>
     </RigidBody>
   );
