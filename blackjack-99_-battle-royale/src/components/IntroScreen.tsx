@@ -236,7 +236,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
                         type="button"
                         className="site-featured-scroll-button"
                         onClick={scrollFeaturedToMoleMania}
-                        aria-label="Scroll to Mole Mania"
+                        aria-label="Scroll to more featured games"
                       >
                         <ChevronRight size={28} strokeWidth={3} />
                       </button>

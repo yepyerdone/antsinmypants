@@ -13,7 +13,8 @@ export type PreviewType =
   | 'mole'
   | 'states'
   | 'tachymetry'
-  | 'eight-ball';
+  | 'eight-ball'
+  | 'fun-house';
 
 export type GameCardData = {
   id: string;
@@ -99,6 +100,17 @@ export const siteGames: GameCardData[] = [
     primarySection: 'multiplayer',
     sections: ['multiplayer'],
     externalUrl: 'https://multiplayer-neon-snake.onrender.com/',
+  },
+  {
+    id: 'fun-house-frenzy',
+    title: 'Fun House Frenzy',
+    description: 'Clear waves of carnival clowns in a neon 3D fun-house survival arena.',
+    category: 'Action',
+    meta: 'Global scores',
+    preview: 'fun-house',
+    primarySection: 'featured',
+    sections: ['featured'],
+    internalPath: '/fun-house-frenzy',
   },
   {
     id: 'punchy',
@@ -229,7 +241,7 @@ export const siteGames: GameCardData[] = [
 export const homeGameSections = [
   {
     title: 'Featured Games',
-    gameIds: ['blackjack-99', 'punchy', 'the-ascension', 'mole-mania'],
+    gameIds: ['blackjack-99', 'fun-house-frenzy', 'the-ascension', 'mole-mania', 'punchy'],
   },
   {
     title: 'Arcade Classics',

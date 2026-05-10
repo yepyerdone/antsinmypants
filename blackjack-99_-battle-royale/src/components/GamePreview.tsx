@@ -14,7 +14,8 @@ export type PreviewType =
   | 'mole'
   | 'states'
   | 'tachymetry'
-  | 'eight-ball';
+  | 'eight-ball'
+  | 'fun-house';
 
 interface GamePreviewProps {
   type: PreviewType;
@@ -167,6 +168,20 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
         <span className="preview-pool-ball preview-pool-ball--eight">8</span>
         <span className="preview-pool-ball preview-pool-ball--solid" />
         <span className="preview-pool-ball preview-pool-ball--stripe" />
+      </div>
+    );
+  }
+
+  if (type === 'fun-house') {
+    return (
+      <div className="site-game-preview site-game-preview--fun-house" aria-label={`${title} preview`}>
+        <span className="preview-fun-tent" />
+        <span className="preview-fun-stripe preview-fun-stripe--one" />
+        <span className="preview-fun-stripe preview-fun-stripe--two" />
+        <span className="preview-fun-clown" />
+        <span className="preview-fun-target" />
+        <span className="preview-fun-laser" />
+        <span className="preview-score">ACT 1</span>
       </div>
     );
   }

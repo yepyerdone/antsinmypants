@@ -2564,6 +2564,95 @@ body {
   background: linear-gradient(#f8fafc 0 30%, #ef4444 30% 70%, #f8fafc 70%);
 }
 
+.site-game-preview--fun-house {
+  background:
+    radial-gradient(circle at 28% 20%, rgba(252, 211, 77, 0.58), transparent 18%),
+    radial-gradient(circle at 72% 22%, rgba(244, 63, 94, 0.38), transparent 24%),
+    linear-gradient(135deg, #111827, #7f1d1d 52%, #f97316);
+}
+
+.preview-fun-tent,
+.preview-fun-stripe,
+.preview-fun-clown,
+.preview-fun-target,
+.preview-fun-laser {
+  position: absolute;
+  z-index: 1;
+}
+
+.preview-fun-tent {
+  left: 18%;
+  right: 18%;
+  bottom: 24%;
+  height: 4.2rem;
+  border: 3px solid rgba(255, 237, 213, 0.7);
+  border-radius: 8px 8px 22px 22px;
+  background:
+    linear-gradient(90deg, rgba(220, 38, 38, 0.84) 0 18%, rgba(255, 247, 237, 0.88) 18% 34%, rgba(220, 38, 38, 0.84) 34% 50%, rgba(255, 247, 237, 0.88) 50% 66%, rgba(220, 38, 38, 0.84) 66% 82%, rgba(255, 247, 237, 0.88) 82%),
+    rgba(124, 45, 18, 0.8);
+  box-shadow: 0 22px 36px rgba(0, 0, 0, 0.28);
+  clip-path: polygon(50% 0, 100% 38%, 90% 100%, 10% 100%, 0 38%);
+}
+
+.preview-fun-stripe {
+  top: 18%;
+  width: 0.8rem;
+  height: 5.6rem;
+  border-radius: 999px;
+  background: linear-gradient(#fef3c7, #dc2626);
+  opacity: 0.86;
+}
+
+.preview-fun-stripe--one {
+  left: 22%;
+  transform: rotate(-16deg);
+}
+
+.preview-fun-stripe--two {
+  right: 22%;
+  transform: rotate(16deg);
+}
+
+.preview-fun-clown {
+  left: 43%;
+  bottom: 29%;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 4px solid #fff7ed;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 34% 40%, #111827 0 7%, transparent 8%),
+    radial-gradient(circle at 66% 40%, #111827 0 7%, transparent 8%),
+    radial-gradient(circle at 50% 56%, #ef4444 0 12%, transparent 13%),
+    #fef3c7;
+  box-shadow:
+    -0.85rem -0.35rem 0 -0.2rem #22c55e,
+    0.85rem -0.35rem 0 -0.2rem #38bdf8,
+    0 0 22px rgba(254, 243, 199, 0.45);
+}
+
+.preview-fun-target {
+  right: 27%;
+  top: 34%;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: 0.34rem solid #fef3c7;
+  border-radius: 999px;
+  background: radial-gradient(circle, #facc15 0 18%, #ef4444 19% 42%, #fef3c7 43%);
+  box-shadow: 0 0 18px rgba(250, 204, 21, 0.38);
+}
+
+.preview-fun-laser {
+  left: 28%;
+  top: 47%;
+  width: 4.4rem;
+  height: 0.26rem;
+  border-radius: 999px;
+  background: #67e8f9;
+  box-shadow: 0 0 14px rgba(103, 232, 249, 0.9);
+  transform: rotate(-10deg);
+}
+
 .preview-ring {
   position: absolute;
   inset: 1.5rem 2.2rem;
@@ -2753,7 +2842,8 @@ body {
 .site-section-game-card__preview--punchy,
 .site-section-game-card__preview--ascension,
 .site-section-game-card__preview--mole,
-.site-section-game-card__preview--tachymetry {
+.site-section-game-card__preview--tachymetry,
+.site-section-game-card__preview--fun-house {
   background: radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.5), transparent 32%), linear-gradient(135deg, #fde68a, #fb923c);
 }
 
