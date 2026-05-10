@@ -95,6 +95,39 @@ interface GameStore {
 
 const SETTINGS_KEY = 'fun-house-frenzy-settings';
 const SCORES_KEY = 'fun-house-frenzy-high-scores';
+const SAFE_SPAWN_RADIUS = 18;
+
+function getEnemyCountForWave(wave: number) {
+  return 4 + (wave * 2);
+}
+
+function getActiveEnemyCount(enemies: EnemyData[]) {
+  return enemies.filter(enemy => enemy.disabledUntil !== Infinity).length;
+}
+
+function getSafeSpawnPosition(index: number, count: number, wave: number): [number, number, number] {
+  const ring = Math.floor(index / 8);
+  const ringIndex = index % 8;
+  const ringCount = Math.min(8, count - (ring * 8));
+  const angleOffset = wave * 0.37 + ring * 0.19;
+  const angle = angleOffset + (ringIndex / ringCount) * Math.PI * 2;
+  const radius = Math.min(SAFE_SPAWN_RADIUS, 12 + ring * 3);
+  const x = Math.cos(angle) * radius;
+  const z = Math.sin(angle) * radius;
+
+  return [x, 1, z];
+}
+
+function createWaveEnemies(wave: number): EnemyData[] {
+  const enemyCount = getEnemyCountForWave(wave);
+
+  return Array.from({ length: enemyCount }, (_, index) => ({
+    id: `enemy-w${wave}-${index}`,
+    position: getSafeSpawnPosition(index, enemyCount, wave),
+    state: 'active',
+    disabledUntil: 0,
+  }));
+}
 
 function loadSettings() {
   if (typeof window === 'undefined') {
@@ -201,29 +234,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startGame: () => {
     const startWave = 1;
-    const enemyCount = 4 + (startWave * 2);
-    const newEnemies: EnemyData[] = [];
-    
-    for (let i = 0; i < enemyCount; i++) {
-        let x, z;
-        do {
-            x = (Math.random() - 0.5) * 150;
-            z = (Math.random() - 0.5) * 150;
-        } while (Math.abs(x) < 20 && Math.abs(z) < 20);
-
-        newEnemies.push({
-            id: `enemy-${i}`,
-            position: [x, 1, z],
-            state: 'active',
-            disabledUntil: 0
-        });
-    }
+    const newEnemies = createWaveEnemies(startWave);
 
     set({
       gameState: 'playing',
       score: 0,
       wave: startWave,
-      enemiesRemaining: enemyCount,
+      enemiesRemaining: getActiveEnemyCount(newEnemies),
       playerState: 'active',
       playerDisabledUntil: 0,
       enemies: newEnemies,
@@ -289,33 +306,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return e;
     });
 
-    const activeEnemies = newEnemies.filter(e => e.disabledUntil !== Infinity).length;
+    const activeEnemies = getActiveEnemyCount(newEnemies);
     const newScore = byPlayer ? state.score + 100 : state.score;
     
     // Check if wave is cleared
     if (activeEnemies === 0) {
         const nextWave = state.wave + 1;
-        const nextEnemyCount = 4 + (nextWave * 2);
-        const spawnedEnemies: EnemyData[] = [];
-        
-        for (let i = 0; i < nextEnemyCount; i++) {
-            let x, z;
-            do {
-                x = (Math.random() - 0.5) * 150;
-                z = (Math.random() - 0.5) * 150;
-            } while (Math.abs(x) < 20 && Math.abs(z) < 20);
-
-            spawnedEnemies.push({
-                id: `enemy-w${nextWave}-${i}`,
-                position: [x, 1, z],
-                state: 'active',
-                disabledUntil: 0
-            });
-        }
+        const spawnedEnemies = createWaveEnemies(nextWave);
 
         return {
             enemies: spawnedEnemies,
-            enemiesRemaining: nextEnemyCount,
+            enemiesRemaining: getActiveEnemyCount(spawnedEnemies),
             wave: nextWave,
             score: newScore + (state.wave * 500), // Wave bonus
             events: [...state.events, { id: Math.random().toString(), message: `WAVE ${nextWave} STARTING!`, timestamp: Date.now() }]

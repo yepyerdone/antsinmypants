@@ -49,6 +49,12 @@ export function Enemy({ data }: { data: EnemyData }) {
 
     const pos = body.current.translation();
     const currentPos = new THREE.Vector3(pos.x, pos.y, pos.z);
+
+    if (Math.abs(pos.x) > 94 || Math.abs(pos.z) > 94 || pos.y < -8) {
+      body.current.setTranslation({ x: data.position[0], y: data.position[1], z: data.position[2] }, true);
+      body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      return;
+    }
     
     let closestTargetPos: THREE.Vector3 | null = null;
     let closestDist = CHASE_DIST;
