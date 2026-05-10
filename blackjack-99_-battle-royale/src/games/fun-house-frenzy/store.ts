@@ -52,6 +52,7 @@ interface GameStore {
   score: number;
   wave: number;
   hearts: number;
+  spawnDoorOpen: boolean;
   enemiesRemaining: number;
   playerState: EntityState;
   playerDisabledUntil: number;
@@ -69,6 +70,7 @@ interface GameStore {
   updateTime: (delta: number) => void;
   hitPlayer: () => void;
   hitEnemy: (id: string, byPlayer?: boolean) => void;
+  openSpawnDoor: () => void;
   addLaser: (start: [number, number, number], end: [number, number, number], color: string) => void;
   addParticles: (position: [number, number, number], color: string) => void;
   addEvent: (message: string) => void;
@@ -100,6 +102,9 @@ const ARENA_SPAWN_LIMIT = 82;
 const PLAYER_SAFE_RADIUS = 28;
 const ENEMY_SPAWN_SPACING = 22;
 const OBSTACLE_SPAWN_PADDING = 4.5;
+const SPAWN_ROOM_HALF_WIDTH = 8;
+const SPAWN_ROOM_HALF_DEPTH = 8;
+const SPAWN_ROOM_BUFFER = 14;
 
 type SpawnObstacle = {
   x: number;
@@ -168,9 +173,18 @@ function isInsideObstacle(position: [number, number, number]) {
   ));
 }
 
+function isNearSpawnRoom(position: [number, number, number]) {
+  const [x, , z] = position;
+  return (
+    Math.abs(x) < SPAWN_ROOM_HALF_WIDTH + SPAWN_ROOM_BUFFER
+    && Math.abs(z) < SPAWN_ROOM_HALF_DEPTH + SPAWN_ROOM_BUFFER
+  );
+}
+
 function isValidSpawnPosition(position: [number, number, number], selectedPositions: [number, number, number][]) {
   const distanceFromPlayer = Math.hypot(position[0], position[2]);
   if (distanceFromPlayer < PLAYER_SAFE_RADIUS) return false;
+  if (isNearSpawnRoom(position)) return false;
   if (isInsideObstacle(position)) return false;
 
   return selectedPositions.every(selectedPosition => (
@@ -318,6 +332,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   score: 0,
   wave: 1,
   hearts: STARTING_HEARTS,
+  spawnDoorOpen: false,
   enemiesRemaining: 0,
   playerState: 'active',
   playerDisabledUntil: 0,
@@ -348,6 +363,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       score: 0,
       wave: startWave,
       hearts: STARTING_HEARTS,
+      spawnDoorOpen: false,
       enemiesRemaining: getActiveEnemyCount(newEnemies),
       playerState: 'active',
       playerDisabledUntil: 0,
@@ -379,6 +395,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       score: 0,
       wave: 1,
       hearts: STARTING_HEARTS,
+      spawnDoorOpen: false,
       enemiesRemaining: 0,
       playerState: 'active'
     });
@@ -461,6 +478,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
       enemiesRemaining: activeEnemies,
       score: newScore,
       events: byPlayer ? [...state.events, { id: Math.random().toString(), message: `Enemy neutralised!`, timestamp: Date.now() }] : state.events
+    };
+  }),
+
+  openSpawnDoor: () => set((state) => {
+    if (state.spawnDoorOpen || state.gameState !== 'playing') return state;
+
+    return {
+      spawnDoorOpen: true,
+      events: [...state.events, { id: Math.random().toString(), message: 'Spawn door opened!', timestamp: Date.now() }],
     };
   }),
 

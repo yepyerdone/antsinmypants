@@ -7,6 +7,7 @@ import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
 import { useMemo, useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
+import { useGameStore } from '../store';
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(() => {
@@ -62,6 +63,7 @@ const OBSTACLES = Array.from({ length: 150 }).map(() => {
 
 export function Arena() {
   const isMobile = useIsMobile();
+  const spawnDoorOpen = useGameStore(state => state.spawnDoorOpen);
   
   const obstacles = useMemo(() => {
     const count = isMobile ? 40 : 80;
@@ -125,6 +127,8 @@ export function Arena() {
       {/* Atmosphere */}
       {!isMobile && <AmbientParticles />}
 
+      <SpawnRoom doorOpen={spawnDoorOpen} isMobile={isMobile} />
+
       {/* Walls */}
       <Wall name="wall-n" position={[0, 5, -100]} rotation={[0, 0, 0]} isMobile={isMobile} />
       <Wall name="wall-s" position={[0, 5, 100]} rotation={[0, Math.PI, 0]} isMobile={isMobile} />
@@ -164,6 +168,99 @@ export function Arena() {
           </RigidBody>
         );
       })}
+    </group>
+  );
+}
+
+function SpawnRoom({ doorOpen, isMobile }: { doorOpen: boolean; isMobile: boolean }) {
+  const wallMaterial = useMemo(() => (
+    <meshStandardMaterial color="#b91c1c" roughness={0.78} metalness={0.05} />
+  ), []);
+  const trimMaterial = useMemo(() => (
+    <meshBasicMaterial color="#facc15" toneMapped={false} />
+  ), []);
+
+  return (
+    <group>
+      <RigidBody type="fixed" colliders={false} name="spawn-room-back" position={[0, 2.5, 8]}>
+        <CuboidCollider args={[8.5, 2.5, 0.35]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[17, 5, 0.7]} />
+          {wallMaterial}
+        </mesh>
+        <mesh position={[0, 2.45, -0.38]}>
+          <boxGeometry args={[17.4, 0.28, 0.08]} />
+          {trimMaterial}
+        </mesh>
+      </RigidBody>
+
+      <RigidBody type="fixed" colliders={false} name="spawn-room-left" position={[-8, 2.5, 0]}>
+        <CuboidCollider args={[0.35, 2.5, 8.5]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[0.7, 5, 17]} />
+          {wallMaterial}
+        </mesh>
+        <mesh position={[0.38, 2.45, 0]}>
+          <boxGeometry args={[0.08, 0.28, 17.4]} />
+          {trimMaterial}
+        </mesh>
+      </RigidBody>
+
+      <RigidBody type="fixed" colliders={false} name="spawn-room-right" position={[8, 2.5, 0]}>
+        <CuboidCollider args={[0.35, 2.5, 8.5]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[0.7, 5, 17]} />
+          {wallMaterial}
+        </mesh>
+        <mesh position={[-0.38, 2.45, 0]}>
+          <boxGeometry args={[0.08, 0.28, 17.4]} />
+          {trimMaterial}
+        </mesh>
+      </RigidBody>
+
+      <RigidBody type="fixed" colliders={false} name="spawn-room-front-left" position={[-5.35, 2.5, -8]}>
+        <CuboidCollider args={[3.15, 2.5, 0.35]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[6.3, 5, 0.7]} />
+          {wallMaterial}
+        </mesh>
+      </RigidBody>
+
+      <RigidBody type="fixed" colliders={false} name="spawn-room-front-right" position={[5.35, 2.5, -8]}>
+        <CuboidCollider args={[3.15, 2.5, 0.35]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[6.3, 5, 0.7]} />
+          {wallMaterial}
+        </mesh>
+      </RigidBody>
+
+      {!doorOpen && (
+        <RigidBody type="fixed" colliders={false} name="spawn-door" userData={{ name: 'spawn-door' }} position={[0, 2.35, -8]}>
+          <CuboidCollider args={[2.05, 2.35, 0.4]} />
+          <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+            <boxGeometry args={[4.1, 4.7, 0.8]} />
+            <meshStandardMaterial color="#1d4ed8" roughness={0.45} metalness={0.12} />
+          </mesh>
+          <mesh position={[1.25, 0.05, -0.48]}>
+            <sphereGeometry args={[0.18, 16, 12]} />
+            <meshStandardMaterial color="#facc15" roughness={0.25} metalness={0.25} />
+          </mesh>
+        </RigidBody>
+      )}
+
+      {doorOpen && (
+        <group position={[-2.8, 2.35, -8.85]} rotation={[0, -0.75, 0]}>
+          <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+            <boxGeometry args={[4.1, 4.7, 0.35]} />
+            <meshStandardMaterial color="#1d4ed8" roughness={0.45} metalness={0.12} />
+          </mesh>
+        </group>
+      )}
+
+      <mesh position={[0, 5.2, -8.05]}>
+        <boxGeometry args={[4.8, 0.36, 0.2]} />
+        {trimMaterial}
+      </mesh>
     </group>
   );
 }

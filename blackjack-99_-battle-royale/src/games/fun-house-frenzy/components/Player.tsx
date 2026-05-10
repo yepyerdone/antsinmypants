@@ -12,6 +12,7 @@ import { useGameStore } from '../store';
 const SPEED = 12;
 const MAX_LASER_DIST = 100;
 const MOUSE_SENSITIVITY = 0.002;
+const DOOR_INTERACTION_DISTANCE = 10.5;
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null);
@@ -23,6 +24,7 @@ export function Player() {
   const addLaser = useGameStore(state => state.addLaser);
   const hitEnemy = useGameStore(state => state.hitEnemy);
   const addParticles = useGameStore(state => state.addParticles);
+  const openSpawnDoor = useGameStore(state => state.openSpawnDoor);
 
   const keys = useRef({ 
     w: false, a: false, s: false, d: false,
@@ -116,6 +118,13 @@ export function Player() {
         const name = userData.name;
         
         if (name) {
+          if (name === 'spawn-door' && camera.position.distanceTo(hitPoint) <= DOOR_INTERACTION_DISTANCE) {
+            openSpawnDoor();
+            addParticles(endPos, '#facc15');
+            addLaser(startPos, endPos, '#facc15');
+            return;
+          }
+
           // Check if it's an enemy
           if (name.startsWith('enemy-') || name.startsWith('bot-')) {
             hitEnemy(name, true);
@@ -290,7 +299,7 @@ export function Player() {
       window.removeEventListener('blur', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gameState, playerState, camera, world, rapier, hitEnemy, addParticles, addLaser]);
+  }, [gameState, playerState, camera, world, rapier, hitEnemy, addParticles, addLaser, openSpawnDoor]);
 
   return (
     <>
