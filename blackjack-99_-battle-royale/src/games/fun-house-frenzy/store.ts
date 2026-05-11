@@ -101,6 +101,7 @@ const STARTING_HEARTS = 3;
 const ARENA_SPAWN_LIMIT = 82;
 const PLAYER_SAFE_RADIUS = 28;
 const ENEMY_SPAWN_SPACING = 22;
+const MINIMUM_FALLBACK_SPAWN_SPACING = 16;
 const OBSTACLE_SPAWN_PADDING = 4.5;
 const SPAWN_ROOM_HALF_WIDTH = 8;
 const SPAWN_ROOM_HALF_DEPTH = 8;
@@ -181,14 +182,14 @@ function isNearSpawnRoom(position: [number, number, number]) {
   );
 }
 
-function isValidSpawnPosition(position: [number, number, number], selectedPositions: [number, number, number][]) {
+function isValidSpawnPosition(position: [number, number, number], selectedPositions: [number, number, number][], spacing = ENEMY_SPAWN_SPACING) {
   const distanceFromPlayer = Math.hypot(position[0], position[2]);
   if (distanceFromPlayer < PLAYER_SAFE_RADIUS) return false;
   if (isNearSpawnRoom(position)) return false;
   if (isInsideObstacle(position)) return false;
 
   return selectedPositions.every(selectedPosition => (
-    getDistance2D(position, selectedPosition) >= ENEMY_SPAWN_SPACING
+    getDistance2D(position, selectedPosition) >= spacing
   ));
 }
 
@@ -214,7 +215,24 @@ function createFallbackSpawnPosition(index: number, count: number, wave: number)
   ];
 }
 
+function createSectorSpawnPosition(index: number, count: number, wave: number): [number, number, number] {
+  const angle = wave * 0.41 + (index / count) * Math.PI * 2;
+  const radiusBand = index % 3;
+  const radius = Math.min(ARENA_SPAWN_LIMIT, 34 + radiusBand * 20);
+
+  return [
+    Math.cos(angle) * radius,
+    1,
+    Math.sin(angle) * radius,
+  ];
+}
+
 function getSafeSpawnPosition(index: number, count: number, wave: number, selectedPositions: [number, number, number][]): [number, number, number] {
+  const sectorPosition = createSectorSpawnPosition(index, count, wave);
+  if (isValidSpawnPosition(sectorPosition, selectedPositions)) {
+    return sectorPosition;
+  }
+
   for (let attempt = 0; attempt < 250; attempt += 1) {
     const position = createRandomSpawnPosition();
     if (isValidSpawnPosition(position, selectedPositions)) {
@@ -229,7 +247,14 @@ function getSafeSpawnPosition(index: number, count: number, wave: number, select
     }
   }
 
-  return createFallbackSpawnPosition(index, count, wave);
+  for (let fallbackIndex = 0; fallbackIndex < 80; fallbackIndex += 1) {
+    const position = createFallbackSpawnPosition(index + fallbackIndex, count + fallbackIndex, wave);
+    if (isValidSpawnPosition(position, selectedPositions, MINIMUM_FALLBACK_SPAWN_SPACING)) {
+      return position;
+    }
+  }
+
+  return createSectorSpawnPosition(index, count, wave);
 }
 
 function createWaveEnemies(wave: number): EnemyData[] {

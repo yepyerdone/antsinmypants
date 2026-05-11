@@ -13,12 +13,16 @@ const ENEMY_SPEED = 5;
 const CHASE_DIST = 120;
 const MELEE_DIST = 2.4;
 const MELEE_COOLDOWN = 1400;
+const FINAL_CLOWN_SPEED = 7.5;
+const FINAL_CLOWN_REPOSITION_DISTANCE = 62;
+const FINAL_CLOWN_STUCK_TIME = 2600;
 
 export function Enemy({ data }: { data: EnemyData }) {
   const body = useRef<RapierRigidBody>(null);
   const { camera } = useThree();
   
   const gameState = useGameStore(state => state.gameState);
+  const enemiesRemaining = useGameStore(state => state.enemiesRemaining);
   const playerState = useGameStore(state => state.playerState);
   const hitPlayer = useGameStore(state => state.hitPlayer);
   const addParticles = useGameStore(state => state.addParticles);
@@ -27,6 +31,8 @@ export function Enemy({ data }: { data: EnemyData }) {
   const patrolTarget = useRef(new THREE.Vector3());
   const lastPatrolChange = useRef(0);
   const state = useRef<'patrol' | 'chase'>('patrol');
+  const lastProgressPosition = useRef(new THREE.Vector3(data.position[0], data.position[1], data.position[2]));
+  const lastProgressTime = useRef(Date.now());
 
   const groupRef = useRef<THREE.Group>(null);
 
@@ -49,6 +55,7 @@ export function Enemy({ data }: { data: EnemyData }) {
 
     const pos = body.current.translation();
     const currentPos = new THREE.Vector3(pos.x, pos.y, pos.z);
+    const finalClownPressure = enemiesRemaining <= 2;
 
     if (Math.abs(pos.x) > 94 || Math.abs(pos.z) > 94 || pos.y < -8) {
       body.current.setTranslation({ x: data.position[0], y: data.position[1], z: data.position[2] }, true);
@@ -64,11 +71,33 @@ export function Enemy({ data }: { data: EnemyData }) {
       const playerPos = camera.position.clone();
       playerPos.y = pos.y; // Ignore height difference for distance
       const distToPlayer = currentPos.distanceTo(playerPos);
-      // Enemies will always chase the player if within range, no more bot-on-bot violence
-      if (distToPlayer < CHASE_DIST * 2) { // Increased detection range
+      if (finalClownPressure || distToPlayer < CHASE_DIST * 2) {
         closestDist = distToPlayer;
         closestTargetPos = playerPos;
       }
+    }
+
+    const now = Date.now();
+    if (currentPos.distanceTo(lastProgressPosition.current) > 1.5) {
+      lastProgressPosition.current.copy(currentPos);
+      lastProgressTime.current = now;
+    } else if (
+      finalClownPressure &&
+      closestTargetPos &&
+      closestDist > FINAL_CLOWN_REPOSITION_DISTANCE &&
+      now - lastProgressTime.current > FINAL_CLOWN_STUCK_TIME
+    ) {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 34 + Math.random() * 10;
+      const nextX = THREE.MathUtils.clamp(closestTargetPos.x + Math.cos(angle) * distance, -82, 82);
+      const nextZ = THREE.MathUtils.clamp(closestTargetPos.z + Math.sin(angle) * distance, -82, 82);
+      body.current.setTranslation({ x: nextX, y: data.position[1], z: nextZ }, true);
+      body.current.setLinvel({ x: 0, y: 0, z: 0 }, true);
+      lastProgressPosition.current.set(nextX, data.position[1], nextZ);
+      lastProgressTime.current = now;
+      patrolTarget.current.copy(closestTargetPos);
+      state.current = 'chase';
+      return;
     }
 
     // AI Logic
@@ -90,7 +119,6 @@ export function Enemy({ data }: { data: EnemyData }) {
       direction.subVectors(closestTargetPos, currentPos).normalize();
       
       // Melee attack only. Clowns must reach the player before tagging them.
-      const now = Date.now();
       if (closestDist < MELEE_DIST && now - lastMeleeTime.current > MELEE_COOLDOWN) {
         hitPlayer();
         addParticles([camera.position.x, camera.position.y, camera.position.z], '#ff0000');
@@ -98,7 +126,6 @@ export function Enemy({ data }: { data: EnemyData }) {
       }
     } else {
       // Patrol
-      const now = Date.now();
       // Change target if reached or if stuck for 4 seconds
       if (currentPos.distanceTo(patrolTarget.current) < 2 || now - lastPatrolChange.current > 4000) {
         patrolTarget.current.set(
@@ -113,10 +140,11 @@ export function Enemy({ data }: { data: EnemyData }) {
 
     // Apply movement
     const velocity = body.current.linvel();
+    const speed = finalClownPressure ? FINAL_CLOWN_SPEED : ENEMY_SPEED;
     body.current.setLinvel({
-      x: direction.x * ENEMY_SPEED,
+      x: direction.x * speed,
       y: velocity.y,
-      z: direction.z * ENEMY_SPEED
+      z: direction.z * speed
     }, true);
 
     // Rotate to face direction
