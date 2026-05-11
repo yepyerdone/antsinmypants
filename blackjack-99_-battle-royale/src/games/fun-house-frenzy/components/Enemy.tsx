@@ -17,6 +17,55 @@ const FINAL_CLOWN_SPEED = 7.5;
 const FINAL_CLOWN_REPOSITION_DISTANCE = 62;
 const FINAL_CLOWN_STUCK_TIME = 2600;
 
+const CLOWN_VARIANTS = [
+  {
+    suit: '#ffffff',
+    accent: '#ff0000',
+    trim: '#ffd700',
+    hair: '#0000ff',
+    face: '#fff2df',
+    cheek: '#ff9fb3',
+    eye: '#050505',
+    brow: '#0000ff',
+    bodyScale: [1, 1, 1] as [number, number, number],
+    headScale: [1, 1, 1] as [number, number, number],
+    noseScale: 1,
+    mouthColor: '#ff0000',
+  },
+  {
+    suit: '#7dd3fc',
+    accent: '#7c3aed',
+    trim: '#f472b6',
+    hair: '#22c55e',
+    face: '#fde68a',
+    cheek: '#fb7185',
+    eye: '#111827',
+    brow: '#7c3aed',
+    bodyScale: [0.9, 1.18, 0.95] as [number, number, number],
+    headScale: [0.9, 1.16, 0.9] as [number, number, number],
+    noseScale: 0.78,
+    mouthColor: '#7c3aed',
+  },
+  {
+    suit: '#fef08a',
+    accent: '#f97316',
+    trim: '#38bdf8',
+    hair: '#ef4444',
+    face: '#fce7f3',
+    cheek: '#f97316',
+    eye: '#020617',
+    brow: '#ef4444',
+    bodyScale: [1.16, 0.92, 1.08] as [number, number, number],
+    headScale: [1.18, 0.88, 1] as [number, number, number],
+    noseScale: 1.22,
+    mouthColor: '#020617',
+  },
+];
+
+function getVariantIndex(id: string) {
+  return id.split('').reduce((total, char) => total + char.charCodeAt(0), 0) % CLOWN_VARIANTS.length;
+}
+
 export function Enemy({ data }: { data: EnemyData }) {
   const body = useRef<RapierRigidBody>(null);
   const { camera } = useThree();
@@ -52,6 +101,7 @@ export function Enemy({ data }: { data: EnemyData }) {
   const rightBrowRef = useRef<THREE.Mesh>(null);
   const mouthRef = useRef<THREE.Mesh>(null);
   const hatRef = useRef<THREE.Mesh>(null);
+  const variant = useMemo(() => CLOWN_VARIANTS[getVariantIndex(data.id)], [data.id]);
 
   // Initialize patrol target
   useMemo(() => {
@@ -230,9 +280,15 @@ export function Enemy({ data }: { data: EnemyData }) {
     }
   });
 
-  const color = data.state === 'disabled' ? '#444' : '#ffffff';
-  const accentColor = data.state === 'disabled' ? '#222' : '#ff0000';
-  const hairColor = data.state === 'disabled' ? '#111' : '#0000ff';
+  const color = data.state === 'disabled' ? '#444' : variant.suit;
+  const accentColor = data.state === 'disabled' ? '#222' : variant.accent;
+  const trimColor = data.state === 'disabled' ? '#222' : variant.trim;
+  const hairColor = data.state === 'disabled' ? '#111' : variant.hair;
+  const faceColor = data.state === 'disabled' ? '#333' : variant.face;
+  const cheekColor = data.state === 'disabled' ? '#222' : variant.cheek;
+  const eyeColor = data.state === 'disabled' ? '#111' : variant.eye;
+  const browColor = data.state === 'disabled' ? '#111' : variant.brow;
+  const mouthColor = data.state === 'disabled' ? '#111' : variant.mouthColor;
 
   return (
     <RigidBody
@@ -245,7 +301,7 @@ export function Enemy({ data }: { data: EnemyData }) {
       userData={{ name: data.id }}
     >
       <CapsuleCollider args={[1.65, 0.45]} position={[0, 2.15, 0]} />
-      <group ref={groupRef} position={[0, 0, 0]}>
+      <group ref={groupRef} position={[0, 0, 0]} scale={variant.bodyScale}>
         {/* Shoes */}
         <mesh ref={leftShoeRef} castShadow position={[-0.28, 0.18, 0.12]} scale={[1.45, 0.55, 1.8]}>
           <sphereGeometry args={[0.2, 16, 10]} />
@@ -277,18 +333,18 @@ export function Enemy({ data }: { data: EnemyData }) {
         </mesh>
         <mesh castShadow position={[0.19, 2.0, 0.02]}>
           <boxGeometry args={[0.16, 1.9, 0.98]} />
-          <meshStandardMaterial color="#ffd700" roughness={0.75} />
+          <meshStandardMaterial color={trimColor} roughness={0.75} />
         </mesh>
 
         {/* Ruffled collar and buttons */}
         <mesh position={[0, 2.95, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[0.55, 0.08, 8, 24]} />
-          <meshStandardMaterial color="#ffd700" roughness={0.6} />
+          <meshStandardMaterial color={trimColor} roughness={0.6} />
         </mesh>
         {[1.6, 2.0, 2.4].map((y) => (
           <mesh key={y} position={[0, y, 0.52]}>
             <sphereGeometry args={[0.07, 12, 8]} />
-            <meshStandardMaterial color="#0000ff" roughness={0.4} />
+            <meshStandardMaterial color={browColor} roughness={0.4} />
           </mesh>
         ))}
 
@@ -299,7 +355,7 @@ export function Enemy({ data }: { data: EnemyData }) {
         </mesh>
         <mesh ref={rightArmRef} castShadow position={[0.72, 2.15, 0]} rotation={[0.25, 0, -0.55]}>
           <capsuleGeometry args={[0.13, 1.15, 8, 12]} />
-          <meshStandardMaterial color="#ffd700" roughness={0.7} />
+          <meshStandardMaterial color={trimColor} roughness={0.7} />
         </mesh>
         <mesh ref={leftGloveRef} castShadow position={[-1.05, 1.55, 0.12]}>
           <sphereGeometry args={[0.18, 16, 12]} />
@@ -311,47 +367,65 @@ export function Enemy({ data }: { data: EnemyData }) {
         </mesh>
 
         {/* Head and face */}
-        <mesh ref={headRef} castShadow position={[0, 3.35, 0]}>
+        <mesh ref={headRef} castShadow position={[0, 3.35, 0]} scale={variant.headScale}>
           <sphereGeometry args={[0.46, 24, 18]} />
-          <meshStandardMaterial color="#fff2df" roughness={0.65} />
+          <meshStandardMaterial color={faceColor} roughness={0.65} />
         </mesh>
         
-        <mesh ref={noseRef} position={[0, 3.32, 0.43]}>
+        <mesh ref={noseRef} position={[0, 3.32, 0.43]} scale={[variant.noseScale, variant.noseScale, variant.noseScale]}>
           <sphereGeometry args={[0.15, 16, 16]} />
           <meshStandardMaterial color={accentColor} roughness={0.2} />
         </mesh>
         <mesh ref={leftEyeRef} position={[-0.16, 3.45, 0.4]}>
           <sphereGeometry args={[0.055, 12, 8]} />
-          <meshStandardMaterial color="#050505" roughness={0.35} />
+          <meshStandardMaterial color={eyeColor} roughness={0.35} />
         </mesh>
         <mesh ref={rightEyeRef} position={[0.16, 3.45, 0.4]}>
           <sphereGeometry args={[0.055, 12, 8]} />
-          <meshStandardMaterial color="#050505" roughness={0.35} />
+          <meshStandardMaterial color={eyeColor} roughness={0.35} />
         </mesh>
         <mesh ref={leftBrowRef} position={[-0.16, 3.55, 0.41]} rotation={[0, 0, -0.25]}>
           <boxGeometry args={[0.18, 0.035, 0.025]} />
-          <meshStandardMaterial color="#0000ff" roughness={0.5} />
+          <meshStandardMaterial color={browColor} roughness={0.5} />
         </mesh>
         <mesh ref={rightBrowRef} position={[0.16, 3.55, 0.41]} rotation={[0, 0, 0.25]}>
           <boxGeometry args={[0.18, 0.035, 0.025]} />
-          <meshStandardMaterial color="#0000ff" roughness={0.5} />
+          <meshStandardMaterial color={browColor} roughness={0.5} />
         </mesh>
         <mesh ref={mouthRef} position={[0, 3.16, 0.42]} rotation={[0, 0, 0]}>
           <torusGeometry args={[0.18, 0.025, 8, 24, Math.PI]} />
-          <meshStandardMaterial color="#ff0000" roughness={0.35} />
+          <meshStandardMaterial color={mouthColor} roughness={0.35} />
         </mesh>
         <mesh position={[-0.16, 3.2, 0.45]} scale={[1.35, 0.8, 0.35]}>
           <sphereGeometry args={[0.07, 12, 8]} />
-          <meshStandardMaterial color="#ff9fb3" roughness={0.45} />
+          <meshStandardMaterial color={cheekColor} roughness={0.45} />
         </mesh>
         <mesh position={[0.16, 3.2, 0.45]} scale={[1.35, 0.8, 0.35]}>
           <sphereGeometry args={[0.07, 12, 8]} />
-          <meshStandardMaterial color="#ff9fb3" roughness={0.45} />
+          <meshStandardMaterial color={cheekColor} roughness={0.45} />
         </mesh>
         <mesh position={[0, 3.08, 0.43]}>
           <boxGeometry args={[0.18, 0.05, 0.02]} />
           <meshStandardMaterial color="#ffffff" roughness={0.3} />
         </mesh>
+        {getVariantIndex(data.id) === 1 && (
+          <>
+            <mesh position={[-0.09, 3.02, 0.45]}>
+              <boxGeometry args={[0.07, 0.16, 0.025]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.32} />
+            </mesh>
+            <mesh position={[0.09, 3.02, 0.45]}>
+              <boxGeometry args={[0.07, 0.16, 0.025]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.32} />
+            </mesh>
+          </>
+        )}
+        {getVariantIndex(data.id) === 2 && (
+          <mesh position={[0, 3.58, 0.45]}>
+            <coneGeometry args={[0.12, 0.28, 3]} />
+            <meshStandardMaterial color={trimColor} roughness={0.46} />
+          </mesh>
+        )}
 
         {/* Clown Hair (Sides) */}
         <mesh position={[0.42, 3.48, 0]} scale={[1, 1.25, 1]}>
@@ -374,7 +448,7 @@ export function Enemy({ data }: { data: EnemyData }) {
         </mesh>
         <mesh position={[0, 3.82, 0]} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[0.34, 0.05, 8, 24]} />
-          <meshStandardMaterial color="#ffd700" roughness={0.5} />
+          <meshStandardMaterial color={trimColor} roughness={0.5} />
         </mesh>
       </group>
     </RigidBody>

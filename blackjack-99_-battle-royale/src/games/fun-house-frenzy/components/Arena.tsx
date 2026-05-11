@@ -134,6 +134,7 @@ export function Arena() {
       {!isMobile && <AmbientParticles />}
 
       <SpawnRoom doorOpen={spawnDoorOpen} isMobile={isMobile} />
+      <Carousel isMobile={isMobile} />
 
       {/* Walls */}
       <Wall name="wall-n" position={[0, 5, -100]} rotation={[0, 0, 0]} isMobile={isMobile} />
@@ -174,6 +175,104 @@ export function Arena() {
           </RigidBody>
         );
       })}
+    </group>
+  );
+}
+
+function Carousel({ isMobile }: { isMobile: boolean }) {
+  const carouselRef = useRef<THREE.Group>(null);
+  const horseRefs = useRef<(THREE.Group | null)[]>([]);
+
+  useFrame((state) => {
+    if (carouselRef.current) {
+      carouselRef.current.rotation.y = state.clock.elapsedTime * 0.38;
+    }
+
+    horseRefs.current.forEach((horse, index) => {
+      if (!horse) return;
+      horse.position.y = 1.75 + Math.sin(state.clock.elapsedTime * 2.6 + index * 1.4) * 0.42;
+      horse.rotation.z = Math.sin(state.clock.elapsedTime * 2.6 + index) * 0.08;
+    });
+  });
+
+  return (
+    <group position={[-62, 0, 58]}>
+      <RigidBody type="fixed" colliders={false} name="carousel-platform" position={[0, -0.12, 0]}>
+        <CuboidCollider args={[9.6, 0.28, 9.6]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+          <cylinderGeometry args={[10.5, 10.5, 0.55, 64]} />
+          <meshStandardMaterial color="#7f1d1d" roughness={0.65} metalness={0.06} />
+        </mesh>
+      </RigidBody>
+
+      <group ref={carouselRef}>
+        <mesh position={[0, 0.24, 0]} receiveShadow={!isMobile}>
+          <cylinderGeometry args={[9.2, 9.2, 0.18, 64]} />
+          <meshStandardMaterial color="#facc15" roughness={0.5} metalness={0.08} />
+        </mesh>
+        <mesh position={[0, 0.42, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[8.7, 0.16, 10, 72]} />
+          <meshBasicMaterial color="#ffffff" toneMapped={false} />
+        </mesh>
+        <mesh position={[0, 6.4, 0]}>
+          <cylinderGeometry args={[1.0, 1.0, 12.5, 32]} />
+          <meshStandardMaterial color="#1d4ed8" roughness={0.42} metalness={0.18} />
+        </mesh>
+        <mesh position={[0, 12.9, 0]}>
+          <coneGeometry args={[10.2, 4.3, 64]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.58} />
+        </mesh>
+        <mesh position={[0, 13.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[8.5, 0.2, 10, 72]} />
+          <meshBasicMaterial color="#facc15" toneMapped={false} />
+        </mesh>
+
+        {Array.from({ length: 6 }, (_, index) => {
+          const angle = (index / 6) * Math.PI * 2;
+          const x = Math.cos(angle) * 5.9;
+          const z = Math.sin(angle) * 5.9;
+          const palette = index % 2 === 0
+            ? { body: '#f8fafc', saddle: '#2563eb', mane: '#dc2626' }
+            : { body: '#fde68a', saddle: '#dc2626', mane: '#1d4ed8' };
+
+          return (
+            <group key={index} position={[x, 0.5, z]} rotation={[0, -angle + Math.PI / 2, 0]}>
+              <mesh position={[0, 5.6, 0]}>
+                <cylinderGeometry args={[0.08, 0.08, 9.8, 10]} />
+                <meshStandardMaterial color="#facc15" roughness={0.38} metalness={0.25} />
+              </mesh>
+              <group ref={(node) => { horseRefs.current[index] = node; }}>
+                <mesh castShadow={!isMobile} position={[0, 0.95, 0]} scale={[1.65, 0.72, 0.55]}>
+                  <sphereGeometry args={[0.55, 20, 14]} />
+                  <meshStandardMaterial color={palette.body} roughness={0.52} />
+                </mesh>
+                <mesh castShadow={!isMobile} position={[0.82, 1.25, 0]} scale={[0.78, 0.62, 0.55]}>
+                  <sphereGeometry args={[0.42, 18, 12]} />
+                  <meshStandardMaterial color={palette.body} roughness={0.52} />
+                </mesh>
+                <mesh position={[0.94, 1.58, 0]} scale={[0.55, 0.42, 0.18]}>
+                  <sphereGeometry args={[0.32, 12, 8]} />
+                  <meshStandardMaterial color={palette.mane} roughness={0.55} />
+                </mesh>
+                <mesh position={[0.02, 1.43, 0]} scale={[0.95, 0.22, 0.7]}>
+                  <boxGeometry args={[1, 1, 1]} />
+                  <meshStandardMaterial color={palette.saddle} roughness={0.45} />
+                </mesh>
+                {[-0.55, -0.15, 0.35, 0.72].map((legX, legIndex) => (
+                  <mesh key={legIndex} castShadow={!isMobile} position={[legX, 0.26, legIndex % 2 === 0 ? -0.22 : 0.22]} rotation={[legIndex % 2 === 0 ? 0.16 : -0.16, 0, 0]}>
+                    <capsuleGeometry args={[0.08, 0.75, 6, 8]} />
+                    <meshStandardMaterial color={palette.body} roughness={0.58} />
+                  </mesh>
+                ))}
+                <mesh position={[-0.94, 1.12, 0]} rotation={[0, 0, -0.35]}>
+                  <coneGeometry args={[0.13, 0.8, 10]} />
+                  <meshStandardMaterial color={palette.mane} roughness={0.5} />
+                </mesh>
+              </group>
+            </group>
+          );
+        })}
+      </group>
     </group>
   );
 }
@@ -374,6 +473,38 @@ function Wall({ name, position, rotation, isMobile }: { name: string, position: 
         <boxGeometry args={[200, 0.24, 0.08]} />
         <meshBasicMaterial color="#facc15" toneMapped={false} />
       </mesh>
+      {[-72, -36, 0, 36, 72].map((x, index) => (
+        <group key={`wall-detail-${name}-${index}`} position={[x, 3.5, 0.56]}>
+          <mesh>
+            <boxGeometry args={[14, 7, 0.12]} />
+            <meshStandardMaterial color={index % 2 === 0 ? '#1d4ed8' : '#7f1d1d'} roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 0, 0.08]}>
+            <boxGeometry args={[12.4, 5.4, 0.08]} />
+            <meshStandardMaterial color={index % 2 === 0 ? '#fef3c7' : '#facc15'} roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.75, 0.14]} rotation={[0, 0, Math.PI / 4]}>
+            <boxGeometry args={[3.2, 3.2, 0.08]} />
+            <meshStandardMaterial color={index % 2 === 0 ? '#dc2626' : '#2563eb'} roughness={0.55} />
+          </mesh>
+          <mesh position={[0, -1.9, 0.15]}>
+            <boxGeometry args={[8.2, 0.38, 0.08]} />
+            <meshBasicMaterial color="#111827" toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+      {[-90, -54, -18, 18, 54, 90].map((x, index) => (
+        <group key={`wall-bulb-${name}-${index}`} position={[x, 9.8, 0.62]}>
+          <mesh>
+            <sphereGeometry args={[0.46, 16, 12]} />
+            <meshStandardMaterial color="#fff7cc" emissive="#facc15" emissiveIntensity={0.5} roughness={0.25} />
+          </mesh>
+          <mesh position={[0, -0.42, 0]}>
+            <cylinderGeometry args={[0.08, 0.08, 0.8, 8]} />
+            <meshStandardMaterial color="#111827" roughness={0.55} metalness={0.15} />
+          </mesh>
+        </group>
+      ))}
     </RigidBody>
   );
 }

@@ -115,6 +115,8 @@ const OBSTACLE_SPAWN_PADDING = 4.5;
 const SPAWN_ROOM_HALF_WIDTH = 8;
 const SPAWN_ROOM_HALF_DEPTH = 8;
 const SPAWN_ROOM_BUFFER = 14;
+const CAROUSEL_POSITION: [number, number, number] = [-62, 1, 58];
+const CAROUSEL_SPAWN_BUFFER = 18;
 
 type SpawnObstacle = {
   x: number;
@@ -191,10 +193,15 @@ function isNearSpawnRoom(position: [number, number, number]) {
   );
 }
 
+function isNearCarousel(position: [number, number, number]) {
+  return getDistance2D(position, CAROUSEL_POSITION) < CAROUSEL_SPAWN_BUFFER;
+}
+
 function isValidSpawnPosition(position: [number, number, number], selectedPositions: [number, number, number][], spacing = ENEMY_SPAWN_SPACING) {
   const distanceFromPlayer = Math.hypot(position[0], position[2]);
   if (distanceFromPlayer < PLAYER_SAFE_RADIUS) return false;
   if (isNearSpawnRoom(position)) return false;
+  if (isNearCarousel(position)) return false;
   if (isInsideObstacle(position)) return false;
 
   return selectedPositions.every(selectedPosition => (
