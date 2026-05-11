@@ -15,10 +15,13 @@ function HUD() {
   const score = useGameStore(state => state.score);
   const wave = useGameStore(state => state.wave);
   const hearts = useGameStore(state => state.hearts);
+  const ammo = useGameStore(state => state.ammo);
+  const isReloading = useGameStore(state => state.isReloading);
   const enemiesRemaining = useGameStore(state => state.enemiesRemaining);
   const playerState = useGameStore(state => state.playerState);
   const events = useGameStore(state => state.events);
   const leaveGame = useGameStore(state => state.leaveGame);
+  const pauseGame = useGameStore(state => state.pauseGame);
   const isMobile = useIsMobile();
 
   return (
@@ -65,10 +68,31 @@ function HUD() {
             ))}
           </div>
         </div>
+
+        <div className="bg-slate-950 text-yellow-300 px-3 py-2 border-2 border-yellow-400 rounded-md shadow-md mt-2">
+          <div className="text-[10px] font-black uppercase leading-none opacity-80">
+            {isReloading ? 'RELOADING' : 'AMMO'}
+          </div>
+          <div className="mt-1 flex gap-1" aria-label={`${ammo} shots loaded`}>
+            {Array.from({ length: 5 }, (_, index) => (
+              <span
+                key={index}
+                className={`h-3 w-3 rounded-full border border-yellow-200 ${index < ammo && !isReloading ? 'bg-yellow-300' : 'bg-slate-700'}`}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+        </div>
       </div>
       
       {/* HUD Right - Leave, Events */}
       <div className="absolute top-2 right-2 md:top-4 md:right-4 flex flex-col items-end gap-1 md:gap-2 pointer-events-auto">
+        <button
+          onClick={pauseGame}
+          className="px-4 py-1 bg-yellow-400 border-2 border-red-600 text-red-700 text-xs font-black rounded-full hover:bg-white transition-all duration-200"
+        >
+          PAUSE
+        </button>
         <button
           onClick={leaveGame}
           className="px-4 py-1 bg-white border-2 border-red-600 text-red-600 text-xs font-black rounded-full hover:bg-red-600 hover:text-white transition-all duration-200"
@@ -263,6 +287,7 @@ export default function App() {
   const score = useGameStore(state => state.score);
   const startGame = useGameStore(state => state.startGame);
   const leaveGame = useGameStore(state => state.leaveGame);
+  const resumeGame = useGameStore(state => state.resumeGame);
   const setPlayerName = useGameStore(state => state.setPlayerName);
   const loadHighScores = useGameStore(state => state.loadHighScores);
   const [menuView, setMenuView] = useState<MenuView>('main');
@@ -285,7 +310,7 @@ export default function App() {
       </div>
 
       {/* UI Overlay */}
-      {gameState === 'playing' && <HUD />}
+      {(gameState === 'playing' || gameState === 'paused') && <HUD />}
 
       {/* Menus */}
       {gameState === 'menu' && (
@@ -337,6 +362,20 @@ export default function App() {
           >
             MAIN MENU
           </button>
+        </div>
+      )}
+
+      {gameState === 'paused' && (
+        <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center z-20 pointer-events-auto">
+          <div className="w-full max-w-sm bg-yellow-400 p-6 border-8 border-red-600 rounded-lg shadow-[0_0_50px_rgba(220,38,38,0.65)] text-center">
+            <h2 className="text-5xl font-black text-red-600 drop-shadow-[2px_2px_0px_white]">
+              PAUSED
+            </h2>
+            <div className="mt-6 space-y-3">
+              <MenuButton onClick={resumeGame}>RESUME</MenuButton>
+              <MenuButton onClick={leaveGame} variant="secondary">MAIN MENU</MenuButton>
+            </div>
+          </div>
         </div>
       )}
     </div>

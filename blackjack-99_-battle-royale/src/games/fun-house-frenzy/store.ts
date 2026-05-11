@@ -4,10 +4,10 @@
 */
 
 import { create } from 'zustand';
-import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, serverTimestamp, setDoc } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 
-export type GameState = 'menu' | 'playing' | 'gameover';
+export type GameState = 'menu' | 'playing' | 'paused' | 'gameover';
 export type EntityState = 'active' | 'disabled';
 
 export interface EnemyData {
@@ -52,6 +52,9 @@ interface GameStore {
   score: number;
   wave: number;
   hearts: number;
+  ammo: number;
+  isReloading: boolean;
+  reloadEndsAt: number;
   spawnDoorOpen: boolean;
   enemiesRemaining: number;
   playerState: EntityState;
@@ -65,12 +68,16 @@ interface GameStore {
   highScores: HighScoreEntry[];
   
   startGame: () => void;
+  pauseGame: () => void;
+  resumeGame: () => void;
   endGame: () => void;
   leaveGame: () => void;
   updateTime: (delta: number) => void;
   hitPlayer: () => void;
   hitEnemy: (id: string, byPlayer?: boolean) => void;
   openSpawnDoor: () => void;
+  useAmmo: () => boolean;
+  startReload: () => void;
   addLaser: (start: [number, number, number], end: [number, number, number], color: string) => void;
   addParticles: (position: [number, number, number], color: string) => void;
   addEvent: (message: string) => void;
@@ -98,6 +105,8 @@ interface GameStore {
 const SETTINGS_KEY = 'fun-house-frenzy-settings';
 const SCORES_KEY = 'fun-house-frenzy-high-scores';
 const STARTING_HEARTS = 3;
+const MAX_AMMO = 5;
+const RELOAD_DURATION_MS = 3000;
 const ARENA_SPAWN_LIMIT = 82;
 const PLAYER_SAFE_RADIUS = 28;
 const ENEMY_SPAWN_SPACING = 22;
@@ -316,14 +325,30 @@ function saveHighScores(scores: HighScoreEntry[]) {
 
 const FUN_HOUSE_SCORES_COLLECTION = 'fun_house_frenzy_scores';
 
+function dedupeHighScores(scores: HighScoreEntry[]) {
+  const bestScores = new Map<string, HighScoreEntry>();
+
+  scores.forEach((score) => {
+    const key = score.userId || score.name.trim().toLowerCase();
+    const current = bestScores.get(key);
+    if (!current || score.score > current.score) {
+      bestScores.set(key, score);
+    }
+  });
+
+  return Array.from(bestScores.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+}
+
 async function loadFirebaseHighScores(): Promise<HighScoreEntry[]> {
   const scoresQuery = query(
     collection(db, FUN_HOUSE_SCORES_COLLECTION),
     orderBy('score', 'desc'),
-    limit(10)
+    limit(50)
   );
   const snapshot = await getDocs(scoresQuery);
-  return snapshot.docs.map((scoreDoc) => {
+  return dedupeHighScores(snapshot.docs.map((scoreDoc) => {
     const data = scoreDoc.data();
     return {
       id: scoreDoc.id,
@@ -333,20 +358,28 @@ async function loadFirebaseHighScores(): Promise<HighScoreEntry[]> {
       date: typeof data.date === 'string' ? data.date : '',
       userId: typeof data.userId === 'string' ? data.userId : undefined,
     };
-  });
+  }));
 }
 
 async function saveFirebaseHighScore(score: number, wave: number, name: string) {
   const user = auth.currentUser;
   if (!user || score <= 0) return;
 
-  await addDoc(collection(db, FUN_HOUSE_SCORES_COLLECTION), {
+  const scoreRef = doc(db, FUN_HOUSE_SCORES_COLLECTION, user.uid);
+  const currentScore = await getDoc(scoreRef);
+  const previousScore = currentScore.exists() && typeof currentScore.data().score === 'number'
+    ? currentScore.data().score
+    : 0;
+
+  if (previousScore >= score) return;
+
+  await setDoc(scoreRef, {
     userId: user.uid,
     name: name.trim() || user.displayName || 'Player',
     score,
     wave,
     date: new Date().toLocaleDateString(),
-    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 }
 
@@ -357,6 +390,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   score: 0,
   wave: 1,
   hearts: STARTING_HEARTS,
+  ammo: MAX_AMMO,
+  isReloading: false,
+  reloadEndsAt: 0,
   spawnDoorOpen: false,
   enemiesRemaining: 0,
   playerState: 'active',
@@ -388,6 +424,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       score: 0,
       wave: startWave,
       hearts: STARTING_HEARTS,
+      ammo: MAX_AMMO,
+      isReloading: false,
+      reloadEndsAt: 0,
       spawnDoorOpen: false,
       enemiesRemaining: getActiveEnemyCount(newEnemies),
       playerState: 'active',
@@ -407,7 +446,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   leaveGame: () => {
     const state = get();
-    if (state.gameState === 'playing' && state.score > 0) {
+    if ((state.gameState === 'playing' || state.gameState === 'paused') && state.score > 0) {
       get().addHighScore(state.score, state.wave);
     }
 
@@ -420,14 +459,33 @@ export const useGameStore = create<GameStore>((set, get) => ({
       score: 0,
       wave: 1,
       hearts: STARTING_HEARTS,
+      ammo: MAX_AMMO,
+      isReloading: false,
+      reloadEndsAt: 0,
       spawnDoorOpen: false,
       enemiesRemaining: 0,
       playerState: 'active'
     });
   },
 
+  pauseGame: () => set((state) => (
+    state.gameState === 'playing' ? { gameState: 'paused' } : state
+  )),
+
+  resumeGame: () => set((state) => (
+    state.gameState === 'paused' ? { gameState: 'playing' } : state
+  )),
+
   updateTime: (delta) => set((state) => {
     if (state.gameState !== 'playing') return state;
+    if (state.isReloading && Date.now() >= state.reloadEndsAt) {
+      return {
+        ammo: MAX_AMMO,
+        isReloading: false,
+        reloadEndsAt: 0,
+        events: [...state.events, { id: Math.random().toString(), message: 'Reload complete!', timestamp: Date.now() }],
+      };
+    }
     return state; // In offline mode, time doesn't necessarily end the game unless we want it to
   }),
 
@@ -515,6 +573,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
   }),
 
+  useAmmo: () => {
+    const state = get();
+    if (state.gameState !== 'playing' || state.isReloading) return false;
+    if (state.ammo <= 0) {
+      get().startReload();
+      return false;
+    }
+
+    set({ ammo: state.ammo - 1 });
+    return true;
+  },
+
+  startReload: () => set((state) => {
+    if (state.gameState !== 'playing' || state.isReloading || state.ammo === MAX_AMMO) return state;
+
+    return {
+      isReloading: true,
+      reloadEndsAt: Date.now() + RELOAD_DURATION_MS,
+      events: [...state.events, { id: Math.random().toString(), message: 'Reloading!', timestamp: Date.now() }],
+    };
+  }),
+
   addLaser: (start, end, color) => {
     set((state) => ({
       lasers: [...state.lasers, { id: Math.random().toString(36).substr(2, 9), start, end, timestamp: Date.now(), color }]
@@ -583,18 +663,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   addHighScore: (score, wave) => set((state) => {
     if (score <= 0) return state;
 
-    const nextScores = [
+    const nextScores = dedupeHighScores([
       ...state.highScores,
       {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        id: auth.currentUser?.uid || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         name: state.playerName.trim() || 'Player',
         score,
         wave,
         date: new Date().toLocaleDateString(),
+        userId: auth.currentUser?.uid,
       },
-    ]
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+    ]);
 
     saveHighScores(nextScores);
     void saveFirebaseHighScore(score, wave, state.playerName).catch((error) => {

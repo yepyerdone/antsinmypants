@@ -129,7 +129,7 @@ service cloud.firestore {
         && data.date is string
         && data.date.size() >= 1
         && data.date.size() <= 32
-        && data.createdAt is timestamp;
+        && data.updatedAt is timestamp;
     }
 
     // Daily Leaderboard Rules
@@ -228,12 +228,18 @@ service cloud.firestore {
     }
 
     // Fun House Frenzy Leaderboard Rules
-    match /fun_house_frenzy_scores/{entryId} {
+    match /fun_house_frenzy_scores/{userId} {
       allow list, get: if true;
-      allow create: if isSignedIn()
-        && isValidId(entryId)
+      allow create: if isOwner(userId)
+        && isValidId(userId)
         && isValidFunHouseFrenzyScore(incoming())
-        && incoming().createdAt == request.time;
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId)
+        && isValidFunHouseFrenzyScore(incoming())
+        && incoming().userId == existing().userId
+        && incoming().score > existing().score
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'score', 'wave', 'date', 'updatedAt']);
     }
 
     // The Ascension Game Rules

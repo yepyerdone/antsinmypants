@@ -25,6 +25,8 @@ export function Player() {
   const hitEnemy = useGameStore(state => state.hitEnemy);
   const addParticles = useGameStore(state => state.addParticles);
   const openSpawnDoor = useGameStore(state => state.openSpawnDoor);
+  const useAmmo = useGameStore(state => state.useAmmo);
+  const isReloading = useGameStore(state => state.isReloading);
 
   const keys = useRef({ 
     w: false, a: false, s: false, d: false,
@@ -99,12 +101,6 @@ export function Player() {
     }
     const startPos: [number, number, number] = [startPosVec.x, startPosVec.y, startPosVec.z];
 
-    // Apply recoil
-    if (gunVisualRef.current) {
-      gunVisualRef.current.position.z = -0.4;
-      gunVisualRef.current.rotation.x = 0.1;
-    }
-
     let endPos: [number, number, number];
 
     if (hit) {
@@ -124,6 +120,29 @@ export function Player() {
             addLaser(startPos, endPos, '#facc15');
             return;
           }
+        }
+      }
+    }
+
+    if (!useAmmo()) return;
+
+    // Apply recoil
+    if (gunVisualRef.current) {
+      gunVisualRef.current.position.z = -0.4;
+      gunVisualRef.current.rotation.x = 0.1;
+    }
+
+    if (hit) {
+      const hitPoint = ray.pointAt(hit.timeOfImpact);
+      endPos = [hitPoint.x, hitPoint.y, hitPoint.z];
+      
+      const collider = hit.collider;
+      const rb = collider.parent();
+      if (rb && rb.userData) {
+        const userData = rb.userData as { name?: string };
+        const name = userData.name;
+        
+        if (name) {
 
           // Check if it's an enemy
           if (name.startsWith('enemy-') || name.startsWith('bot-')) {
@@ -234,8 +253,12 @@ export function Player() {
     
     // Recover recoil
     if (gunVisualRef.current) {
+      const reloadOffset = isReloading ? 0.34 : 0;
+      const reloadTilt = isReloading ? -0.95 + Math.sin(state.clock.elapsedTime * 18) * 0.08 : 0;
+      gunVisualRef.current.position.y = THREE.MathUtils.lerp(gunVisualRef.current.position.y, -0.3 - reloadOffset, delta * 10);
       gunVisualRef.current.position.z = THREE.MathUtils.lerp(gunVisualRef.current.position.z, -0.6, delta * 15);
-      gunVisualRef.current.rotation.x = THREE.MathUtils.lerp(gunVisualRef.current.rotation.x, 0, delta * 15);
+      gunVisualRef.current.rotation.x = THREE.MathUtils.lerp(gunVisualRef.current.rotation.x, reloadTilt, delta * 12);
+      gunVisualRef.current.rotation.z = THREE.MathUtils.lerp(gunVisualRef.current.rotation.z, isReloading ? 0.32 : 0, delta * 12);
     }
   });
 
@@ -299,7 +322,7 @@ export function Player() {
       window.removeEventListener('blur', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gameState, playerState, camera, world, rapier, hitEnemy, addParticles, addLaser, openSpawnDoor]);
+  }, [gameState, playerState, camera, world, rapier, hitEnemy, addParticles, addLaser, openSpawnDoor, useAmmo]);
 
   return (
     <>
