@@ -68,7 +68,6 @@ export function BossCar() {
   const frontCollider = useRef<RapierRigidBody>(null);
   const tireColliders = useRef<Record<string, RapierRigidBody | null>>({});
   const distanceRef = useRef(0);
-  const lastDropRef = useRef(Date.now());
   const [spawnAnimations, setSpawnAnimations] = useState<SpawnAnimation[]>([]);
 
   const damageRatio = Math.min(1, bossCar.totalHits / 10);
@@ -101,8 +100,7 @@ export function BossCar() {
     });
 
     const now = Date.now();
-    if (now - lastDropRef.current >= CLOWN_DROP_MS) {
-      lastDropRef.current = now;
+    if (bossCar.pendingClownDrops > 0 && now - bossCar.lastSpawnAt >= CLOWN_DROP_MS) {
       const exitPosition = offsetPosition(position, angle, -2.9, -0.5);
       const spawnPosition = offsetPosition(position, angle, -6.5, -1.8);
       spawnBossClown([spawnPosition.x, 1, spawnPosition.z]);

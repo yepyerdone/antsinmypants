@@ -26,6 +26,7 @@ export interface BossCarData {
   hits: Record<BossCarHitZone, number>;
   totalHits: number;
   lastSpawnAt: number;
+  pendingClownDrops: number;
 }
 
 export interface LaserData {
@@ -147,6 +148,7 @@ const createInactiveBossCar = (wave = 0): BossCarData => ({
   },
   totalHits: 0,
   lastSpawnAt: 0,
+  pendingClownDrops: 0,
 });
 
 function isBossWave(wave: number) {
@@ -159,6 +161,7 @@ function createBossCar(wave: number): BossCarData {
     active: true,
     wave,
     lastSpawnAt: Date.now(),
+    pendingClownDrops: 5,
   };
 }
 
@@ -649,6 +652,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         [zone]: currentZoneHits + 1,
       },
       totalHits: state.bossCar.totalHits + 1,
+      pendingClownDrops: state.bossCar.pendingClownDrops + 5,
+      lastSpawnAt: Date.now(),
     };
 
     const hitsRemaining = getBossCarHitsRemaining(nextBossCar);
@@ -679,7 +684,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   }),
 
   spawnBossClown: (position) => set((state) => {
-    if (state.gameState !== 'playing' || !state.bossCar.active || state.bossCar.destroyed) return state;
+    if (
+      state.gameState !== 'playing'
+      || !state.bossCar.active
+      || state.bossCar.destroyed
+      || state.bossCar.pendingClownDrops <= 0
+    ) return state;
 
     const now = Date.now();
     const enemy: EnemyData = {
@@ -692,7 +702,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return {
       enemies: [...state.enemies, enemy],
       enemiesRemaining: state.enemiesRemaining + 1,
-      bossCar: { ...state.bossCar, lastSpawnAt: now },
+      bossCar: {
+        ...state.bossCar,
+        lastSpawnAt: now,
+        pendingClownDrops: Math.max(0, state.bossCar.pendingClownDrops - 1),
+      },
       events: [...state.events, { id: Math.random().toString(), message: 'Clowns poured out of the car!', timestamp: now }],
     };
   }),
