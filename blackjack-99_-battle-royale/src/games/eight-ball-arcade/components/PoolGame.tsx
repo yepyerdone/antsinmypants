@@ -222,6 +222,8 @@ export default function PoolGame() {
   }, [websitePlayerName]);
 
   const handleOnlineMatch = async () => {
+    if (matchmaking) return;
+
     try {
       let user = auth.currentUser;
       if (!user) {
@@ -244,24 +246,46 @@ export default function PoolGame() {
             // Update local state from Firebase
             if (data.balls) {
                const updateFunc = (prev: GameState | null) => {
-                 if (!prev) return null;
+                 const whitePlayer: GamePlayer = { uid: data.players?.white?.uid || '', name: data.players?.white?.name || 'Player 1', group: data.players?.white?.group ?? null, violations: data.players?.white?.violations || 0 };
+                 const blackPlayer: GamePlayer = { uid: data.players?.black?.uid || '', name: data.players?.black?.name || 'Player 2', group: data.players?.black?.group ?? null, violations: data.players?.black?.violations || 0 };
+                 if (!prev) {
+                   const next: GameState = {
+                     mode: 'online',
+                     players: [whitePlayer, blackPlayer],
+                     turnIndex: data.turn === blackPlayer.uid ? 1 : 0,
+                     balls: data.balls,
+                     firstBallHit: data.firstBallHit || null,
+                     ballsPocketedThisTurn: data.ballsPocketedThisTurn || [],
+                     isMoving: data.isMoving || false,
+                     isFoul: data.isFoul || false,
+                     foulReason: data.foulReason || null,
+                     isBallInHand: data.isBallInHand ?? true,
+                     nominatedPocket: data.nominatedPocket || null,
+                     turnStartTime: data.turnStartTime || Date.now(),
+                     winner: data.winner || null,
+                     status: data.status === 'finished' ? 'finished' : 'playing',
+                   };
+                   gameStateRef.current = next;
+                   return next;
+                 }
                  const next: GameState = { 
                    ...prev, 
                    balls: data.balls, 
-                   turnIndex: data.turn === prev.players[0].uid ? 0 : 1, 
-                   status: data.status, 
+                   turnIndex: data.turn === whitePlayer.uid ? 0 : 1, 
+                   status: data.status === 'finished' ? 'finished' : 'playing', 
                    winner: data.winner,
                    turnStartTime: data.turnStartTime || prev.turnStartTime,
                    players: [
-                     { ...prev.players[0], ...data.players?.white },
-                     { ...prev.players[1], ...data.players?.black }
+                     { ...prev.players[0], ...whitePlayer },
+                     { ...prev.players[1], ...blackPlayer }
                    ]
                  };
                  gameStateRef.current = next;
                  return next;
                };
-               setGameState(updateFunc);
-               setDisplayState(updateFunc(gameStateRef.current));
+               const nextState = updateFunc(gameStateRef.current);
+               setGameState(nextState);
+               setDisplayState(nextState);
             }
           });
         }
