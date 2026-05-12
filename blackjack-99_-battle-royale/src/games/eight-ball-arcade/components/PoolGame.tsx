@@ -186,6 +186,8 @@ export default function PoolGame() {
   const strikeParamsRef = useRef<{ angle: number; power: number } | null>(null);
   const handledTimeoutRef = useRef<number | null>(null);
   const lastLiveSyncRef = useRef(0);
+  const matchmakingCleanupRef = useRef<(() => void) | null>(null);
+  const matchUnsubscribeRef = useRef<(() => void) | null>(null);
   const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
 
   const isMyOnlineTurn = useCallback((state: GameState | null) => {
@@ -210,6 +212,12 @@ export default function PoolGame() {
 
   // Initialize game
   const startGame = useCallback((selectedMode: GameMode, diff?: BotDifficulty, p1?: string, p2?: string) => {
+    matchmakingCleanupRef.current?.();
+    matchmakingCleanupRef.current = null;
+    matchUnsubscribeRef.current?.();
+    matchUnsubscribeRef.current = null;
+    setMatchmaking(false);
+
     const balls = Engine.createBalls();
     const playerOneName = selectedMode === 'local' ? (p1 || 'Player 1') : (p1 || websitePlayerName);
     const players: [GamePlayer, GamePlayer] = [
@@ -252,6 +260,9 @@ export default function PoolGame() {
     if (matchmaking) return;
 
     try {
+      matchmakingCleanupRef.current?.();
+      matchmakingCleanupRef.current = null;
+
       let user = auth.currentUser;
       if (!user) {
         const provider = new GoogleAuthProvider();
@@ -260,16 +271,20 @@ export default function PoolGame() {
       }
 
       setMatchmaking(true);
-      await MultiplayerManager.startMatchmaking(
+      const cleanup = await MultiplayerManager.startMatchmaking(
         { uid: user.uid, name: websitePlayerName, group: null },
         (matchId, role) => {
+          matchmakingCleanupRef.current?.();
+          matchmakingCleanupRef.current = null;
+          matchUnsubscribeRef.current?.();
+          matchUnsubscribeRef.current = null;
           setOnlineMatchId(matchId);
           setMyRole(role);
           setMatchmaking(false);
           setMenuOpen(false);
           setMode('online');
           
-          MultiplayerManager.listenToMatch(matchId, (data) => {
+          matchUnsubscribeRef.current = MultiplayerManager.listenToMatch(matchId, (data) => {
             // Update local state from Firebase
             if (data.balls) {
                const updateFunc = (prev: GameState | null) => {
@@ -343,10 +358,80 @@ export default function PoolGame() {
           });
         }
       );
+      matchmakingCleanupRef.current = cleanup;
     } catch (err) {
       toast.error('Failed to join matchmaking');
       setMatchmaking(false);
     }
+  };
+
+  useEffect(() => {
+    return () => {
+      matchmakingCleanupRef.current?.();
+      matchUnsubscribeRef.current?.();
+    };
+  }, []);
+
+  const handleQuitGame = () => {
+    matchmakingCleanupRef.current?.();
+    matchmakingCleanupRef.current = null;
+    setMatchmaking(false);
+
+    const state = gameStateRef.current;
+    if (!state) {
+      setMenuOpen(true);
+      return;
+    }
+
+    if (state.mode === 'online' && onlineMatchId && auth.currentUser?.uid) {
+      const winner = state.players.find((player) => player.uid !== auth.currentUser?.uid)?.uid || null;
+      const quitterName = state.players.find((player) => player.uid === auth.currentUser?.uid)?.name || 'Player';
+      const nextState: GameState = {
+        ...state,
+        winner,
+        status: 'finished',
+        isMoving: false,
+        foulReason: `${quitterName} forfeited the match`,
+      };
+
+      gameStateRef.current = nextState;
+      setGameState(nextState);
+      setDisplayState(nextState);
+      setIsAiming(false);
+      setIsStriking(false);
+      setShotPower(0);
+
+      MultiplayerManager.syncGameState(onlineMatchId, {
+        balls: nextState.balls,
+        isMoving: false,
+        status: 'finished',
+        winner,
+        foulReason: nextState.foulReason,
+        liveShot: {
+          playerUid: auth.currentUser.uid,
+          isAiming: false,
+          isStriking: false,
+          strikeProgress: 0,
+          angle: shotAngle,
+          power: 0,
+          mouse: mousePosRef.current,
+          updatedAt: Date.now(),
+        },
+      } as any);
+      setMenuOpen(false);
+      return;
+    }
+
+    matchUnsubscribeRef.current?.();
+    matchUnsubscribeRef.current = null;
+    gameStateRef.current = null;
+    setGameState(null);
+    setDisplayState(null);
+    setOnlineMatchId(null);
+    setMyRole(null);
+    setMode(null);
+    setMenuStage('main');
+    setMenuOpen(true);
   };
 
   // Game Loop
@@ -1676,12 +1761,17 @@ export default function PoolGame() {
                   </div>
 
                   {gameState && (
-                    <button 
-                      onClick={() => setMenuOpen(false)}
-                      className="mt-8 w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/10"
-                    >
-                       Resume Current Match
-                    </button>
+                    <div className="mt-8 space-y-3">
+                      {gameState.status === 'playing' && (
+                        <MenuButton icon={<X />} label="Quit Game" onClick={handleQuitGame} secondary />
+                      )}
+                      <button 
+                        onClick={() => setMenuOpen(false)}
+                        className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/10"
+                      >
+                         Resume Current Match
+                      </button>
+                    </div>
                   )}
                 </>
               ) : (
