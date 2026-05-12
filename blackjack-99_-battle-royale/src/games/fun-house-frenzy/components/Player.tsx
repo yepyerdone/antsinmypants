@@ -13,6 +13,7 @@ const SPEED = 12;
 const MAX_LASER_DIST = 100;
 const MOUSE_SENSITIVITY = 0.002;
 const DOOR_INTERACTION_DISTANCE = 10.5;
+const BOSS_CAR_HIT_ZONES = ['front', 'tire-fl', 'tire-fr', 'tire-rl', 'tire-rr'] as const;
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null);
@@ -23,6 +24,7 @@ export function Player() {
   const gameState = useGameStore(state => state.gameState);
   const addLaser = useGameStore(state => state.addLaser);
   const hitEnemy = useGameStore(state => state.hitEnemy);
+  const hitBossCar = useGameStore(state => state.hitBossCar);
   const addParticles = useGameStore(state => state.addParticles);
   const openSpawnDoor = useGameStore(state => state.openSpawnDoor);
   const useAmmo = useGameStore(state => state.useAmmo);
@@ -143,6 +145,14 @@ export function Player() {
         const name = userData.name;
         
         if (name) {
+
+          if (name.startsWith('boss-car-')) {
+            const zone = name.replace('boss-car-', '') as Parameters<typeof hitBossCar>[0];
+            if ((BOSS_CAR_HIT_ZONES as readonly string[]).includes(zone)) {
+              hitBossCar(zone);
+              addParticles(endPos, '#9ca3af');
+            }
+          }
 
           // Check if it's an enemy
           if (name.startsWith('enemy-') || name.startsWith('bot-')) {
@@ -322,7 +332,7 @@ export function Player() {
       window.removeEventListener('blur', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gameState, playerState, camera, world, rapier, hitEnemy, addParticles, addLaser, openSpawnDoor, useAmmo]);
+  }, [gameState, playerState, camera, world, rapier, hitEnemy, hitBossCar, addParticles, addLaser, openSpawnDoor, useAmmo]);
 
   return (
     <>

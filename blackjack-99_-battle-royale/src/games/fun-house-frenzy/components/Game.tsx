@@ -9,6 +9,7 @@ import { Arena } from './Arena';
 import { Player } from './Player';
 import { Enemy } from './Enemy';
 import { Effects } from './Effects';
+import { BossCar } from './BossCar';
 import { useGameStore } from '../store';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { useShallow } from 'zustand/react/shallow';
@@ -65,6 +66,7 @@ export function Game() {
         <GameLoop />
         <Arena />
         <Player />
+        <BossCar />
         {enemies.filter(e => e.disabledUntil !== Infinity).map(enemy => (
           <Enemy key={enemy.id} data={enemy} />
         ))}

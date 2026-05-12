@@ -17,6 +17,17 @@ export interface EnemyData {
   disabledUntil: number;
 }
 
+export type BossCarHitZone = 'front' | 'tire-fl' | 'tire-fr' | 'tire-rl' | 'tire-rr';
+
+export interface BossCarData {
+  active: boolean;
+  destroyed: boolean;
+  wave: number;
+  hits: Record<BossCarHitZone, number>;
+  totalHits: number;
+  lastSpawnAt: number;
+}
+
 export interface LaserData {
   id: string;
   start: [number, number, number];
@@ -57,6 +68,7 @@ interface GameStore {
   reloadEndsAt: number;
   spawnDoorOpen: boolean;
   enemiesRemaining: number;
+  bossCar: BossCarData;
   playerState: EntityState;
   playerDisabledUntil: number;
   enemies: EnemyData[];
@@ -75,6 +87,8 @@ interface GameStore {
   updateTime: (delta: number) => void;
   hitPlayer: () => void;
   hitEnemy: (id: string, byPlayer?: boolean) => void;
+  hitBossCar: (zone: BossCarHitZone) => void;
+  spawnBossClown: (position: [number, number, number]) => void;
   openSpawnDoor: () => void;
   useAmmo: () => boolean;
   startReload: () => void;
@@ -117,6 +131,50 @@ const SPAWN_ROOM_HALF_DEPTH = 8;
 const SPAWN_ROOM_BUFFER = 14;
 const CAROUSEL_POSITION: [number, number, number] = [-62, 1, 58];
 const CAROUSEL_SPAWN_BUFFER = 18;
+const BOSS_HITS_PER_TIRE = 2;
+const BOSS_FRONT_HITS = 2;
+
+const createInactiveBossCar = (wave = 0): BossCarData => ({
+  active: false,
+  destroyed: false,
+  wave,
+  hits: {
+    front: 0,
+    'tire-fl': 0,
+    'tire-fr': 0,
+    'tire-rl': 0,
+    'tire-rr': 0,
+  },
+  totalHits: 0,
+  lastSpawnAt: 0,
+});
+
+function isBossWave(wave: number) {
+  return wave > 0 && wave % 3 === 0;
+}
+
+function createBossCar(wave: number): BossCarData {
+  return {
+    ...createInactiveBossCar(wave),
+    active: true,
+    wave,
+    lastSpawnAt: Date.now(),
+  };
+}
+
+function getBossCarHitsRemaining(bossCar: BossCarData) {
+  return (
+    Math.max(0, BOSS_FRONT_HITS - bossCar.hits.front)
+    + Math.max(0, BOSS_HITS_PER_TIRE - bossCar.hits['tire-fl'])
+    + Math.max(0, BOSS_HITS_PER_TIRE - bossCar.hits['tire-fr'])
+    + Math.max(0, BOSS_HITS_PER_TIRE - bossCar.hits['tire-rl'])
+    + Math.max(0, BOSS_HITS_PER_TIRE - bossCar.hits['tire-rr'])
+  );
+}
+
+function createEnemiesForWave(wave: number) {
+  return isBossWave(wave) ? [] : createWaveEnemies(wave);
+}
 
 type SpawnObstacle = {
   x: number;
@@ -402,6 +460,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   reloadEndsAt: 0,
   spawnDoorOpen: false,
   enemiesRemaining: 0,
+  bossCar: createInactiveBossCar(),
   playerState: 'active',
   playerDisabledUntil: 0,
   enemies: [],
@@ -424,7 +483,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startGame: () => {
     const startWave = 1;
-    const newEnemies = createWaveEnemies(startWave);
+    const newEnemies = createEnemiesForWave(startWave);
 
     set({
       gameState: 'playing',
@@ -436,6 +495,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       reloadEndsAt: 0,
       spawnDoorOpen: false,
       enemiesRemaining: getActiveEnemyCount(newEnemies),
+      bossCar: isBossWave(startWave) ? createBossCar(startWave) : createInactiveBossCar(startWave),
       playerState: 'active',
       playerDisabledUntil: 0,
       enemies: newEnemies,
@@ -470,6 +530,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isReloading: false,
       reloadEndsAt: 0,
       spawnDoorOpen: false,
+      bossCar: createInactiveBossCar(),
       enemiesRemaining: 0,
       playerState: 'active'
     });
@@ -551,15 +612,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     // Check if wave is cleared
     if (activeEnemies === 0) {
+        if (state.bossCar.active && !state.bossCar.destroyed) {
+          return {
+            enemies: newEnemies,
+            enemiesRemaining: activeEnemies,
+            score: newScore,
+            events: byPlayer ? [...state.events, { id: Math.random().toString(), message: `Enemy neutralised!`, timestamp: Date.now() }] : state.events
+          };
+        }
+
         const nextWave = state.wave + 1;
-        const spawnedEnemies = createWaveEnemies(nextWave);
+        const spawnedEnemies = createEnemiesForWave(nextWave);
 
         return {
             enemies: spawnedEnemies,
             enemiesRemaining: getActiveEnemyCount(spawnedEnemies),
             wave: nextWave,
+            bossCar: isBossWave(nextWave) ? createBossCar(nextWave) : createInactiveBossCar(nextWave),
             score: newScore + (state.wave * 500), // Wave bonus
-            events: [...state.events, { id: Math.random().toString(), message: `WAVE ${nextWave} STARTING!`, timestamp: Date.now() }]
+            events: [...state.events, { id: Math.random().toString(), message: isBossWave(nextWave) ? `BOSS ACT ${nextWave}: STOP THE CLOWN CAR!` : `WAVE ${nextWave} STARTING!`, timestamp: Date.now() }]
         };
     }
 
@@ -568,6 +639,73 @@ export const useGameStore = create<GameStore>((set, get) => ({
       enemiesRemaining: activeEnemies,
       score: newScore,
       events: byPlayer ? [...state.events, { id: Math.random().toString(), message: `Enemy neutralised!`, timestamp: Date.now() }] : state.events
+    };
+  }),
+
+  hitBossCar: (zone) => set((state) => {
+    if (state.gameState !== 'playing' || !state.bossCar.active || state.bossCar.destroyed) return state;
+    if (!(zone in state.bossCar.hits)) return state;
+
+    const limitForZone = zone === 'front' ? BOSS_FRONT_HITS : BOSS_HITS_PER_TIRE;
+    const currentZoneHits = state.bossCar.hits[zone];
+    if (currentZoneHits >= limitForZone) {
+      return {
+        events: [...state.events, { id: Math.random().toString(), message: `${zone.toUpperCase()} ALREADY DISABLED!`, timestamp: Date.now() }],
+      };
+    }
+
+    const nextBossCar: BossCarData = {
+      ...state.bossCar,
+      hits: {
+        ...state.bossCar.hits,
+        [zone]: currentZoneHits + 1,
+      },
+      totalHits: state.bossCar.totalHits + 1,
+    };
+
+    const hitsRemaining = getBossCarHitsRemaining(nextBossCar);
+    const newScore = state.score + 150;
+
+    if (hitsRemaining === 0) {
+      const nextWave = state.wave + 1;
+      const spawnedEnemies = createEnemiesForWave(nextWave);
+      return {
+        enemies: spawnedEnemies,
+        enemiesRemaining: getActiveEnemyCount(spawnedEnemies),
+        wave: nextWave,
+        score: newScore + (state.wave * 750),
+        events: [
+          ...state.events,
+          { id: Math.random().toString(), message: 'CLOWN CAR DESTROYED!', timestamp: Date.now() },
+          { id: Math.random().toString(), message: isBossWave(nextWave) ? `BOSS ACT ${nextWave}: STOP THE CLOWN CAR!` : `WAVE ${nextWave} STARTING!`, timestamp: Date.now() },
+        ],
+        bossCar: isBossWave(nextWave) ? createBossCar(nextWave) : createInactiveBossCar(nextWave),
+      };
+    }
+
+    return {
+      bossCar: nextBossCar,
+      score: newScore,
+      events: [...state.events, { id: Math.random().toString(), message: `CLOWN CAR HIT! ${hitsRemaining} HITS LEFT`, timestamp: Date.now() }],
+    };
+  }),
+
+  spawnBossClown: (position) => set((state) => {
+    if (state.gameState !== 'playing' || !state.bossCar.active || state.bossCar.destroyed) return state;
+
+    const now = Date.now();
+    const enemy: EnemyData = {
+      id: `boss-clown-w${state.wave}-${now}-${state.enemies.length}`,
+      position,
+      state: 'active',
+      disabledUntil: 0,
+    };
+
+    return {
+      enemies: [...state.enemies, enemy],
+      enemiesRemaining: state.enemiesRemaining + 1,
+      bossCar: { ...state.bossCar, lastSpawnAt: now },
+      events: [...state.events, { id: Math.random().toString(), message: 'Clowns poured out of the car!', timestamp: now }],
     };
   }),
 

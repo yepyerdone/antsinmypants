@@ -18,6 +18,7 @@ function HUD() {
   const ammo = useGameStore(state => state.ammo);
   const isReloading = useGameStore(state => state.isReloading);
   const enemiesRemaining = useGameStore(state => state.enemiesRemaining);
+  const bossCar = useGameStore(state => state.bossCar);
   const playerState = useGameStore(state => state.playerState);
   const events = useGameStore(state => state.events);
   const leaveGame = useGameStore(state => state.leaveGame);
@@ -50,9 +51,24 @@ function HUD() {
           </div>
           <div className="h-4 w-[2px] bg-red-700/20" />
           <div className="text-[10px] md:text-xs font-black uppercase">
-             {enemiesRemaining} CLOWNS LEFT
+             {bossCar.active ? `${Math.max(0, 10 - bossCar.totalHits)} CAR HITS LEFT` : `${enemiesRemaining} CLOWNS LEFT`}
           </div>
         </div>
+
+        {bossCar.active && (
+          <div className="bg-slate-950 text-white px-3 py-2 border-2 border-red-500 rounded-md shadow-md mt-2">
+            <div className="text-[10px] font-black uppercase leading-none text-yellow-300">CLOWN CAR BOSS</div>
+            <div className="mt-2 grid grid-cols-5 gap-1" aria-label={`${Math.max(0, 10 - bossCar.totalHits)} car hits remaining`}>
+              {Array.from({ length: 10 }, (_, index) => (
+                <span
+                  key={index}
+                  className={`h-2 w-5 rounded-sm border border-white/30 ${index < bossCar.totalHits ? 'bg-red-500' : 'bg-slate-700'}`}
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white text-red-600 px-3 py-2 border-2 border-red-600 rounded-md shadow-md mt-2">
           <div className="text-[10px] font-black uppercase leading-none opacity-80">HEARTS</div>
