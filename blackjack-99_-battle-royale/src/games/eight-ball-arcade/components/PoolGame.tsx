@@ -293,7 +293,11 @@ export default function PoolGame() {
             }
 
             // Update local state from Firebase
-            if (data.balls) {
+            const localState = gameStateRef.current;
+            const isAuthoritativeShooter = !!localState && isMyOnlineTurn(localState);
+            const isOwnMovingEcho = isAuthoritativeShooter && localState.isMoving && data.isMoving === true;
+
+            if (data.balls && !isOwnMovingEcho) {
                const updateFunc = (prev: GameState | null) => {
                  const whitePlayer: GamePlayer = { uid: data.players?.white?.uid || '', name: data.players?.white?.name || 'Player 1', group: data.players?.white?.group ?? null, violations: data.players?.white?.violations || 0 };
                  const blackPlayer: GamePlayer = { uid: data.players?.black?.uid || '', name: data.players?.black?.name || 'Player 2', group: data.players?.black?.group ?? null, violations: data.players?.black?.violations || 0 };
@@ -477,6 +481,12 @@ export default function PoolGame() {
           }
           return next;
         });
+      }
+
+      if (state.isMoving && onlineMatchId && !isMyOnlineTurn(state)) {
+        render(ctx, state, mousePosRef.current, isAiming, shotAngle, shotPower, isStriking, strikeProgress);
+        rafId = requestAnimationFrame(loop);
+        return;
       }
 
       // 1. Physics Update
