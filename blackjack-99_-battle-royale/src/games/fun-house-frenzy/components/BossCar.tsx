@@ -120,7 +120,7 @@ export function BossCar() {
 
   return (
     <group>
-      <group ref={carRef}>
+      <group ref={carRef} userData={{ name: 'boss-car-body' }}>
         <mesh castShadow position={[0, 1.1, 0]}>
           <boxGeometry args={[4.4, 1.7, 6.4]} />
           <meshStandardMaterial color="#ef4444" roughness={0.55} metalness={0.15} />

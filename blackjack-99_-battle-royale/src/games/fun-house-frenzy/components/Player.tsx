@@ -17,7 +17,7 @@ const BOSS_CAR_HIT_ZONES = ['body', 'front', 'tire-fl', 'tire-fr', 'tire-rl', 't
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null);
-  const { camera } = useThree();
+  const { camera, scene } = useThree();
   const { rapier, world } = useRapier();
   
   const playerState = useGameStore(state => state.playerState);
@@ -89,11 +89,21 @@ export function Player() {
     // Raycast from camera
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    raycaster.far = MAX_LASER_DIST;
 
     // Start raycast slightly ahead of the camera to avoid hitting the player's own collider
     const rayStart = camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(0.8));
     const ray = new rapier.Ray(rayStart, raycaster.ray.direction);
     const hit = world.castRay(ray, MAX_LASER_DIST, true);
+    const bossVisualHit = raycaster.intersectObjects(scene.children, true).find((intersection) => {
+      let target: THREE.Object3D | null = intersection.object;
+      while (target) {
+        const name = target.userData?.name;
+        if (typeof name === 'string' && name.startsWith('boss-car-')) return true;
+        target = target.parent;
+      }
+      return false;
+    });
 
     const startPosVec = new THREE.Vector3();
     if (gunBarrelRef.current) {
@@ -132,6 +142,14 @@ export function Player() {
     if (gunVisualRef.current) {
       gunVisualRef.current.position.z = -0.4;
       gunVisualRef.current.rotation.x = 0.1;
+    }
+
+    if (bossVisualHit) {
+      endPos = [bossVisualHit.point.x, bossVisualHit.point.y, bossVisualHit.point.z];
+      hitBossCar('body');
+      addParticles(endPos, '#9ca3af');
+      addLaser(startPos, endPos, '#ffff00');
+      return;
     }
 
     if (hit) {
@@ -332,7 +350,7 @@ export function Player() {
       window.removeEventListener('blur', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gameState, playerState, camera, world, rapier, hitEnemy, hitBossCar, addParticles, addLaser, openSpawnDoor, useAmmo]);
+  }, [gameState, playerState, camera, scene, world, rapier, hitEnemy, hitBossCar, addParticles, addLaser, openSpawnDoor, useAmmo]);
 
   return (
     <>
