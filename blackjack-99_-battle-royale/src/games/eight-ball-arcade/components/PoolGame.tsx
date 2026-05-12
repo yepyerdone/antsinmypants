@@ -174,13 +174,19 @@ export default function PoolGame() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const mousePosRef = useRef({ x: 0, y: 0 });
   const [isAiming, setIsAiming] = useState(false);
+  const isAimingRef = useRef(false);
   const [isAimLocked, setIsAimLocked] = useState(false);
   const [shotAngle, setShotAngle] = useState(0);
+  const shotAngleRef = useRef(0);
   const [isPrecisionMode, setIsPrecisionMode] = useState(false);
   const [cueSpin, setCueSpin] = useState({ x: 0, y: 0 }); // -1 to 1 for each axis
+  const cueSpinRef = useRef({ x: 0, y: 0 });
   const [isStriking, setIsStriking] = useState(false);
+  const isStrikingRef = useRef(false);
   const [strikeProgress, setStrikeProgress] = useState(0); // 0 to 1
+  const strikeProgressRef = useRef(0);
   const [shotPower, setShotPower] = useState(0);
+  const shotPowerRef = useRef(0);
   const [isInteractingMeter, setIsInteractingMeter] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const strikeParamsRef = useRef<{ angle: number; power: number } | null>(null);
@@ -209,6 +215,15 @@ export default function PoolGame() {
       },
     } as any);
   }, [onlineMatchId]);
+
+  useEffect(() => {
+    isAimingRef.current = isAiming;
+    shotAngleRef.current = shotAngle;
+    shotPowerRef.current = shotPower;
+    isStrikingRef.current = isStriking;
+    strikeProgressRef.current = strikeProgress;
+    cueSpinRef.current = cueSpin;
+  }, [cueSpin, isAiming, isStriking, shotAngle, shotPower, strikeProgress]);
 
   // Initialize game
   const startGame = useCallback((selectedMode: GameMode, diff?: BotDifficulty, p1?: string, p2?: string) => {
@@ -460,13 +475,13 @@ export default function PoolGame() {
     const loop = () => {
       const state = gameStateRef.current;
       if (!state || state.status === 'finished') {
-        if (state) render(ctx, state, mousePosRef.current, isAiming, shotAngle, shotPower, isStriking, strikeProgress);
+        if (state) render(ctx, state, mousePosRef.current, isAimingRef.current, shotAngleRef.current, shotPowerRef.current, isStrikingRef.current, strikeProgressRef.current);
         rafId = requestAnimationFrame(loop);
         return;
       }
 
       // Handle Strike Animation
-      if (isStriking) {
+      if (isStrikingRef.current) {
         setStrikeProgress(prev => {
           const next = prev + 0.15; // Animation speed
           if (next >= 1) {
@@ -476,15 +491,18 @@ export default function PoolGame() {
               applyShotVelocities(angle, power);
               strikeParamsRef.current = null;
             }
+            isStrikingRef.current = false;
+            strikeProgressRef.current = 0;
             setIsStriking(false);
             return 0;
           }
+          strikeProgressRef.current = next;
           return next;
         });
       }
 
       if (state.isMoving && onlineMatchId && !isMyOnlineTurn(state)) {
-        render(ctx, state, mousePosRef.current, isAiming, shotAngle, shotPower, isStriking, strikeProgress);
+        render(ctx, state, mousePosRef.current, isAimingRef.current, shotAngleRef.current, shotPowerRef.current, isStrikingRef.current, strikeProgressRef.current);
         rafId = requestAnimationFrame(loop);
         return;
       }
@@ -572,7 +590,7 @@ export default function PoolGame() {
                   isAiming: false,
                   isStriking: false,
                   strikeProgress: 0,
-                  angle: shotAngle,
+                  angle: shotAngleRef.current,
                   power: 0,
                   mouse: mousePosRef.current,
                   updatedAt: Date.now(),
@@ -599,7 +617,7 @@ export default function PoolGame() {
                   isAiming: false,
                   isStriking: false,
                   strikeProgress: 0,
-                  angle: shotAngle,
+                  angle: shotAngleRef.current,
                   power: 0,
                   mouse: mousePosRef.current,
                   updatedAt: now,
@@ -611,14 +629,14 @@ export default function PoolGame() {
       }
 
       // 2. Rendering
-      render(ctx, state, mousePosRef.current, isAiming, shotAngle, shotPower, isStriking, strikeProgress);
+      render(ctx, state, mousePosRef.current, isAimingRef.current, shotAngleRef.current, shotPowerRef.current, isStrikingRef.current, strikeProgressRef.current);
 
       rafId = requestAnimationFrame(loop);
     };
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [isMyOnlineTurn, onlineMatchId, myRole, mousePos, isAiming, shotAngle, shotPower, strikeProgress]);
+  }, [isMyOnlineTurn, onlineMatchId, myRole]);
 
   // Bot Turn Logic
   useEffect(() => {
@@ -788,7 +806,7 @@ export default function PoolGame() {
 
   const shoot = (angle: number, power: number) => {
     const state = gameStateRef.current;
-    if (!state || state.isMoving || state.winner || isStriking) return;
+    if (!state || state.isMoving || state.winner || isStrikingRef.current) return;
     if (onlineMatchId && !isMyOnlineTurn(state)) return;
     
     // Enforce pocket nomination for 8-ball
@@ -804,6 +822,8 @@ export default function PoolGame() {
 
     // Start striking animation first
     strikeParamsRef.current = { angle, power };
+    shotAngleRef.current = angle;
+    shotPowerRef.current = power;
     if (isMyOnlineTurn(state)) {
       syncLiveShot({
         isAiming: false,
@@ -815,6 +835,8 @@ export default function PoolGame() {
         turnStartTime: state.turnStartTime,
       }, 0);
     }
+    isStrikingRef.current = true;
+    strikeProgressRef.current = 0;
     setIsStriking(true);
     setStrikeProgress(0);
   };
@@ -834,11 +856,12 @@ export default function PoolGame() {
     // cueSpin.y is top/back spin (Vertical)
     // cueSpin.x is side English (Horizontal)
     const spinStrength = power * 1.5;
+    const currentCueSpin = cueSpinRef.current;
     
     // Follow/Draw (along shots direction)
-    const spinV = cueSpin.y * spinStrength;
+    const spinV = currentCueSpin.y * spinStrength;
     // Side English (perpendicular to shots direction)
-    const spinH = cueSpin.x * spinStrength;
+    const spinH = currentCueSpin.x * spinStrength;
 
     cueBall.spinX = Math.cos(angle) * spinV + Math.cos(angle + Math.PI / 2) * spinH;
     cueBall.spinY = Math.sin(angle) * spinV + Math.sin(angle + Math.PI / 2) * spinH;
@@ -884,6 +907,7 @@ export default function PoolGame() {
     }
     
     // Reset spin for next shot
+    cueSpinRef.current = { x: 0, y: 0 };
     setCueSpin({ x: 0, y: 0 });
   };
 
