@@ -345,7 +345,12 @@ export default function PoolGame() {
             }
 
             const liveShot = data.liveShot;
-            if (liveShot?.playerUid && liveShot.playerUid !== auth.currentUser?.uid) {
+            const currentTurnUid = data.turn || gameStateRef.current?.players[gameStateRef.current.turnIndex]?.uid;
+            const isRemoteTurnPreview = liveShot?.playerUid
+              && liveShot.playerUid !== auth.currentUser?.uid
+              && liveShot.playerUid === currentTurnUid;
+
+            if (isRemoteTurnPreview) {
               const isFresh = !liveShot.updatedAt || Date.now() - liveShot.updatedAt < 5000;
               if (isFresh) {
                 if (liveShot.mouse) {
@@ -959,6 +964,7 @@ export default function PoolGame() {
     const handleGlobalMove = (e: MouseEvent) => {
       const state = gameStateRef.current;
       if (!canvasRef.current || displayState?.isMoving || !state) return;
+      if (onlineMatchId && !isMyOnlineTurn(state)) return;
       
       const rect = canvasRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left - BORDER_OFFSET;
@@ -1001,6 +1007,8 @@ export default function PoolGame() {
     };
 
     const handleWheel = (e: WheelEvent) => {
+      const state = gameStateRef.current;
+      if (onlineMatchId && !isMyOnlineTurn(state)) return;
       if (!isAiming || displayState?.isMoving || displayState?.winner) return;
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.005 : -0.005;
@@ -1016,10 +1024,12 @@ export default function PoolGame() {
       window.removeEventListener('mousemove', handleGlobalMove);
       if (canvas) canvas.removeEventListener('wheel', handleWheel);
     };
-  }, [isAiming, isAimLocked, displayState?.isMoving, displayState?.winner]);
+  }, [isAiming, isAimLocked, displayState?.isMoving, displayState?.winner, isMyOnlineTurn, onlineMatchId]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!canvasRef.current || isAimLocked) return;
+    const state = gameStateRef.current;
+    if (onlineMatchId && !isMyOnlineTurn(state)) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - BORDER_OFFSET;
     const y = e.clientY - rect.top - BORDER_OFFSET;
