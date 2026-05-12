@@ -59,6 +59,10 @@ export class MultiplayerManager {
         createdAt: new Date().toISOString(),
         createdAtMs: Date.now(),
         whiteQueueToken: otherData.queueToken,
+        connectionReady: {
+          white: false,
+          black: false,
+        },
       };
 
       await setDoc(doc(db, 'matches', matchId), matchData);
@@ -87,9 +91,12 @@ export class MultiplayerManager {
 
       // Listen for a match created for us
       const matchesCol = collection(db, 'matches');
-      const qMatch = query(matchesCol, where('whiteQueueToken', '==', queueToken));
+      const qMatch = query(matchesCol, where('players.white.uid', '==', player.uid));
       const unsubscribe = onSnapshot(qMatch, (snap) => {
-        const matchDoc = snap.docs.find((match) => match.data()?.players?.white?.uid === player.uid && match.data()?.status === 'playing');
+        const matchDoc = snap.docs.find((match) => {
+          const matchData = match.data();
+          return matchData?.whiteQueueToken === queueToken && matchData?.status === 'playing';
+        });
         if (matchDoc) {
           isSearching = false;
           window.clearInterval(heartbeat);
@@ -106,6 +113,13 @@ export class MultiplayerManager {
         deleteDoc(queueRef).catch(() => undefined);
       };
     }
+  }
+
+  static markPlayerConnected(matchId: string, role: 'white' | 'black') {
+    return updateDoc(doc(db, 'matches', matchId), {
+      [`connectionReady.${role}`]: true,
+      [`connectionReadyAt.${role}`]: Date.now(),
+    });
   }
 
   static syncGameState(matchId: string, state: Partial<GameState>) {

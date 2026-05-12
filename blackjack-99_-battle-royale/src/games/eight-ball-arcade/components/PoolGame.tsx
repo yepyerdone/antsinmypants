@@ -280,11 +280,18 @@ export default function PoolGame() {
           matchUnsubscribeRef.current = null;
           setOnlineMatchId(matchId);
           setMyRole(role);
-          setMatchmaking(false);
-          setMenuOpen(false);
+          setMatchmaking(true);
+          setMenuOpen(true);
           setMode('online');
+          MultiplayerManager.markPlayerConnected(matchId, role).catch(() => undefined);
           
           matchUnsubscribeRef.current = MultiplayerManager.listenToMatch(matchId, (data) => {
+            const bothPlayersConnected = !!data.connectionReady?.white && !!data.connectionReady?.black;
+            if (bothPlayersConnected) {
+              setMatchmaking(false);
+              setMenuOpen(false);
+            }
+
             // Update local state from Firebase
             if (data.balls) {
                const updateFunc = (prev: GameState | null) => {
@@ -1760,7 +1767,7 @@ export default function PoolGame() {
                     </div>
                   </div>
 
-                  {gameState && (
+                  {gameState && !matchmaking && (
                     <div className="mt-8 space-y-3">
                       {gameState.status === 'playing' && (
                         <MenuButton icon={<X />} label="Quit Game" onClick={handleQuitGame} secondary />
