@@ -13,7 +13,7 @@ const SPEED = 12;
 const MAX_LASER_DIST = 100;
 const MOUSE_SENSITIVITY = 0.002;
 const DOOR_INTERACTION_DISTANCE = 10.5;
-const BOSS_CAR_HIT_ZONES = ['front', 'tire-fl', 'tire-fr', 'tire-rl', 'tire-rr'] as const;
+const BOSS_CAR_HIT_ZONES = ['body', 'front', 'tire-fl', 'tire-fr', 'tire-rl', 'tire-rr'] as const;
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null);
@@ -155,7 +155,7 @@ export function Player() {
           }
 
           // Check if it's an enemy
-          if (name.startsWith('enemy-') || name.startsWith('bot-')) {
+          if (name.startsWith('enemy-') || name.startsWith('bot-') || name.startsWith('boss-clown-')) {
             hitEnemy(name, true);
           } 
         }

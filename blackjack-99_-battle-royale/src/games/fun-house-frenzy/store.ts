@@ -17,7 +17,7 @@ export interface EnemyData {
   disabledUntil: number;
 }
 
-export type BossCarHitZone = 'front' | 'tire-fl' | 'tire-fr' | 'tire-rl' | 'tire-rr';
+export type BossCarHitZone = 'body' | 'front' | 'tire-fl' | 'tire-fr' | 'tire-rl' | 'tire-rr';
 
 export interface BossCarData {
   active: boolean;
@@ -131,14 +131,14 @@ const SPAWN_ROOM_HALF_DEPTH = 8;
 const SPAWN_ROOM_BUFFER = 14;
 const CAROUSEL_POSITION: [number, number, number] = [-62, 1, 58];
 const CAROUSEL_SPAWN_BUFFER = 18;
-const BOSS_HITS_PER_TIRE = 2;
-const BOSS_FRONT_HITS = 2;
+const BOSS_REQUIRED_HITS = 10;
 
 const createInactiveBossCar = (wave = 0): BossCarData => ({
   active: false,
   destroyed: false,
   wave,
   hits: {
+    body: 0,
     front: 0,
     'tire-fl': 0,
     'tire-fr': 0,
@@ -163,13 +163,7 @@ function createBossCar(wave: number): BossCarData {
 }
 
 function getBossCarHitsRemaining(bossCar: BossCarData) {
-  return (
-    Math.max(0, BOSS_FRONT_HITS - bossCar.hits.front)
-    + Math.max(0, BOSS_HITS_PER_TIRE - bossCar.hits['tire-fl'])
-    + Math.max(0, BOSS_HITS_PER_TIRE - bossCar.hits['tire-fr'])
-    + Math.max(0, BOSS_HITS_PER_TIRE - bossCar.hits['tire-rl'])
-    + Math.max(0, BOSS_HITS_PER_TIRE - bossCar.hits['tire-rr'])
-  );
+  return Math.max(0, BOSS_REQUIRED_HITS - bossCar.totalHits);
 }
 
 function createEnemiesForWave(wave: number) {
@@ -646,13 +640,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (state.gameState !== 'playing' || !state.bossCar.active || state.bossCar.destroyed) return state;
     if (!(zone in state.bossCar.hits)) return state;
 
-    const limitForZone = zone === 'front' ? BOSS_FRONT_HITS : BOSS_HITS_PER_TIRE;
     const currentZoneHits = state.bossCar.hits[zone];
-    if (currentZoneHits >= limitForZone) {
-      return {
-        events: [...state.events, { id: Math.random().toString(), message: `${zone.toUpperCase()} ALREADY DISABLED!`, timestamp: Date.now() }],
-      };
-    }
 
     const nextBossCar: BossCarData = {
       ...state.bossCar,
