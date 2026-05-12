@@ -185,7 +185,28 @@ export default function PoolGame() {
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const strikeParamsRef = useRef<{ angle: number; power: number } | null>(null);
   const handledTimeoutRef = useRef<number | null>(null);
+  const lastLiveSyncRef = useRef(0);
   const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
+
+  const isMyOnlineTurn = useCallback((state: GameState | null) => {
+    return !!onlineMatchId && !!state && state.players[state.turnIndex].uid === auth.currentUser?.uid;
+  }, [onlineMatchId]);
+
+  const syncLiveShot = useCallback((payload: Record<string, unknown>, throttleMs = 90) => {
+    if (!onlineMatchId) return;
+
+    const now = Date.now();
+    if (throttleMs > 0 && now - lastLiveSyncRef.current < throttleMs) return;
+    lastLiveSyncRef.current = now;
+
+    MultiplayerManager.syncGameState(onlineMatchId, {
+      liveShot: {
+        ...payload,
+        playerUid: auth.currentUser?.uid,
+        updatedAt: now,
+      },
+    } as any);
+  }, [onlineMatchId]);
 
   // Initialize game
   const startGame = useCallback((selectedMode: GameMode, diff?: BotDifficulty, p1?: string, p2?: string) => {
@@ -300,6 +321,25 @@ export default function PoolGame() {
                setGameState(nextState);
                setDisplayState(nextState);
             }
+
+            const liveShot = data.liveShot;
+            if (liveShot?.playerUid && liveShot.playerUid !== auth.currentUser?.uid) {
+              const isFresh = !liveShot.updatedAt || Date.now() - liveShot.updatedAt < 5000;
+              if (isFresh) {
+                if (liveShot.mouse) {
+                  mousePosRef.current = liveShot.mouse;
+                  setMousePos(liveShot.mouse);
+                }
+                if (typeof liveShot.angle === 'number') setShotAngle(liveShot.angle);
+                if (typeof liveShot.power === 'number') setShotPower(liveShot.power);
+                setIsAiming(!!liveShot.isAiming);
+                setIsStriking(!!liveShot.isStriking);
+                setStrikeProgress(typeof liveShot.strikeProgress === 'number' ? liveShot.strikeProgress : 0);
+                if (liveShot.isStriking && typeof liveShot.angle === 'number') {
+                  strikeParamsRef.current = { angle: liveShot.angle, power: typeof liveShot.power === 'number' ? liveShot.power : 0 };
+                }
+              }
+            }
           });
         }
       );
@@ -344,6 +384,7 @@ export default function PoolGame() {
 
       // 1. Physics Update
       if (state.isMoving) {
+        const shouldSyncOnlineMotion = isMyOnlineTurn(state);
         const nextBalls = [...state.balls];
         let stillMoving = false;
         
@@ -404,14 +445,31 @@ export default function PoolGame() {
           setGameState(updatedState);
           setDisplayState(updatedState);
           
-          if (onlineMatchId && myRole) {
+          if (onlineMatchId && myRole && shouldSyncOnlineMotion) {
              // Sync state to firebase
              MultiplayerManager.syncGameState(onlineMatchId, {
                 balls: updatedState.balls,
+                isMoving: updatedState.isMoving,
+                isFoul: updatedState.isFoul,
+                foulReason: updatedState.foulReason,
+                isBallInHand: updatedState.isBallInHand,
+                firstBallHit: updatedState.firstBallHit,
+                ballsPocketedThisTurn: updatedState.ballsPocketedThisTurn,
+                nominatedPocket: updatedState.nominatedPocket,
                 status: updatedState.status,
                 winner: updatedState.winner,
                 turn: updatedState.players[updatedState.turnIndex].uid,
                 turnStartTime: updatedState.turnStartTime,
+                liveShot: {
+                  playerUid: auth.currentUser?.uid,
+                  isAiming: false,
+                  isStriking: false,
+                  strikeProgress: 0,
+                  angle: shotAngle,
+                  power: 0,
+                  mouse: mousePosRef.current,
+                  updatedAt: Date.now(),
+                },
                 players: {
                   white: updatedState.players[0],
                   black: updatedState.players[1]
@@ -420,8 +478,28 @@ export default function PoolGame() {
           }
         } else {
           state.balls = nextBalls;
-          // Periodically sync display state during movement for UI listeners if needed
-          // setDisplayState({...state}); 
+          if (onlineMatchId && shouldSyncOnlineMotion) {
+            const now = Date.now();
+            if (now - lastLiveSyncRef.current >= 90) {
+              lastLiveSyncRef.current = now;
+              MultiplayerManager.syncGameState(onlineMatchId, {
+                balls: nextBalls,
+                isMoving: true,
+                firstBallHit: state.firstBallHit,
+                ballsPocketedThisTurn: state.ballsPocketedThisTurn,
+                liveShot: {
+                  playerUid: auth.currentUser?.uid,
+                  isAiming: false,
+                  isStriking: false,
+                  strikeProgress: 0,
+                  angle: shotAngle,
+                  power: 0,
+                  mouse: mousePosRef.current,
+                  updatedAt: now,
+                },
+              } as any);
+            }
+          }
         }
       }
 
@@ -433,7 +511,7 @@ export default function PoolGame() {
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [onlineMatchId, myRole, mousePos, isAiming, shotAngle, shotPower]);
+  }, [isMyOnlineTurn, onlineMatchId, myRole, mousePos, isAiming, shotAngle, shotPower, strikeProgress]);
 
   // Bot Turn Logic
   useEffect(() => {
@@ -560,12 +638,43 @@ export default function PoolGame() {
     return () => clearInterval(timer);
   }, [gameState?.mode, gameState?.status, gameState?.isMoving, onlineMatchId]);
 
+  useEffect(() => {
+    const state = gameStateRef.current;
+    if (!isMyOnlineTurn(state) || state?.isMoving || state?.status === 'finished') return;
+
+    syncLiveShot({
+      isAiming,
+      angle: shotAngle,
+      power: shotPower,
+      mouse: mousePosRef.current,
+      isStriking,
+      strikeProgress,
+      turnStartTime: state.turnStartTime,
+    });
+  }, [isAiming, isStriking, isMyOnlineTurn, mousePos, shotAngle, shotPower, strikeProgress, syncLiveShot]);
+
   const confirmPlacement = () => {
     setGameState(prev => {
       if (!prev) return null;
       const next = { ...prev, isBallInHand: false };
       gameStateRef.current = next;
       setDisplayState(next);
+      if (isMyOnlineTurn(next) && onlineMatchId) {
+        MultiplayerManager.syncGameState(onlineMatchId, {
+          balls: next.balls,
+          isBallInHand: false,
+          liveShot: {
+            playerUid: auth.currentUser?.uid,
+            isAiming,
+            angle: shotAngle,
+            power: shotPower,
+            mouse: mousePosRef.current,
+            isStriking: false,
+            strikeProgress: 0,
+            updatedAt: Date.now(),
+          },
+        } as any);
+      }
       return next;
     });
   };
@@ -573,6 +682,7 @@ export default function PoolGame() {
   const shoot = (angle: number, power: number) => {
     const state = gameStateRef.current;
     if (!state || state.isMoving || state.winner || isStriking) return;
+    if (onlineMatchId && !isMyOnlineTurn(state)) return;
     
     // Enforce pocket nomination for 8-ball
     const currentPlayer = state.players[state.turnIndex];
@@ -587,6 +697,17 @@ export default function PoolGame() {
 
     // Start striking animation first
     strikeParamsRef.current = { angle, power };
+    if (isMyOnlineTurn(state)) {
+      syncLiveShot({
+        isAiming: false,
+        angle,
+        power,
+        mouse: mousePosRef.current,
+        isStriking: true,
+        strikeProgress: 0,
+        turnStartTime: state.turnStartTime,
+      }, 0);
+    }
     setIsStriking(true);
     setStrikeProgress(0);
   };
@@ -632,6 +753,28 @@ export default function PoolGame() {
     gameStateRef.current = nextState;
     setGameState(nextState);
     setDisplayState(nextState);
+
+    if (isMyOnlineTurn(state) && onlineMatchId) {
+      MultiplayerManager.syncGameState(onlineMatchId, {
+        balls: nextState.balls,
+        isMoving: true,
+        isBallInHand: nextState.isBallInHand,
+        firstBallHit: nextState.firstBallHit,
+        ballsPocketedThisTurn: nextState.ballsPocketedThisTurn,
+        isFoul: nextState.isFoul,
+        foulReason: nextState.foulReason,
+        liveShot: {
+          playerUid: auth.currentUser?.uid,
+          isAiming: false,
+          isStriking: false,
+          strikeProgress: 0,
+          angle,
+          power: 0,
+          mouse: mousePosRef.current,
+          updatedAt: Date.now(),
+        },
+      } as any);
+    }
     
     // Reset spin for next shot
     setCueSpin({ x: 0, y: 0 });
@@ -667,6 +810,11 @@ export default function PoolGame() {
             if (!prev) return null;
             const next = { ...prev, nominatedPocket: pocket };
             gameStateRef.current = next;
+            if (isMyOnlineTurn(next) && onlineMatchId) {
+              MultiplayerManager.syncGameState(onlineMatchId, {
+                nominatedPocket: pocket,
+              } as any);
+            }
             return next;
           });
           return;
@@ -690,6 +838,21 @@ export default function PoolGame() {
        // Just update refs and force re-render
        setGameState({ ...state });
        setDisplayState({ ...state });
+       if (isMyOnlineTurn(state) && onlineMatchId) {
+         syncLiveShot({
+           isAiming: false,
+           angle: shotAngle,
+           power: shotPower,
+           mouse: mousePosRef.current,
+           isStriking: false,
+           strikeProgress: 0,
+           turnStartTime: state.turnStartTime,
+         }, 0);
+         MultiplayerManager.syncGameState(onlineMatchId, {
+           balls: state.balls,
+           isBallInHand: state.isBallInHand,
+         } as any);
+       }
        return;
     }
 
@@ -1007,7 +1170,7 @@ export default function PoolGame() {
     // Cue/Aiming
     const cueBall = state.balls.find(b => b.type === 'cue')!;
     if ((aiming || striking) && !state.isMoving && !state.isBallInHand && !state.winner) {
-      const currentAngle = aiming ? angle : strikeParamsRef.current?.angle || 0;
+      const currentAngle = aiming ? angle : strikeParamsRef.current?.angle || angle;
       
       // Aiming Guide / Trajectory Prediction
       if (aiming && !striking) {
