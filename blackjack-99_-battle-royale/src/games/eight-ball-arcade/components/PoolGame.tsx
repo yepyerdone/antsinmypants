@@ -71,10 +71,15 @@ function ScoreCard({ player, balls, isTurn, turnStartTime, mode }: { player: Gam
          setTimeLeft(30);
          return;
       }
-      
-      const interval = setInterval(() => {
+
+      const updateTimeLeft = () => {
          const elapsed = Math.floor((Date.now() - turnStartTime) / 1000);
          setTimeLeft(Math.max(0, 30 - elapsed));
+      };
+      
+      updateTimeLeft();
+      const interval = setInterval(() => {
+         updateTimeLeft();
       }, 500);
 
       return () => clearInterval(interval);
@@ -179,6 +184,7 @@ export default function PoolGame() {
   const [isInteractingMeter, setIsInteractingMeter] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
   const strikeParamsRef = useRef<{ angle: number; power: number } | null>(null);
+  const handledTimeoutRef = useRef<number | null>(null);
   const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
 
   // Initialize game
@@ -275,6 +281,13 @@ export default function PoolGame() {
                    status: data.status === 'finished' ? 'finished' : 'playing', 
                    winner: data.winner,
                    turnStartTime: data.turnStartTime || prev.turnStartTime,
+                   firstBallHit: data.firstBallHit || null,
+                   ballsPocketedThisTurn: data.ballsPocketedThisTurn || [],
+                   isMoving: data.isMoving || false,
+                   isFoul: data.isFoul || false,
+                   foulReason: data.foulReason || null,
+                   isBallInHand: data.isBallInHand ?? prev.isBallInHand,
+                   nominatedPocket: data.nominatedPocket || null,
                    players: [
                      { ...prev.players[0], ...whitePlayer },
                      { ...prev.players[1], ...blackPlayer }
@@ -510,14 +523,11 @@ export default function PoolGame() {
       const state = gameStateRef.current;
       if (!state || state.isMoving || state.status === 'finished' || state.mode !== 'online') return;
 
-      // Only check timer if it's our turn to avoid double-processing (though logic should be safe)
-      // Actually, in a real p2p/multiplayer, usually one authority or both check.
-      // Since it's Firebase, we can let both check, but usually the active player checks.
-      const isMyTurn = state.players[state.turnIndex].uid === auth.currentUser?.uid;
-      
-      if (isMyTurn && state.turnStartTime) {
+      if (state.turnStartTime) {
         const elapsed = Date.now() - state.turnStartTime;
-        if (elapsed >= 30000) {
+        if (elapsed >= 30000 && handledTimeoutRef.current !== state.turnStartTime) {
+          handledTimeoutRef.current = state.turnStartTime;
+
           // Time out!
           const updatedState = Engine.forfeitTurn(state);
           gameStateRef.current = updatedState;
@@ -530,6 +540,12 @@ export default function PoolGame() {
               winner: updatedState.winner,
               turn: updatedState.players[updatedState.turnIndex].uid,
               turnStartTime: updatedState.turnStartTime,
+              isFoul: updatedState.isFoul,
+              foulReason: updatedState.foulReason,
+              isBallInHand: updatedState.isBallInHand,
+              firstBallHit: updatedState.firstBallHit,
+              ballsPocketedThisTurn: updatedState.ballsPocketedThisTurn,
+              nominatedPocket: updatedState.nominatedPocket,
               players: {
                 white: updatedState.players[0],
                 black: updatedState.players[1]

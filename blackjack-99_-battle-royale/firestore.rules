@@ -458,11 +458,7 @@ service cloud.firestore {
         && incoming().state == 'playing';
       allow update: if isEightBallPlayer(existing())
         && isEightBallPlayer(incoming())
-        && (
-          existing().turn == request.auth.uid ||
-          incoming().status == 'finished' ||
-          incoming().state == 'finished'
-        );
+        && incoming().state == existing().state;
     }
 
     // Friend Chess Rules
