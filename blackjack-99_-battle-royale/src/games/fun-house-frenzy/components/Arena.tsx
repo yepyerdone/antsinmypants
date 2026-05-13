@@ -438,6 +438,8 @@ function ConcessionsStand({ isMobile }: { isMobile: boolean }) {
   const reggieRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
   const rightArmRef = useRef<THREE.Group>(null);
+  const leftLegRef = useRef<THREE.Mesh>(null);
+  const rightLegRef = useRef<THREE.Mesh>(null);
   const ketchupStreamRef = useRef<THREE.Mesh>(null);
   const mustardStreamRef = useRef<THREE.Mesh>(null);
   const bottleTrayRef = useRef<THREE.Group>(null);
@@ -449,7 +451,7 @@ function ConcessionsStand({ isMobile }: { isMobile: boolean }) {
     const squirting = !waving;
 
     if (reggieRef.current) {
-      reggieRef.current.position.y = Math.sin(elapsed * 2.2) * 0.04;
+      reggieRef.current.position.y = 0.42 + Math.sin(elapsed * 2.2) * 0.035;
       reggieRef.current.rotation.y = Math.sin(elapsed * 0.7) * 0.08;
     }
 
@@ -461,6 +463,14 @@ function ConcessionsStand({ isMobile }: { isMobile: boolean }) {
     if (rightArmRef.current) {
       rightArmRef.current.rotation.z = squirting ? 0.28 : 0.45;
       rightArmRef.current.rotation.x = squirting ? -0.78 + Math.sin(elapsed * 11 + 1.4) * 0.12 : -0.08;
+    }
+
+    if (leftLegRef.current) {
+      leftLegRef.current.rotation.x = Math.sin(elapsed * 2.2) * 0.08;
+    }
+
+    if (rightLegRef.current) {
+      rightLegRef.current.rotation.x = -Math.sin(elapsed * 2.2) * 0.08;
     }
 
     if (bottleTrayRef.current) {
@@ -515,7 +525,7 @@ function ConcessionsStand({ isMobile }: { isMobile: boolean }) {
         </mesh>
         <Text
           position={[0, 1.96, -0.52]}
-          rotation={[0, 0, 0]}
+          rotation={[0, Math.PI, 0]}
           fontSize={1.05}
           maxWidth={14.2}
           textAlign="center"
@@ -542,10 +552,30 @@ function ConcessionsStand({ isMobile }: { isMobile: boolean }) {
         <meshStandardMaterial color="#f8fafc" roughness={0.55} />
       </mesh>
 
-      <group ref={reggieRef} position={[0, 1.92, 2.15]} userData={{ name: 'reggie' }}>
+      <group ref={reggieRef} position={[0, 0.42, 2.15]} userData={{ name: 'reggie' }}>
+        <mesh ref={leftLegRef} position={[-0.19, 0.32, 0]} rotation={[0.04, 0, 0.03]} castShadow={!isMobile} userData={{ name: 'reggie' }}>
+          <capsuleGeometry args={[0.13, 0.9, 8, 12]} />
+          <meshStandardMaterial color="#111827" roughness={0.72} />
+        </mesh>
+        <mesh ref={rightLegRef} position={[0.19, 0.32, 0]} rotation={[-0.04, 0, -0.03]} castShadow={!isMobile} userData={{ name: 'reggie' }}>
+          <capsuleGeometry args={[0.13, 0.9, 8, 12]} />
+          <meshStandardMaterial color="#111827" roughness={0.72} />
+        </mesh>
+        <mesh position={[-0.19, -0.2, -0.06]} scale={[1.15, 0.42, 1.45]} castShadow={!isMobile} userData={{ name: 'reggie' }}>
+          <sphereGeometry args={[0.15, 12, 8]} />
+          <meshStandardMaterial color="#111111" roughness={0.8} />
+        </mesh>
+        <mesh position={[0.19, -0.2, -0.06]} scale={[1.15, 0.42, 1.45]} castShadow={!isMobile} userData={{ name: 'reggie' }}>
+          <sphereGeometry args={[0.15, 12, 8]} />
+          <meshStandardMaterial color="#111111" roughness={0.8} />
+        </mesh>
         <mesh position={[0, 0.95, 0]} castShadow={!isMobile} userData={{ name: 'reggie' }}>
           <capsuleGeometry args={[0.42, 1.25, 10, 16]} />
           <meshStandardMaterial color="#f8fafc" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 0.4, -0.43]} scale={[0.98, 0.35, 0.16]} userData={{ name: 'reggie' }}>
+          <boxGeometry args={[0.62, 0.26, 0.08]} />
+          <meshStandardMaterial color="#111827" roughness={0.7} />
         </mesh>
         {[-0.18, 0.18].map((x, index) => (
           <mesh key={`reggie-stripe-${index}`} position={[x, 0.96, -0.42]} userData={{ name: 'reggie' }}>
