@@ -76,16 +76,21 @@ const CEILING_LIGHTS = [
 const TUNNEL_CENTER: [number, number, number] = [0, 0, 30];
 const TUNNEL_HALF_LENGTH = 30;
 const TUNNEL_HALF_WIDTH = 7.5;
+const CONCESSIONS_CENTER: [number, number, number] = [58, 0, -52];
 
 function isInsideTunnelFootprint(x: number, z: number) {
   return Math.abs(x - TUNNEL_CENTER[0]) < TUNNEL_HALF_LENGTH + 7
     && Math.abs(z - TUNNEL_CENTER[2]) < TUNNEL_HALF_WIDTH + 7;
 }
 
+function isInsideConcessionsFootprint(x: number, z: number) {
+  return Math.abs(x - CONCESSIONS_CENTER[0]) < 22
+    && Math.abs(z - CONCESSIONS_CENTER[2]) < 17;
+}
+
 export function Arena() {
   const isMobile = useIsMobile();
   const spawnDoorOpen = useGameStore(state => state.spawnDoorOpen);
-  const tunnelDoorsOpen = useGameStore(state => state.tunnelDoorsOpen);
   
   const obstacles = useMemo(() => {
     const count = isMobile ? 40 : 80;
@@ -98,6 +103,7 @@ export function Arena() {
       
       if (Math.abs(x) < 20 && Math.abs(z) < 20) return null;
       if (isInsideTunnelFootprint(x, z)) return null;
+      if (isInsideConcessionsFootprint(x, z)) return null;
 
       const height = rngLocal() * 8 + 6;
       const isHorizontal = rngLocal() > 0.5;
@@ -145,7 +151,8 @@ export function Arena() {
       {!isMobile && <AmbientParticles />}
 
       <SpawnRoom doorOpen={spawnDoorOpen} isMobile={isMobile} />
-      <CheckeredTunnel doorsOpen={tunnelDoorsOpen} isMobile={isMobile} />
+      <CheckeredTunnel isMobile={isMobile} />
+      <ConcessionsStand isMobile={isMobile} />
       <Carousel isMobile={isMobile} />
 
       {/* Walls */}
@@ -354,7 +361,7 @@ function Ceiling({ isMobile }: { isMobile: boolean }) {
   );
 }
 
-function CheckeredTunnel({ doorsOpen, isMobile }: { doorsOpen: Record<'west' | 'east', boolean>; isMobile: boolean }) {
+function CheckeredTunnel({ isMobile }: { isMobile: boolean }) {
   const checkeredMaterial = useMemo(() => {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
@@ -379,8 +386,8 @@ function CheckeredTunnel({ doorsOpen, isMobile }: { doorsOpen: Record<'west' | '
   ), []);
 
   const [cx, , cz] = TUNNEL_CENTER;
-  const tunnelY = 3.2;
-  const tunnelHeight = 6.4;
+  const tunnelY = 4.45;
+  const tunnelHeight = 8.9;
   const length = TUNNEL_HALF_LENGTH * 2;
   const width = TUNNEL_HALF_WIDTH * 2;
 
@@ -394,10 +401,10 @@ function CheckeredTunnel({ doorsOpen, isMobile }: { doorsOpen: Record<'west' | '
         </mesh>
       </RigidBody>
 
-      <RigidBody type="fixed" colliders={false} name="checkered-tunnel-ceiling" position={[0, tunnelHeight, 0]}>
-        <CuboidCollider args={[TUNNEL_HALF_LENGTH, 0.18, TUNNEL_HALF_WIDTH]} />
+      <RigidBody type="fixed" colliders={false} name="checkered-tunnel-ceiling" position={[0, tunnelHeight + 0.8, 0]}>
+        <CuboidCollider args={[TUNNEL_HALF_LENGTH, 0.12, TUNNEL_HALF_WIDTH]} />
         <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
-          <boxGeometry args={[length, 0.36, width]} />
+          <boxGeometry args={[length, 0.24, width]} />
           <primitive object={checkeredMaterial} attach="material" />
         </mesh>
       </RigidBody>
@@ -416,72 +423,211 @@ function CheckeredTunnel({ doorsOpen, isMobile }: { doorsOpen: Record<'west' | '
         </RigidBody>
       ))}
 
-      {(['west', 'east'] as const).map((doorId) => {
-        const x = doorId === 'west' ? -TUNNEL_HALF_LENGTH : TUNNEL_HALF_LENGTH;
-        const open = doorsOpen[doorId];
-        const rotation = doorId === 'west' ? -0.8 : 0.8;
-        const swungX = doorId === 'west' ? -2.7 : 2.7;
+      {[-TUNNEL_HALF_LENGTH, TUNNEL_HALF_LENGTH].map((x) => (
+        <mesh key={`tunnel-open-trim-${x}`} position={[x, tunnelHeight * 0.5, 0]}>
+          <boxGeometry args={[0.2, 0.34, width]} />
+          {trimMaterial}
+        </mesh>
+      ))}
+    </group>
+  );
+}
 
-        return (
-          <group key={`tunnel-end-${doorId}`} position={[x, 0, 0]}>
-            <RigidBody type="fixed" colliders={false} name={`checkered-tunnel-end-${doorId}-left`} position={[0, tunnelY, -6.35]}>
-              <CuboidCollider args={[0.28, tunnelY, 1.15]} />
-              <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
-                <boxGeometry args={[0.56, tunnelHeight, 2.3]} />
-                <primitive object={checkeredMaterial} attach="material" />
-              </mesh>
-            </RigidBody>
-            <RigidBody type="fixed" colliders={false} name={`checkered-tunnel-end-${doorId}-right`} position={[0, tunnelY, 6.35]}>
-              <CuboidCollider args={[0.28, tunnelY, 1.15]} />
-              <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
-                <boxGeometry args={[0.56, tunnelHeight, 2.3]} />
-                <primitive object={checkeredMaterial} attach="material" />
-              </mesh>
-            </RigidBody>
-            <RigidBody type="fixed" colliders={false} name={`checkered-tunnel-end-${doorId}-top`} position={[0, 5.65, 0]}>
-              <CuboidCollider args={[0.28, 0.75, 5.2]} />
-              <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
-                <boxGeometry args={[0.56, 1.5, 10.4]} />
-                <primitive object={checkeredMaterial} attach="material" />
-              </mesh>
-            </RigidBody>
+function ConcessionsStand({ isMobile }: { isMobile: boolean }) {
+  const reggieRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+  const ketchupStreamRef = useRef<THREE.Mesh>(null);
+  const mustardStreamRef = useRef<THREE.Mesh>(null);
+  const bottleTrayRef = useRef<THREE.Group>(null);
 
-            {!open && (
-              <RigidBody
-                type="fixed"
-                colliders={false}
-                name={`tunnel-door-${doorId}`}
-                userData={{ name: `tunnel-door-${doorId}` }}
-                position={[0, 2.35, 0]}
-              >
-                <CuboidCollider args={[0.38, 2.35, 2.45]} />
-                <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
-                  <boxGeometry args={[0.76, 4.7, 4.9]} />
-                  <meshStandardMaterial color="#111827" roughness={0.54} metalness={0.08} />
-                </mesh>
-                <mesh position={[doorId === 'west' ? 0.43 : -0.43, 0.06, 1.45]}>
-                  <sphereGeometry args={[0.18, 16, 12]} />
-                  <meshStandardMaterial color="#f8fafc" roughness={0.22} metalness={0.25} />
-                </mesh>
-              </RigidBody>
-            )}
+  useFrame((state) => {
+    const elapsed = state.clock.elapsedTime;
+    const cycle = elapsed % 7.5;
+    const waving = cycle < 3;
+    const squirting = !waving;
 
-            {open && (
-              <group position={[swungX, 2.35, doorId === 'west' ? -2.15 : 2.15]} rotation={[0, rotation, 0]}>
-                <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
-                  <boxGeometry args={[0.44, 4.7, 4.9]} />
-                  <meshStandardMaterial color="#111827" roughness={0.54} metalness={0.08} />
-                </mesh>
-              </group>
-            )}
+    if (reggieRef.current) {
+      reggieRef.current.position.y = Math.sin(elapsed * 2.2) * 0.04;
+      reggieRef.current.rotation.y = Math.sin(elapsed * 0.7) * 0.08;
+    }
 
-            <mesh position={[doorId === 'west' ? -0.34 : 0.34, 5.05, 0]}>
-              <boxGeometry args={[0.2, 0.34, 5.6]} />
-              {trimMaterial}
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.z = waving ? -0.95 + Math.sin(elapsed * 7) * 0.38 : -0.35;
+      leftArmRef.current.rotation.x = waving ? -0.15 : -0.72 + Math.sin(elapsed * 12) * 0.1;
+    }
+
+    if (rightArmRef.current) {
+      rightArmRef.current.rotation.z = squirting ? 0.28 : 0.45;
+      rightArmRef.current.rotation.x = squirting ? -0.78 + Math.sin(elapsed * 11 + 1.4) * 0.12 : -0.08;
+    }
+
+    if (bottleTrayRef.current) {
+      bottleTrayRef.current.position.y = squirting ? 2.26 + Math.sin(elapsed * 14) * 0.04 : 2.2;
+      bottleTrayRef.current.rotation.x = squirting ? -0.36 : -0.12;
+    }
+
+    if (ketchupStreamRef.current) {
+      ketchupStreamRef.current.visible = squirting && Math.sin(elapsed * 11) > -0.35;
+      ketchupStreamRef.current.scale.y = 0.7 + Math.max(0, Math.sin(elapsed * 12)) * 0.45;
+    }
+
+    if (mustardStreamRef.current) {
+      mustardStreamRef.current.visible = squirting && Math.sin(elapsed * 10 + 1.2) > -0.25;
+      mustardStreamRef.current.scale.y = 0.7 + Math.max(0, Math.sin(elapsed * 13 + 1.2)) * 0.45;
+    }
+  });
+
+  return (
+    <group position={CONCESSIONS_CENTER} rotation={[0, -0.55, 0]}>
+      <RigidBody type="fixed" colliders={false} name="concessions-stand" position={[0, 1.05, 0]}>
+        <CuboidCollider args={[9.5, 1.05, 3.2]} position={[0, 0, 0]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile} position={[0, 0, 0]}>
+          <boxGeometry args={[19, 2.1, 6.4]} />
+          <meshStandardMaterial color="#7f1d1d" roughness={0.74} metalness={0.03} />
+        </mesh>
+        <mesh position={[0, 1.22, -3.35]} receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[19.8, 0.38, 0.46]} />
+          <meshStandardMaterial color="#facc15" roughness={0.48} />
+        </mesh>
+        <mesh position={[0, 1.26, 3.35]} receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[19.8, 0.38, 0.46]} />
+          <meshStandardMaterial color="#facc15" roughness={0.48} />
+        </mesh>
+        {[-6.3, 0, 6.3].map((x) => (
+          <mesh key={`stand-panel-${x}`} position={[x, 0.18, -3.62]}>
+            <boxGeometry args={[3.6, 1.22, 0.16]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.62} />
+          </mesh>
+        ))}
+      </RigidBody>
+
+      <RigidBody type="fixed" colliders={false} name="concessions-back-wall" position={[0, 4.2, 4.8]}>
+        <CuboidCollider args={[10.2, 4.2, 0.4]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[20.4, 8.4, 0.8]} />
+          <meshStandardMaterial color="#fef3c7" roughness={0.82} />
+        </mesh>
+        <mesh position={[0, 1.8, -0.46]}>
+          <boxGeometry args={[14, 1.2, 0.12]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.46} />
+        </mesh>
+        <mesh position={[0, 1.8, -0.54]}>
+          <boxGeometry args={[12.4, 0.22, 0.08]} />
+          <meshBasicMaterial color="#facc15" toneMapped={false} />
+        </mesh>
+      </RigidBody>
+
+      <mesh position={[0, 8.85, 0.6]} rotation={[0.08, 0, 0]}>
+        <boxGeometry args={[22, 0.6, 9]} />
+        <meshStandardMaterial color="#dc2626" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 9.2, -0.4]} rotation={[0.08, 0, 0]}>
+        <boxGeometry args={[21, 0.2, 7.8]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.55} />
+      </mesh>
+
+      <group ref={reggieRef} position={[0, 2.1, 1.05]} userData={{ name: 'reggie' }}>
+        <mesh position={[0, 0.95, 0]} castShadow={!isMobile} userData={{ name: 'reggie' }}>
+          <capsuleGeometry args={[0.42, 1.25, 10, 16]} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.7} />
+        </mesh>
+        {[-0.18, 0.18].map((x, index) => (
+          <mesh key={`reggie-stripe-${index}`} position={[x, 0.96, -0.42]} userData={{ name: 'reggie' }}>
+            <boxGeometry args={[0.13, 1.35, 0.08]} />
+            <meshStandardMaterial color="#dc2626" roughness={0.58} />
+          </mesh>
+        ))}
+        <mesh position={[0, 1.38, -0.47]} rotation={[0, 0, Math.PI / 4]} userData={{ name: 'reggie' }}>
+          <boxGeometry args={[0.28, 0.28, 0.08]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 2.02, 0]} castShadow={!isMobile} userData={{ name: 'reggie' }}>
+          <sphereGeometry args={[0.43, 24, 18]} />
+          <meshStandardMaterial color="#fde0bd" roughness={0.62} />
+        </mesh>
+        <mesh position={[0, 2.36, -0.02]} scale={[1.15, 0.34, 0.78]} userData={{ name: 'reggie' }}>
+          <sphereGeometry args={[0.34, 18, 10]} />
+          <meshStandardMaterial color="#3f2413" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 2.24, -0.24]} scale={[1.2, 0.16, 0.24]} userData={{ name: 'reggie' }}>
+          <boxGeometry args={[0.52, 0.18, 0.08]} />
+          <meshStandardMaterial color="#3f2413" roughness={0.68} />
+        </mesh>
+        {[-0.16, 0.16].map((x) => (
+          <group key={`reggie-glasses-${x}`} position={[x, 2.05, -0.39]} userData={{ name: 'reggie' }}>
+            <mesh>
+              <torusGeometry args={[0.105, 0.012, 6, 18]} />
+              <meshStandardMaterial color="#111827" roughness={0.35} metalness={0.2} />
+            </mesh>
+            <mesh position={[0, 0, -0.01]}>
+              <sphereGeometry args={[0.045, 10, 8]} />
+              <meshStandardMaterial color="#111827" roughness={0.4} />
             </mesh>
           </group>
-        );
-      })}
+        ))}
+        <mesh position={[0, 2.04, -0.4]} userData={{ name: 'reggie' }}>
+          <boxGeometry args={[0.13, 0.02, 0.03]} />
+          <meshStandardMaterial color="#111827" roughness={0.4} />
+        </mesh>
+
+        <group ref={leftArmRef} position={[-0.5, 1.35, -0.04]} userData={{ name: 'reggie' }}>
+          <mesh position={[-0.28, -0.34, 0]} rotation={[0, 0, -0.18]} castShadow={!isMobile}>
+            <capsuleGeometry args={[0.11, 0.8, 8, 12]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.7} />
+          </mesh>
+          <mesh position={[-0.5, -0.78, 0]}>
+            <sphereGeometry args={[0.13, 12, 10]} />
+            <meshStandardMaterial color="#fde0bd" roughness={0.6} />
+          </mesh>
+        </group>
+
+        <group ref={rightArmRef} position={[0.5, 1.34, -0.04]} userData={{ name: 'reggie' }}>
+          <mesh position={[0.28, -0.34, 0]} rotation={[0, 0, 0.18]} castShadow={!isMobile}>
+            <capsuleGeometry args={[0.11, 0.8, 8, 12]} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.7} />
+          </mesh>
+          <mesh position={[0.5, -0.78, 0]}>
+            <sphereGeometry args={[0.13, 12, 10]} />
+            <meshStandardMaterial color="#fde0bd" roughness={0.6} />
+          </mesh>
+        </group>
+      </group>
+
+      <group ref={bottleTrayRef} position={[0.75, 2.2, -3.35]}>
+        <mesh position={[-0.34, 0, 0]} rotation={[0, 0, -0.08]}>
+          <cylinderGeometry args={[0.13, 0.16, 0.78, 14]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.36} />
+        </mesh>
+        <mesh position={[0.12, 0, 0]} rotation={[0, 0, 0.08]}>
+          <cylinderGeometry args={[0.13, 0.16, 0.78, 14]} />
+          <meshStandardMaterial color="#facc15" roughness={0.36} />
+        </mesh>
+      </group>
+
+      {[-2.7, -1.4, -0.1, 1.2, 2.5].map((x, index) => (
+        <group key={`hotdog-${index}`} position={[x, 2.35, -3.54]} rotation={[0, Math.PI / 2, 0]}>
+          <mesh scale={[1.25, 0.34, 0.42]}>
+            <sphereGeometry args={[0.28, 14, 10]} />
+            <meshStandardMaterial color="#fbbf24" roughness={0.62} />
+          </mesh>
+          <mesh position={[0, 0.03, 0]} scale={[1.1, 0.16, 0.22]}>
+            <capsuleGeometry args={[0.18, 0.92, 8, 12]} />
+            <meshStandardMaterial color="#7f1d1d" roughness={0.54} />
+          </mesh>
+        </group>
+      ))}
+
+      <mesh ref={ketchupStreamRef} position={[0.4, 2.52, -3.55]} rotation={[Math.PI / 2, 0, 0.1]}>
+        <cylinderGeometry args={[0.035, 0.05, 1.35, 8]} />
+        <meshBasicMaterial color="#dc2626" toneMapped={false} transparent opacity={0.9} />
+      </mesh>
+      <mesh ref={mustardStreamRef} position={[0.88, 2.52, -3.55]} rotation={[Math.PI / 2, 0, -0.1]}>
+        <cylinderGeometry args={[0.035, 0.05, 1.35, 8]} />
+        <meshBasicMaterial color="#facc15" toneMapped={false} transparent opacity={0.9} />
+      </mesh>
+
+      <pointLight position={[0, 7.6, -1.2]} color="#fff0c2" intensity={isMobile ? 1.3 : 2.1} distance={24} decay={1.6} />
     </group>
   );
 }

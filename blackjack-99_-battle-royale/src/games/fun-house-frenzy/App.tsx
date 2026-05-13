@@ -20,6 +20,7 @@ function HUD() {
   const enemiesRemaining = useGameStore(state => state.enemiesRemaining);
   const bossCar = useGameStore(state => state.bossCar);
   const playerState = useGameStore(state => state.playerState);
+  const condimentBlindUntil = useGameStore(state => state.condimentBlindUntil);
   const events = useGameStore(state => state.events);
   const leaveGame = useGameStore(state => state.leaveGame);
   const pauseGame = useGameStore(state => state.pauseGame);
@@ -131,6 +132,19 @@ function HUD() {
         <div className="absolute inset-0 bg-red-500/20 pointer-events-none flex items-center justify-center">
           <div className="text-red-500 text-4xl md:text-6xl font-black tracking-widest drop-shadow-[0_0_20px_rgba(239,68,68,1)] animate-pulse text-center">
             SYSTEM DISABLED
+          </div>
+        </div>
+      )}
+
+      {condimentBlindUntil > Date.now() && (
+        <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">
+          <div className="absolute inset-0 bg-yellow-300/30 backdrop-blur-[1px]" />
+          <div className="absolute -left-10 top-6 h-48 w-[58vw] rotate-12 rounded-[45%] bg-red-600/80 blur-sm" />
+          <div className="absolute right-[-8vw] top-16 h-56 w-[62vw] -rotate-12 rounded-[45%] bg-yellow-400/85 blur-sm" />
+          <div className="absolute left-[18vw] bottom-[-5vh] h-64 w-[55vw] -rotate-6 rounded-[50%] bg-red-500/70 blur-md" />
+          <div className="absolute right-[18vw] bottom-10 h-36 w-[34vw] rotate-6 rounded-[50%] bg-yellow-200/75 blur-sm" />
+          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-4xl md:text-6xl font-black text-white drop-shadow-[0_4px_0_rgba(127,29,29,0.95)]">
+            CONDIMENT BLAST
           </div>
         </div>
       )}

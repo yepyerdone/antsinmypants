@@ -22,7 +22,7 @@ const WALL_LIMIT = 90;
 const WALL_AVOID_MARGIN = 15;
 const OBSTACLE_AVOID_PADDING = 6.5;
 const AVOIDANCE_PROBE_DISTANCE = 6;
-const TUNNEL_AVOID_CENTER = { x: 0, z: 30, halfWidth: 37, halfDepth: 14 };
+const CONCESSIONS_AVOID_CENTER = { x: 58, z: -52, halfWidth: 22, halfDepth: 17 };
 
 type AvoidObstacle = {
   x: number;
@@ -45,7 +45,7 @@ function createAvoidObstacles(): AvoidObstacle[] {
   const obstacles: AvoidObstacle[] = [
     { x: 0, z: 0, halfWidth: 24, halfDepth: 24 },
     { x: -62, z: 58, halfWidth: 20, halfDepth: 20 },
-    TUNNEL_AVOID_CENTER,
+    CONCESSIONS_AVOID_CENTER,
   ];
 
   for (let index = 0; index < 80; index += 1) {
@@ -55,7 +55,10 @@ function createAvoidObstacles(): AvoidObstacle[] {
     if (Math.abs(x) < 20 && Math.abs(z) < 20) {
       continue;
     }
-    if (Math.abs(x - TUNNEL_AVOID_CENTER.x) < TUNNEL_AVOID_CENTER.halfWidth && Math.abs(z - TUNNEL_AVOID_CENTER.z) < TUNNEL_AVOID_CENTER.halfDepth) {
+    if (Math.abs(x) < 37 && Math.abs(z - 30) < 14) {
+      continue;
+    }
+    if (Math.abs(x - CONCESSIONS_AVOID_CENTER.x) < CONCESSIONS_AVOID_CENTER.halfWidth && Math.abs(z - CONCESSIONS_AVOID_CENTER.z) < CONCESSIONS_AVOID_CENTER.halfDepth) {
       continue;
     }
 

@@ -27,7 +27,7 @@ export function Player() {
   const hitBossCar = useGameStore(state => state.hitBossCar);
   const addParticles = useGameStore(state => state.addParticles);
   const openSpawnDoor = useGameStore(state => state.openSpawnDoor);
-  const openTunnelDoor = useGameStore(state => state.openTunnelDoor);
+  const blastCondiments = useGameStore(state => state.blastCondiments);
   const useAmmo = useGameStore(state => state.useAmmo);
   const isReloading = useGameStore(state => state.isReloading);
 
@@ -116,6 +116,15 @@ export function Player() {
       }
       return false;
     });
+    const reggieVisualHit = visualHits.find((intersection) => {
+      let target: THREE.Object3D | null = intersection.object;
+      while (target) {
+        const name = target.userData?.name;
+        if (name === 'reggie') return true;
+        target = target.parent;
+      }
+      return false;
+    });
 
     const startPosVec = new THREE.Vector3();
     if (gunBarrelRef.current) {
@@ -144,16 +153,6 @@ export function Player() {
             addLaser(startPos, endPos, '#facc15');
             return;
           }
-
-          if (name.startsWith('tunnel-door-') && camera.position.distanceTo(hitPoint) <= DOOR_INTERACTION_DISTANCE) {
-            const doorId = name.replace('tunnel-door-', '');
-            if (doorId === 'west' || doorId === 'east') {
-              openTunnelDoor(doorId);
-              addParticles(endPos, '#ffffff');
-              addLaser(startPos, endPos, '#ffffff');
-              return;
-            }
-          }
         }
       }
     }
@@ -164,6 +163,15 @@ export function Player() {
     if (gunVisualRef.current) {
       gunVisualRef.current.position.z = -0.4;
       gunVisualRef.current.rotation.x = 0.1;
+    }
+
+    if (reggieVisualHit && (!hit || reggieVisualHit.distance <= hit.timeOfImpact + 0.35)) {
+      endPos = [reggieVisualHit.point.x, reggieVisualHit.point.y, reggieVisualHit.point.z];
+      blastCondiments();
+      addParticles(endPos, '#facc15');
+      addParticles(endPos, '#dc2626');
+      addLaser(startPos, endPos, '#ffff00');
+      return;
     }
 
     if (bossVisualHit) {
@@ -399,7 +407,7 @@ export function Player() {
       window.removeEventListener('blur', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gameState, playerState, camera, scene, world, rapier, hitEnemy, hitBossCar, addParticles, addLaser, openSpawnDoor, openTunnelDoor, useAmmo]);
+  }, [gameState, playerState, camera, scene, world, rapier, hitEnemy, hitBossCar, addParticles, addLaser, openSpawnDoor, blastCondiments, useAmmo]);
 
   return (
     <>

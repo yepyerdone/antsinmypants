@@ -9,7 +9,6 @@ import { auth, db } from '../../lib/firebase';
 
 export type GameState = 'menu' | 'playing' | 'paused' | 'gameover';
 export type EntityState = 'active' | 'disabled';
-export type TunnelDoorId = 'west' | 'east';
 
 export interface EnemyData {
   id: string;
@@ -69,7 +68,7 @@ interface GameStore {
   isReloading: boolean;
   reloadEndsAt: number;
   spawnDoorOpen: boolean;
-  tunnelDoorsOpen: Record<TunnelDoorId, boolean>;
+  condimentBlindUntil: number;
   enemiesRemaining: number;
   bossCar: BossCarData;
   playerState: EntityState;
@@ -93,7 +92,7 @@ interface GameStore {
   hitBossCar: (zone: BossCarHitZone) => void;
   spawnBossClown: (position: [number, number, number]) => void;
   openSpawnDoor: () => void;
-  openTunnelDoor: (doorId: TunnelDoorId) => void;
+  blastCondiments: () => void;
   useAmmo: () => boolean;
   startReload: () => void;
   addLaser: (start: [number, number, number], end: [number, number, number], color: string) => void;
@@ -139,6 +138,8 @@ const TUNNEL_CENTER: [number, number, number] = [0, 1, 30];
 const TUNNEL_HALF_LENGTH = 30;
 const TUNNEL_HALF_WIDTH = 7.5;
 const TUNNEL_SPAWN_BUFFER = 10;
+const CONCESSIONS_POSITION: [number, number, number] = [58, 1, -52];
+const CONCESSIONS_SPAWN_BUFFER = 22;
 const BOSS_REQUIRED_HITS = 10;
 
 const createInactiveBossCar = (wave = 0): BossCarData => ({
@@ -156,11 +157,6 @@ const createInactiveBossCar = (wave = 0): BossCarData => ({
   totalHits: 0,
   lastSpawnAt: 0,
   pendingClownDrops: 0,
-});
-
-const createClosedTunnelDoors = (): Record<TunnelDoorId, boolean> => ({
-  west: false,
-  east: false,
 });
 
 function isBossWave(wave: number) {
@@ -218,6 +214,9 @@ function createSpawnObstacles(): SpawnObstacle[] {
     ) {
       continue;
     }
+    if (getDistance2D([x, 1, z], CONCESSIONS_POSITION) < CONCESSIONS_SPAWN_BUFFER) {
+      continue;
+    }
 
     random();
     const isHorizontal = random() > 0.5;
@@ -270,6 +269,10 @@ function isNearCarousel(position: [number, number, number]) {
   return getDistance2D(position, CAROUSEL_POSITION) < CAROUSEL_SPAWN_BUFFER;
 }
 
+function isNearConcessions(position: [number, number, number]) {
+  return getDistance2D(position, CONCESSIONS_POSITION) < CONCESSIONS_SPAWN_BUFFER;
+}
+
 function isNearTunnel(position: [number, number, number]) {
   const [x, , z] = position;
   return (
@@ -283,6 +286,7 @@ function isValidSpawnPosition(position: [number, number, number], selectedPositi
   if (distanceFromPlayer < PLAYER_SAFE_RADIUS) return false;
   if (isNearSpawnRoom(position)) return false;
   if (isNearCarousel(position)) return false;
+  if (isNearConcessions(position)) return false;
   if (isNearTunnel(position)) return false;
   if (isInsideObstacle(position)) return false;
 
@@ -483,7 +487,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isReloading: false,
   reloadEndsAt: 0,
   spawnDoorOpen: false,
-  tunnelDoorsOpen: createClosedTunnelDoors(),
+  condimentBlindUntil: 0,
   enemiesRemaining: 0,
   bossCar: createInactiveBossCar(),
   playerState: 'active',
@@ -519,7 +523,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isReloading: false,
       reloadEndsAt: 0,
       spawnDoorOpen: false,
-      tunnelDoorsOpen: createClosedTunnelDoors(),
+      condimentBlindUntil: 0,
       enemiesRemaining: getActiveEnemyCount(newEnemies),
       bossCar: isBossWave(startWave) ? createBossCar(startWave) : createInactiveBossCar(startWave),
       playerState: 'active',
@@ -556,7 +560,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isReloading: false,
       reloadEndsAt: 0,
       spawnDoorOpen: false,
-      tunnelDoorsOpen: createClosedTunnelDoors(),
+      condimentBlindUntil: 0,
       bossCar: createInactiveBossCar(),
       enemiesRemaining: 0,
       playerState: 'active'
@@ -573,6 +577,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   updateTime: (delta) => set((state) => {
     if (state.gameState !== 'playing') return state;
+    if (state.condimentBlindUntil > 0 && Date.now() >= state.condimentBlindUntil) {
+      return { condimentBlindUntil: 0 };
+    }
     if (state.isReloading && Date.now() >= state.reloadEndsAt) {
       return {
         ammo: MAX_AMMO,
@@ -752,15 +759,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
   }),
 
-  openTunnelDoor: (doorId) => set((state) => {
-    if (state.gameState !== 'playing' || state.tunnelDoorsOpen[doorId]) return state;
+  blastCondiments: () => set((state) => {
+    if (state.gameState !== 'playing') return state;
 
     return {
-      tunnelDoorsOpen: {
-        ...state.tunnelDoorsOpen,
-        [doorId]: true,
-      },
-      events: [...state.events, { id: Math.random().toString(), message: `${doorId.toUpperCase()} TUNNEL DOOR OPENED!`, timestamp: Date.now() }],
+      condimentBlindUntil: Date.now() + 7000,
+      events: [...state.events, { id: Math.random().toString(), message: 'REGGIE FIRED THE CONDIMENTS!', timestamp: Date.now() }],
     };
   }),
 
