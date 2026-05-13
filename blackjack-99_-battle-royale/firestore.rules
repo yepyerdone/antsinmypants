@@ -242,6 +242,21 @@ service cloud.firestore {
         && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'score', 'wave', 'date', 'updatedAt']);
     }
 
+    // Linguist per-player progress. Private to the profile owner.
+    match /linguist_progress/{userId} {
+      allow get: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && isValidId(userId)
+        && incoming().uid == userId
+        && incoming().playerName is string
+        && incoming().playerName.size() >= 1
+        && incoming().playerName.size() <= 32
+        && incoming().stats is map
+        && incoming().levelResults is map
+        && incoming().activeAttempts is map
+        && incoming().updatedAt == request.time;
+    }
+
     // The Ascension Game Rules
     match /theAscensionUsers/{userId} {
       allow read: if isSignedIn();

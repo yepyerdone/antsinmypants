@@ -1850,6 +1850,15 @@ body {
   background-size: 18px 18px, 18px 18px, 100% 100%, 100% 100%;
 }
 
+.site-game-preview--linguist {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    radial-gradient(circle at 50% 42%, rgba(83, 141, 78, 0.34), transparent 36%),
+    linear-gradient(135deg, #121213, #1e1e1f 56%, #2f2713);
+  background-size: 18px 18px, 18px 18px, 100% 100%, 100% 100%;
+}
+
 .site-game-preview--tachymetry {
   background:
     linear-gradient(rgba(34, 211, 238, 0.13) 1px, transparent 1px),
@@ -1940,6 +1949,81 @@ body {
 .preview-states-route {
   position: absolute;
   z-index: 1;
+}
+
+.preview-word-grid,
+.preview-word-tile,
+.preview-word-key {
+  position: absolute;
+  z-index: 1;
+}
+
+.preview-word-grid {
+  left: 50%;
+  top: 50%;
+  width: 7rem;
+  height: 5.8rem;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    rgba(0, 0, 0, 0.28);
+  background-size: 1.4rem 1.4rem;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.38), inset 0 0 20px rgba(255, 255, 255, 0.06);
+  transform: translate(-50%, -48%);
+}
+
+.preview-word-tile {
+  top: 32%;
+  width: 1.24rem;
+  height: 1.24rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.36);
+  border-radius: 0.18rem;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 0.76rem;
+  box-shadow: 0 0 16px rgba(83, 141, 78, 0.38);
+}
+
+.preview-word-tile--one {
+  left: 27%;
+  background: #538d4e;
+}
+
+.preview-word-tile--two {
+  left: 39%;
+  background: #538d4e;
+}
+
+.preview-word-tile--three {
+  left: 51%;
+  background: #b59f3b;
+}
+
+.preview-word-tile--four {
+  left: 63%;
+  background: #1e1e1f;
+}
+
+.preview-word-key {
+  bottom: 24%;
+  width: 3.2rem;
+  height: 0.52rem;
+  border-radius: 999px;
+  background: #818384;
+  box-shadow: 0 0 14px rgba(129, 131, 132, 0.45);
+}
+
+.preview-word-key--one {
+  left: 28%;
+}
+
+.preview-word-key--two {
+  right: 28%;
+  background: #538d4e;
+  box-shadow: 0 0 14px rgba(83, 141, 78, 0.55);
 }
 
 .preview-states-map {

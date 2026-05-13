@@ -14,7 +14,8 @@ export type PreviewType =
   | 'states'
   | 'tachymetry'
   | 'eight-ball'
-  | 'fun-house';
+  | 'fun-house'
+  | 'linguist';
 
 export type GameCardData = {
   id: string;
@@ -226,6 +227,17 @@ export const siteGames: GameCardData[] = [
     internalPath: '/states-master',
   },
   {
+    id: 'linguist',
+    title: 'Linguist',
+    description: 'A 100-level lexicon challenge where each profile gets one saved attempt per word.',
+    category: 'Words',
+    meta: 'Profile progress',
+    preview: 'linguist',
+    primarySection: 'academic-weapon',
+    sections: ['academic-weapon'],
+    internalPath: '/linguist',
+  },
+  {
     id: 'tachymetry',
     title: 'Tachymetry',
     description: 'A neon block-stacking arcade mission with hold pieces, combos, and global high scores.',
@@ -253,7 +265,7 @@ export const homeGameSections = [
   },
   {
     title: 'Academic Weapon',
-    gameIds: ['states-master'],
+    gameIds: ['states-master', 'linguist'],
   },
 ];
 

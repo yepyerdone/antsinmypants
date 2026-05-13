@@ -15,7 +15,8 @@ export type PreviewType =
   | 'states'
   | 'tachymetry'
   | 'eight-ball'
-  | 'fun-house';
+  | 'fun-house'
+  | 'linguist';
 
 interface GamePreviewProps {
   type: PreviewType;
@@ -126,6 +127,21 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
           <MapIcon size={17} />
           50
         </span>
+      </div>
+    );
+  }
+
+  if (type === 'linguist') {
+    return (
+      <div className="site-game-preview site-game-preview--linguist" aria-label={`${title} preview`}>
+        <span className="preview-word-grid" />
+        <span className="preview-word-tile preview-word-tile--one">L</span>
+        <span className="preview-word-tile preview-word-tile--two">I</span>
+        <span className="preview-word-tile preview-word-tile--three">N</span>
+        <span className="preview-word-tile preview-word-tile--four">G</span>
+        <span className="preview-word-key preview-word-key--one" />
+        <span className="preview-word-key preview-word-key--two" />
+        <span className="preview-score">100</span>
       </div>
     );
   }
