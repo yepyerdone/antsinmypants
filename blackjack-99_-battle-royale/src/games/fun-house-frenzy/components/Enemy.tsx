@@ -22,7 +22,7 @@ const WALL_LIMIT = 90;
 const WALL_AVOID_MARGIN = 15;
 const OBSTACLE_AVOID_PADDING = 6.5;
 const AVOIDANCE_PROBE_DISTANCE = 6;
-const CONCESSIONS_AVOID_CENTER = { x: 58, z: -52, halfWidth: 22, halfDepth: 17 };
+const CONCESSIONS_AVOID_CENTER = { x: 52, z: -91, halfWidth: 24, halfDepth: 13 };
 
 type AvoidObstacle = {
   x: number;

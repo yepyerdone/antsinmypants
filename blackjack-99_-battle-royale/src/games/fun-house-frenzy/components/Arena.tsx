@@ -5,6 +5,7 @@
 
 import { RigidBody, CuboidCollider } from '@react-three/rapier';
 import { useFrame } from '@react-three/fiber';
+import { Text } from '@react-three/drei';
 import { useMemo, useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { useGameStore } from '../store';
@@ -76,7 +77,7 @@ const CEILING_LIGHTS = [
 const TUNNEL_CENTER: [number, number, number] = [0, 0, 30];
 const TUNNEL_HALF_LENGTH = 30;
 const TUNNEL_HALF_WIDTH = 7.5;
-const CONCESSIONS_CENTER: [number, number, number] = [58, 0, -52];
+const CONCESSIONS_CENTER: [number, number, number] = [52, 0, -91];
 
 function isInsideTunnelFootprint(x: number, z: number) {
   return Math.abs(x - TUNNEL_CENTER[0]) < TUNNEL_HALF_LENGTH + 7
@@ -84,8 +85,8 @@ function isInsideTunnelFootprint(x: number, z: number) {
 }
 
 function isInsideConcessionsFootprint(x: number, z: number) {
-  return Math.abs(x - CONCESSIONS_CENTER[0]) < 22
-    && Math.abs(z - CONCESSIONS_CENTER[2]) < 17;
+  return Math.abs(x - CONCESSIONS_CENTER[0]) < 24
+    && Math.abs(z - CONCESSIONS_CENTER[2]) < 13;
 }
 
 export function Arena() {
@@ -479,40 +480,54 @@ function ConcessionsStand({ isMobile }: { isMobile: boolean }) {
   });
 
   return (
-    <group position={CONCESSIONS_CENTER} rotation={[0, -0.55, 0]}>
-      <RigidBody type="fixed" colliders={false} name="concessions-stand" position={[0, 1.05, 0]}>
-        <CuboidCollider args={[9.5, 1.05, 3.2]} position={[0, 0, 0]} />
+    <group position={CONCESSIONS_CENTER} rotation={[0, Math.PI, 0]}>
+      <RigidBody type="fixed" colliders={false} name="concessions-stand" position={[0, 0.95, 0]}>
+        <CuboidCollider args={[9.5, 0.95, 2.75]} position={[0, 0, 0]} />
         <mesh receiveShadow={!isMobile} castShadow={!isMobile} position={[0, 0, 0]}>
-          <boxGeometry args={[19, 2.1, 6.4]} />
+          <boxGeometry args={[19, 1.9, 5.5]} />
           <meshStandardMaterial color="#7f1d1d" roughness={0.74} metalness={0.03} />
         </mesh>
-        <mesh position={[0, 1.22, -3.35]} receiveShadow={!isMobile} castShadow={!isMobile}>
+        <mesh position={[0, 1.12, -2.9]} receiveShadow={!isMobile} castShadow={!isMobile}>
           <boxGeometry args={[19.8, 0.38, 0.46]} />
           <meshStandardMaterial color="#facc15" roughness={0.48} />
         </mesh>
-        <mesh position={[0, 1.26, 3.35]} receiveShadow={!isMobile} castShadow={!isMobile}>
+        <mesh position={[0, 1.16, 2.9]} receiveShadow={!isMobile} castShadow={!isMobile}>
           <boxGeometry args={[19.8, 0.38, 0.46]} />
           <meshStandardMaterial color="#facc15" roughness={0.48} />
         </mesh>
         {[-6.3, 0, 6.3].map((x) => (
-          <mesh key={`stand-panel-${x}`} position={[x, 0.18, -3.62]}>
+          <mesh key={`stand-panel-${x}`} position={[x, 0.08, -3.0]}>
             <boxGeometry args={[3.6, 1.22, 0.16]} />
             <meshStandardMaterial color="#f8fafc" roughness={0.62} />
           </mesh>
         ))}
       </RigidBody>
 
-      <RigidBody type="fixed" colliders={false} name="concessions-back-wall" position={[0, 4.2, 4.8]}>
-        <CuboidCollider args={[10.2, 4.2, 0.4]} />
+      <RigidBody type="fixed" colliders={false} name="concessions-back-wall" position={[0, 4.2, 5.2]}>
+        <CuboidCollider args={[10.2, 4.2, 0.35]} />
         <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
-          <boxGeometry args={[20.4, 8.4, 0.8]} />
+          <boxGeometry args={[20.4, 8.4, 0.7]} />
           <meshStandardMaterial color="#fef3c7" roughness={0.82} />
         </mesh>
-        <mesh position={[0, 1.8, -0.46]}>
-          <boxGeometry args={[14, 1.2, 0.12]} />
+        <mesh position={[0, 1.95, -0.42]}>
+          <boxGeometry args={[15.4, 1.65, 0.12]} />
           <meshStandardMaterial color="#dc2626" roughness={0.46} />
         </mesh>
-        <mesh position={[0, 1.8, -0.54]}>
+        <Text
+          position={[0, 1.96, -0.52]}
+          rotation={[0, 0, 0]}
+          fontSize={1.05}
+          maxWidth={14.2}
+          textAlign="center"
+          anchorX="center"
+          anchorY="middle"
+          color="#fef3c7"
+          outlineWidth={0.045}
+          outlineColor="#7f1d1d"
+        >
+          CONCESSIONS
+        </Text>
+        <mesh position={[0, 1.02, -0.54]}>
           <boxGeometry args={[12.4, 0.22, 0.08]} />
           <meshBasicMaterial color="#facc15" toneMapped={false} />
         </mesh>
@@ -527,7 +542,7 @@ function ConcessionsStand({ isMobile }: { isMobile: boolean }) {
         <meshStandardMaterial color="#f8fafc" roughness={0.55} />
       </mesh>
 
-      <group ref={reggieRef} position={[0, 2.1, 1.05]} userData={{ name: 'reggie' }}>
+      <group ref={reggieRef} position={[0, 1.92, 2.15]} userData={{ name: 'reggie' }}>
         <mesh position={[0, 0.95, 0]} castShadow={!isMobile} userData={{ name: 'reggie' }}>
           <capsuleGeometry args={[0.42, 1.25, 10, 16]} />
           <meshStandardMaterial color="#f8fafc" roughness={0.7} />

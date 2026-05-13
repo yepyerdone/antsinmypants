@@ -138,8 +138,8 @@ const TUNNEL_CENTER: [number, number, number] = [0, 1, 30];
 const TUNNEL_HALF_LENGTH = 30;
 const TUNNEL_HALF_WIDTH = 7.5;
 const TUNNEL_SPAWN_BUFFER = 10;
-const CONCESSIONS_POSITION: [number, number, number] = [58, 1, -52];
-const CONCESSIONS_SPAWN_BUFFER = 22;
+const CONCESSIONS_POSITION: [number, number, number] = [52, 1, -91];
+const CONCESSIONS_SPAWN_BUFFER = 24;
 const BOSS_REQUIRED_HITS = 10;
 
 const createInactiveBossCar = (wave = 0): BossCarData => ({
