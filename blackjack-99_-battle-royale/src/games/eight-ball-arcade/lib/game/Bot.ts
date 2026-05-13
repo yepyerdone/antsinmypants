@@ -1,10 +1,9 @@
 import { Ball, GameState, Vector, TABLE_CONFIG } from './types';
-import { Engine } from './Engine';
 
 export class BotAI {
   static getShot(state: GameState): { angle: number; power: number; pocket: Vector } | null {
     const currentPlayer = state.players[state.turnIndex];
-    const validBalls = Engine.getValidBalls(currentPlayer, state.balls);
+    const validBalls = this.getBotTargets(currentPlayer, state.balls);
     if (validBalls.length === 0) return null;
 
     const cueBall = state.balls.find(b => b.type === 'cue')!;
@@ -68,6 +67,20 @@ export class BotAI {
 
   private static distance(a: Vector, b: Vector) {
     return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  private static getBotTargets(player: GameState['players'][number], balls: Ball[]) {
+    const activeBalls = balls.filter(ball => !ball.isPocketed && ball.type !== 'cue');
+
+    if (!player.group) {
+      return activeBalls.filter(ball => ball.type === 'solid' || ball.type === 'stripe');
+    }
+
+    const groupType = player.group === 'solids' ? 'solid' : 'stripe';
+    const groupBalls = activeBalls.filter(ball => ball.type === groupType);
+    if (groupBalls.length > 0) return groupBalls;
+
+    return activeBalls.filter(ball => ball.type === 'black');
   }
 
   private static isPointPlayable(point: Vector) {

@@ -465,6 +465,25 @@ export default function PoolGame() {
     setMenuOpen(true);
   };
 
+  const returnToMainMenu = () => {
+    matchmakingCleanupRef.current?.();
+    matchmakingCleanupRef.current = null;
+    matchUnsubscribeRef.current?.();
+    matchUnsubscribeRef.current = null;
+    gameStateRef.current = null;
+    setGameState(null);
+    setDisplayState(null);
+    setMatchmaking(false);
+    setOnlineMatchId(null);
+    setMyRole(null);
+    setMode(null);
+    setMenuStage('main');
+    setIsAiming(false);
+    setIsStriking(false);
+    setShotPower(0);
+    setMenuOpen(true);
+  };
+
   // Game Loop
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -1982,7 +2001,7 @@ export default function PoolGame() {
                  </p>
                  <div className="flex gap-4">
                     <button onClick={() => startGame(mode || 'local')} className="flex-1 py-5 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-400 transition-colors shadow-lg shadow-white/10">Play Again</button>
-                    <button onClick={() => setMenuOpen(true)} className="flex-1 py-5 bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-slate-700 transition-colors border border-white/5">Main Menu</button>
+                    <button onClick={returnToMainMenu} className="flex-1 py-5 bg-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-slate-700 transition-colors border border-white/5">Main Menu</button>
                  </div>
               </div>
            </motion.div>
