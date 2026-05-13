@@ -22,6 +22,7 @@ const WALL_LIMIT = 90;
 const WALL_AVOID_MARGIN = 15;
 const OBSTACLE_AVOID_PADDING = 6.5;
 const AVOIDANCE_PROBE_DISTANCE = 6;
+const TUNNEL_AVOID_CENTER = { x: 0, z: 30, halfWidth: 37, halfDepth: 14 };
 
 type AvoidObstacle = {
   x: number;
@@ -44,6 +45,7 @@ function createAvoidObstacles(): AvoidObstacle[] {
   const obstacles: AvoidObstacle[] = [
     { x: 0, z: 0, halfWidth: 24, halfDepth: 24 },
     { x: -62, z: 58, halfWidth: 20, halfDepth: 20 },
+    TUNNEL_AVOID_CENTER,
   ];
 
   for (let index = 0; index < 80; index += 1) {
@@ -51,6 +53,9 @@ function createAvoidObstacles(): AvoidObstacle[] {
     const z = (random() - 0.5) * 170;
 
     if (Math.abs(x) < 20 && Math.abs(z) < 20) {
+      continue;
+    }
+    if (Math.abs(x - TUNNEL_AVOID_CENTER.x) < TUNNEL_AVOID_CENTER.halfWidth && Math.abs(z - TUNNEL_AVOID_CENTER.z) < TUNNEL_AVOID_CENTER.halfDepth) {
       continue;
     }
 
@@ -491,7 +496,13 @@ export function Enemy({ data }: { data: EnemyData }) {
         </mesh>
 
         {/* Head and face */}
-        <mesh ref={headRef} castShadow position={[0, 3.35, 0]} scale={variant.headScale}>
+        <mesh
+          ref={headRef}
+          castShadow
+          position={[0, 3.35, 0]}
+          scale={variant.headScale}
+          userData={{ enemyId: data.id, hitZone: 'head' }}
+        >
           <sphereGeometry args={[0.46, 24, 18]} />
           <meshStandardMaterial color={faceColor} roughness={0.65} />
         </mesh>

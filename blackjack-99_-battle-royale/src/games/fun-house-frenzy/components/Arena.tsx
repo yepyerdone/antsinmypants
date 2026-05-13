@@ -73,9 +73,19 @@ const CEILING_LIGHTS = [
   [60, 18.1, 60],
 ] as const;
 
+const TUNNEL_CENTER: [number, number, number] = [0, 0, 30];
+const TUNNEL_HALF_LENGTH = 30;
+const TUNNEL_HALF_WIDTH = 7.5;
+
+function isInsideTunnelFootprint(x: number, z: number) {
+  return Math.abs(x - TUNNEL_CENTER[0]) < TUNNEL_HALF_LENGTH + 7
+    && Math.abs(z - TUNNEL_CENTER[2]) < TUNNEL_HALF_WIDTH + 7;
+}
+
 export function Arena() {
   const isMobile = useIsMobile();
   const spawnDoorOpen = useGameStore(state => state.spawnDoorOpen);
+  const tunnelDoorsOpen = useGameStore(state => state.tunnelDoorsOpen);
   
   const obstacles = useMemo(() => {
     const count = isMobile ? 40 : 80;
@@ -87,6 +97,7 @@ export function Arena() {
       const z = (rngLocal() - 0.5) * 170;
       
       if (Math.abs(x) < 20 && Math.abs(z) < 20) return null;
+      if (isInsideTunnelFootprint(x, z)) return null;
 
       const height = rngLocal() * 8 + 6;
       const isHorizontal = rngLocal() > 0.5;
@@ -134,6 +145,7 @@ export function Arena() {
       {!isMobile && <AmbientParticles />}
 
       <SpawnRoom doorOpen={spawnDoorOpen} isMobile={isMobile} />
+      <CheckeredTunnel doorsOpen={tunnelDoorsOpen} isMobile={isMobile} />
       <Carousel isMobile={isMobile} />
 
       {/* Walls */}
@@ -338,6 +350,138 @@ function Ceiling({ isMobile }: { isMobile: boolean }) {
           </mesh>
         </group>
       ))}
+    </group>
+  );
+}
+
+function CheckeredTunnel({ doorsOpen, isMobile }: { doorsOpen: Record<'west' | 'east', boolean>; isMobile: boolean }) {
+  const checkeredMaterial = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+    const size = 64;
+    for (let x = 0; x < 4; x += 1) {
+      for (let y = 0; y < 4; y += 1) {
+        ctx.fillStyle = (x + y) % 2 === 0 ? '#f8fafc' : '#020617';
+        ctx.fillRect(x * size, y * size, size, size);
+      }
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(6, 2);
+    return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.82, metalness: 0.02 });
+  }, []);
+
+  const trimMaterial = useMemo(() => (
+    <meshBasicMaterial color="#dc2626" toneMapped={false} />
+  ), []);
+
+  const [cx, , cz] = TUNNEL_CENTER;
+  const tunnelY = 3.2;
+  const tunnelHeight = 6.4;
+  const length = TUNNEL_HALF_LENGTH * 2;
+  const width = TUNNEL_HALF_WIDTH * 2;
+
+  return (
+    <group position={[cx, 0, cz]}>
+      <RigidBody type="fixed" colliders={false} name="checkered-tunnel-floor" position={[0, 0.08, 0]}>
+        <CuboidCollider args={[TUNNEL_HALF_LENGTH, 0.08, TUNNEL_HALF_WIDTH]} />
+        <mesh receiveShadow={!isMobile}>
+          <boxGeometry args={[length, 0.16, width]} />
+          <primitive object={checkeredMaterial} attach="material" />
+        </mesh>
+      </RigidBody>
+
+      <RigidBody type="fixed" colliders={false} name="checkered-tunnel-ceiling" position={[0, tunnelHeight, 0]}>
+        <CuboidCollider args={[TUNNEL_HALF_LENGTH, 0.18, TUNNEL_HALF_WIDTH]} />
+        <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+          <boxGeometry args={[length, 0.36, width]} />
+          <primitive object={checkeredMaterial} attach="material" />
+        </mesh>
+      </RigidBody>
+
+      {[-TUNNEL_HALF_WIDTH, TUNNEL_HALF_WIDTH].map((z, index) => (
+        <RigidBody key={`tunnel-side-${index}`} type="fixed" colliders={false} name={`checkered-tunnel-side-${index}`} position={[0, tunnelY, z]}>
+          <CuboidCollider args={[TUNNEL_HALF_LENGTH, tunnelY, 0.28]} />
+          <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+            <boxGeometry args={[length, tunnelHeight, 0.56]} />
+            <primitive object={checkeredMaterial} attach="material" />
+          </mesh>
+          <mesh position={[0, tunnelY - 0.3, z > 0 ? -0.32 : 0.32]}>
+            <boxGeometry args={[length, 0.24, 0.08]} />
+            {trimMaterial}
+          </mesh>
+        </RigidBody>
+      ))}
+
+      {(['west', 'east'] as const).map((doorId) => {
+        const x = doorId === 'west' ? -TUNNEL_HALF_LENGTH : TUNNEL_HALF_LENGTH;
+        const open = doorsOpen[doorId];
+        const rotation = doorId === 'west' ? -0.8 : 0.8;
+        const swungX = doorId === 'west' ? -2.7 : 2.7;
+
+        return (
+          <group key={`tunnel-end-${doorId}`} position={[x, 0, 0]}>
+            <RigidBody type="fixed" colliders={false} name={`checkered-tunnel-end-${doorId}-left`} position={[0, tunnelY, -6.35]}>
+              <CuboidCollider args={[0.28, tunnelY, 1.15]} />
+              <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+                <boxGeometry args={[0.56, tunnelHeight, 2.3]} />
+                <primitive object={checkeredMaterial} attach="material" />
+              </mesh>
+            </RigidBody>
+            <RigidBody type="fixed" colliders={false} name={`checkered-tunnel-end-${doorId}-right`} position={[0, tunnelY, 6.35]}>
+              <CuboidCollider args={[0.28, tunnelY, 1.15]} />
+              <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+                <boxGeometry args={[0.56, tunnelHeight, 2.3]} />
+                <primitive object={checkeredMaterial} attach="material" />
+              </mesh>
+            </RigidBody>
+            <RigidBody type="fixed" colliders={false} name={`checkered-tunnel-end-${doorId}-top`} position={[0, 5.65, 0]}>
+              <CuboidCollider args={[0.28, 0.75, 5.2]} />
+              <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+                <boxGeometry args={[0.56, 1.5, 10.4]} />
+                <primitive object={checkeredMaterial} attach="material" />
+              </mesh>
+            </RigidBody>
+
+            {!open && (
+              <RigidBody
+                type="fixed"
+                colliders={false}
+                name={`tunnel-door-${doorId}`}
+                userData={{ name: `tunnel-door-${doorId}` }}
+                position={[0, 2.35, 0]}
+              >
+                <CuboidCollider args={[0.38, 2.35, 2.45]} />
+                <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+                  <boxGeometry args={[0.76, 4.7, 4.9]} />
+                  <meshStandardMaterial color="#111827" roughness={0.54} metalness={0.08} />
+                </mesh>
+                <mesh position={[doorId === 'west' ? 0.43 : -0.43, 0.06, 1.45]}>
+                  <sphereGeometry args={[0.18, 16, 12]} />
+                  <meshStandardMaterial color="#f8fafc" roughness={0.22} metalness={0.25} />
+                </mesh>
+              </RigidBody>
+            )}
+
+            {open && (
+              <group position={[swungX, 2.35, doorId === 'west' ? -2.15 : 2.15]} rotation={[0, rotation, 0]}>
+                <mesh receiveShadow={!isMobile} castShadow={!isMobile}>
+                  <boxGeometry args={[0.44, 4.7, 4.9]} />
+                  <meshStandardMaterial color="#111827" roughness={0.54} metalness={0.08} />
+                </mesh>
+              </group>
+            )}
+
+            <mesh position={[doorId === 'west' ? -0.34 : 0.34, 5.05, 0]}>
+              <boxGeometry args={[0.2, 0.34, 5.6]} />
+              {trimMaterial}
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
 }

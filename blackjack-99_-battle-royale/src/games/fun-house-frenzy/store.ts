@@ -9,6 +9,7 @@ import { auth, db } from '../../lib/firebase';
 
 export type GameState = 'menu' | 'playing' | 'paused' | 'gameover';
 export type EntityState = 'active' | 'disabled';
+export type TunnelDoorId = 'west' | 'east';
 
 export interface EnemyData {
   id: string;
@@ -68,6 +69,7 @@ interface GameStore {
   isReloading: boolean;
   reloadEndsAt: number;
   spawnDoorOpen: boolean;
+  tunnelDoorsOpen: Record<TunnelDoorId, boolean>;
   enemiesRemaining: number;
   bossCar: BossCarData;
   playerState: EntityState;
@@ -87,10 +89,11 @@ interface GameStore {
   leaveGame: () => void;
   updateTime: (delta: number) => void;
   hitPlayer: () => void;
-  hitEnemy: (id: string, byPlayer?: boolean) => void;
+  hitEnemy: (id: string, byPlayer?: boolean, headshot?: boolean) => void;
   hitBossCar: (zone: BossCarHitZone) => void;
   spawnBossClown: (position: [number, number, number]) => void;
   openSpawnDoor: () => void;
+  openTunnelDoor: (doorId: TunnelDoorId) => void;
   useAmmo: () => boolean;
   startReload: () => void;
   addLaser: (start: [number, number, number], end: [number, number, number], color: string) => void;
@@ -132,6 +135,10 @@ const SPAWN_ROOM_HALF_DEPTH = 8;
 const SPAWN_ROOM_BUFFER = 14;
 const CAROUSEL_POSITION: [number, number, number] = [-62, 1, 58];
 const CAROUSEL_SPAWN_BUFFER = 18;
+const TUNNEL_CENTER: [number, number, number] = [0, 1, 30];
+const TUNNEL_HALF_LENGTH = 30;
+const TUNNEL_HALF_WIDTH = 7.5;
+const TUNNEL_SPAWN_BUFFER = 10;
 const BOSS_REQUIRED_HITS = 10;
 
 const createInactiveBossCar = (wave = 0): BossCarData => ({
@@ -149,6 +156,11 @@ const createInactiveBossCar = (wave = 0): BossCarData => ({
   totalHits: 0,
   lastSpawnAt: 0,
   pendingClownDrops: 0,
+});
+
+const createClosedTunnelDoors = (): Record<TunnelDoorId, boolean> => ({
+  west: false,
+  east: false,
 });
 
 function isBossWave(wave: number) {
@@ -198,6 +210,12 @@ function createSpawnObstacles(): SpawnObstacle[] {
     const z = (random() - 0.5) * 170;
 
     if (Math.abs(x) < 20 && Math.abs(z) < 20) {
+      continue;
+    }
+    if (
+      Math.abs(x - TUNNEL_CENTER[0]) < TUNNEL_HALF_LENGTH + TUNNEL_SPAWN_BUFFER
+      && Math.abs(z - TUNNEL_CENTER[2]) < TUNNEL_HALF_WIDTH + TUNNEL_SPAWN_BUFFER
+    ) {
       continue;
     }
 
@@ -252,11 +270,20 @@ function isNearCarousel(position: [number, number, number]) {
   return getDistance2D(position, CAROUSEL_POSITION) < CAROUSEL_SPAWN_BUFFER;
 }
 
+function isNearTunnel(position: [number, number, number]) {
+  const [x, , z] = position;
+  return (
+    Math.abs(x - TUNNEL_CENTER[0]) < TUNNEL_HALF_LENGTH + TUNNEL_SPAWN_BUFFER
+    && Math.abs(z - TUNNEL_CENTER[2]) < TUNNEL_HALF_WIDTH + TUNNEL_SPAWN_BUFFER
+  );
+}
+
 function isValidSpawnPosition(position: [number, number, number], selectedPositions: [number, number, number][], spacing = ENEMY_SPAWN_SPACING) {
   const distanceFromPlayer = Math.hypot(position[0], position[2]);
   if (distanceFromPlayer < PLAYER_SAFE_RADIUS) return false;
   if (isNearSpawnRoom(position)) return false;
   if (isNearCarousel(position)) return false;
+  if (isNearTunnel(position)) return false;
   if (isInsideObstacle(position)) return false;
 
   return selectedPositions.every(selectedPosition => (
@@ -456,6 +483,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isReloading: false,
   reloadEndsAt: 0,
   spawnDoorOpen: false,
+  tunnelDoorsOpen: createClosedTunnelDoors(),
   enemiesRemaining: 0,
   bossCar: createInactiveBossCar(),
   playerState: 'active',
@@ -491,6 +519,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isReloading: false,
       reloadEndsAt: 0,
       spawnDoorOpen: false,
+      tunnelDoorsOpen: createClosedTunnelDoors(),
       enemiesRemaining: getActiveEnemyCount(newEnemies),
       bossCar: isBossWave(startWave) ? createBossCar(startWave) : createInactiveBossCar(startWave),
       playerState: 'active',
@@ -527,6 +556,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isReloading: false,
       reloadEndsAt: 0,
       spawnDoorOpen: false,
+      tunnelDoorsOpen: createClosedTunnelDoors(),
       bossCar: createInactiveBossCar(),
       enemiesRemaining: 0,
       playerState: 'active'
@@ -591,7 +621,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  hitEnemy: (id, byPlayer = false) => set((state) => {
+  hitEnemy: (id, byPlayer = false, headshot = false) => set((state) => {
     if (state.gameState !== 'playing') return state;
     
     const targetEnemy = state.enemies.find(e => e.id === id);
@@ -605,7 +635,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     const activeEnemies = getActiveEnemyCount(newEnemies);
-    const newScore = byPlayer ? state.score + 100 : state.score;
+    const killScore = headshot ? 250 : 100;
+    const newScore = byPlayer ? state.score + killScore : state.score;
+    const hitMessage = headshot ? 'HEADSHOT! +250' : 'Enemy neutralised!';
     
     // Check if wave is cleared
     if (activeEnemies === 0) {
@@ -614,7 +646,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             enemies: newEnemies,
             enemiesRemaining: activeEnemies,
             score: newScore,
-            events: byPlayer ? [...state.events, { id: Math.random().toString(), message: `Enemy neutralised!`, timestamp: Date.now() }] : state.events
+            events: byPlayer ? [...state.events, { id: Math.random().toString(), message: hitMessage, timestamp: Date.now() }] : state.events
           };
         }
 
@@ -635,7 +667,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       enemies: newEnemies,
       enemiesRemaining: activeEnemies,
       score: newScore,
-      events: byPlayer ? [...state.events, { id: Math.random().toString(), message: `Enemy neutralised!`, timestamp: Date.now() }] : state.events
+      events: byPlayer ? [...state.events, { id: Math.random().toString(), message: hitMessage, timestamp: Date.now() }] : state.events
     };
   }),
 
@@ -717,6 +749,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return {
       spawnDoorOpen: true,
       events: [...state.events, { id: Math.random().toString(), message: 'Spawn door opened!', timestamp: Date.now() }],
+    };
+  }),
+
+  openTunnelDoor: (doorId) => set((state) => {
+    if (state.gameState !== 'playing' || state.tunnelDoorsOpen[doorId]) return state;
+
+    return {
+      tunnelDoorsOpen: {
+        ...state.tunnelDoorsOpen,
+        [doorId]: true,
+      },
+      events: [...state.events, { id: Math.random().toString(), message: `${doorId.toUpperCase()} TUNNEL DOOR OPENED!`, timestamp: Date.now() }],
     };
   }),
 

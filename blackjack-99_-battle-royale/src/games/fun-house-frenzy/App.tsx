@@ -333,6 +333,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameState, pauseGame, resumeGame]);
 
+  useEffect(() => {
+    if ((gameState === 'paused' || gameState === 'gameover') && document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+  }, [gameState]);
+
   return (
     <div className="w-screen h-screen bg-stone-900 relative overflow-hidden font-mono select-none">
       {/* 3D Canvas */}

@@ -27,6 +27,7 @@ export function Player() {
   const hitBossCar = useGameStore(state => state.hitBossCar);
   const addParticles = useGameStore(state => state.addParticles);
   const openSpawnDoor = useGameStore(state => state.openSpawnDoor);
+  const openTunnelDoor = useGameStore(state => state.openTunnelDoor);
   const useAmmo = useGameStore(state => state.useAmmo);
   const isReloading = useGameStore(state => state.isReloading);
 
@@ -95,11 +96,22 @@ export function Player() {
     const rayStart = camera.position.clone().add(raycaster.ray.direction.clone().multiplyScalar(0.8));
     const ray = new rapier.Ray(rayStart, raycaster.ray.direction);
     const hit = world.castRay(ray, MAX_LASER_DIST, true);
-    const bossVisualHit = raycaster.intersectObjects(scene.children, true).find((intersection) => {
+    const visualHits = raycaster.intersectObjects(scene.children, true);
+    const bossVisualHit = visualHits.find((intersection) => {
       let target: THREE.Object3D | null = intersection.object;
       while (target) {
         const name = target.userData?.name;
         if (typeof name === 'string' && name.startsWith('boss-car-')) return true;
+        target = target.parent;
+      }
+      return false;
+    });
+    const headVisualHit = visualHits.find((intersection) => {
+      let target: THREE.Object3D | null = intersection.object;
+      while (target) {
+        const hitZone = target.userData?.hitZone;
+        const enemyId = target.userData?.enemyId;
+        if (hitZone === 'head' && typeof enemyId === 'string') return true;
         target = target.parent;
       }
       return false;
@@ -132,6 +144,16 @@ export function Player() {
             addLaser(startPos, endPos, '#facc15');
             return;
           }
+
+          if (name.startsWith('tunnel-door-') && camera.position.distanceTo(hitPoint) <= DOOR_INTERACTION_DISTANCE) {
+            const doorId = name.replace('tunnel-door-', '');
+            if (doorId === 'west' || doorId === 'east') {
+              openTunnelDoor(doorId);
+              addParticles(endPos, '#ffffff');
+              addLaser(startPos, endPos, '#ffffff');
+              return;
+            }
+          }
         }
       }
     }
@@ -150,6 +172,26 @@ export function Player() {
       addParticles(endPos, '#9ca3af');
       addLaser(startPos, endPos, '#ffff00');
       return;
+    }
+
+    if (headVisualHit && (!hit || headVisualHit.distance <= hit.timeOfImpact + 0.35)) {
+      let target: THREE.Object3D | null = headVisualHit.object;
+      let enemyId = '';
+      while (target) {
+        if (typeof target.userData?.enemyId === 'string') {
+          enemyId = target.userData.enemyId;
+          break;
+        }
+        target = target.parent;
+      }
+
+      if (enemyId) {
+        endPos = [headVisualHit.point.x, headVisualHit.point.y, headVisualHit.point.z];
+        hitEnemy(enemyId, true, true);
+        addParticles(endPos, '#facc15');
+        addLaser(startPos, endPos, '#ffff00');
+        return;
+      }
     }
 
     if (hit) {
@@ -174,7 +216,7 @@ export function Player() {
 
           // Check if it's an enemy
           if (name.startsWith('enemy-') || name.startsWith('bot-') || name.startsWith('boss-clown-')) {
-            hitEnemy(name, true);
+            hitEnemy(name, true, false);
           } 
         }
       }
@@ -202,6 +244,13 @@ export function Player() {
       }
     }
     prevState.current = gameState;
+  }, [gameState]);
+
+  useEffect(() => {
+    if (gameState !== 'playing') {
+      isDragLooking.current = false;
+      fallbackLookActive.current = false;
+    }
   }, [gameState]);
 
   useFrame((state, delta) => {
@@ -350,7 +399,7 @@ export function Player() {
       window.removeEventListener('blur', handleMouseUp);
       window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [gameState, playerState, camera, scene, world, rapier, hitEnemy, hitBossCar, addParticles, addLaser, openSpawnDoor, useAmmo]);
+  }, [gameState, playerState, camera, scene, world, rapier, hitEnemy, hitBossCar, addParticles, addLaser, openSpawnDoor, openTunnelDoor, useAmmo]);
 
   return (
     <>
