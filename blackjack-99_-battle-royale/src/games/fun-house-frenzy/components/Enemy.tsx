@@ -21,6 +21,7 @@ const STUCK_REPOSITION_TIME = 4300;
 const WALL_LIMIT = 90;
 const WALL_AVOID_MARGIN = 15;
 const OBSTACLE_AVOID_PADDING = 6.5;
+const AVOIDANCE_PROBE_DISTANCE = 6;
 
 type AvoidObstacle = {
   x: number;
@@ -72,12 +73,13 @@ function createAvoidObstacles(): AvoidObstacle[] {
 
 const AVOID_OBSTACLES = createAvoidObstacles();
 
-function applyArenaAvoidance(position: THREE.Vector3, desiredDirection: THREE.Vector3) {
+function applyArenaAvoidance(position: THREE.Vector3, desiredDirection: THREE.Vector3, isStuck: boolean) {
   if (desiredDirection.lengthSq() < 0.001) return desiredDirection;
 
   const direction = desiredDirection.clone().normalize();
-  const probe = position.clone().add(direction.clone().multiplyScalar(7));
+  const probe = position.clone().add(direction.clone().multiplyScalar(AVOIDANCE_PROBE_DISTANCE));
   const steering = direction.clone();
+  let avoidancePressure = 0;
 
   AVOID_OBSTACLES.forEach((obstacle) => {
     const dx = probe.x - obstacle.x;
@@ -90,19 +92,41 @@ function applyArenaAvoidance(position: THREE.Vector3, desiredDirection: THREE.Ve
       const pushZ = dz / Math.max(1, paddedDepth);
       const repulsion = new THREE.Vector3(pushX, 0, pushZ);
       if (repulsion.lengthSq() > 0.001) {
-        const strength = 1.15 - Math.min(0.85, Math.max(Math.abs(pushX), Math.abs(pushZ)));
-        steering.add(repulsion.normalize().multiplyScalar(strength * 1.35));
+        const depth = 1 - Math.min(0.92, Math.max(Math.abs(pushX), Math.abs(pushZ)));
+        const strength = 0.5 + depth * 0.95;
+        avoidancePressure = Math.max(avoidancePressure, strength);
+        steering.add(repulsion.normalize().multiplyScalar(strength));
       }
     }
   });
 
-  if (position.x > WALL_LIMIT - WALL_AVOID_MARGIN) steering.x -= (position.x - (WALL_LIMIT - WALL_AVOID_MARGIN)) / WALL_AVOID_MARGIN;
-  if (position.x < -WALL_LIMIT + WALL_AVOID_MARGIN) steering.x += ((-WALL_LIMIT + WALL_AVOID_MARGIN) - position.x) / WALL_AVOID_MARGIN;
-  if (position.z > WALL_LIMIT - WALL_AVOID_MARGIN) steering.z -= (position.z - (WALL_LIMIT - WALL_AVOID_MARGIN)) / WALL_AVOID_MARGIN;
-  if (position.z < -WALL_LIMIT + WALL_AVOID_MARGIN) steering.z += ((-WALL_LIMIT + WALL_AVOID_MARGIN) - position.z) / WALL_AVOID_MARGIN;
+  if (position.x > WALL_LIMIT - WALL_AVOID_MARGIN) {
+    const pressure = (position.x - (WALL_LIMIT - WALL_AVOID_MARGIN)) / WALL_AVOID_MARGIN;
+    steering.x -= pressure;
+    avoidancePressure = Math.max(avoidancePressure, pressure);
+  }
+  if (position.x < -WALL_LIMIT + WALL_AVOID_MARGIN) {
+    const pressure = ((-WALL_LIMIT + WALL_AVOID_MARGIN) - position.x) / WALL_AVOID_MARGIN;
+    steering.x += pressure;
+    avoidancePressure = Math.max(avoidancePressure, pressure);
+  }
+  if (position.z > WALL_LIMIT - WALL_AVOID_MARGIN) {
+    const pressure = (position.z - (WALL_LIMIT - WALL_AVOID_MARGIN)) / WALL_AVOID_MARGIN;
+    steering.z -= pressure;
+    avoidancePressure = Math.max(avoidancePressure, pressure);
+  }
+  if (position.z < -WALL_LIMIT + WALL_AVOID_MARGIN) {
+    const pressure = ((-WALL_LIMIT + WALL_AVOID_MARGIN) - position.z) / WALL_AVOID_MARGIN;
+    steering.z += pressure;
+    avoidancePressure = Math.max(avoidancePressure, pressure);
+  }
 
   if (steering.lengthSq() < 0.001) return direction;
-  return steering.normalize();
+  if (avoidancePressure <= 0) return direction;
+
+  const avoidanceDirection = steering.normalize();
+  const blend = THREE.MathUtils.clamp((isStuck ? 0.48 : 0.26) + avoidancePressure * 0.18, 0.24, isStuck ? 0.74 : 0.58);
+  return direction.lerp(avoidanceDirection, blend).normalize();
 }
 
 const CLOWN_VARIANTS = [
@@ -270,12 +294,17 @@ export function Enemy({ data }: { data: EnemyData }) {
     }
 
     const direction = new THREE.Vector3();
+    const isStuckChasing = Boolean(
+      closestTargetPos &&
+      now - lastProgressTime.current > STUCK_SIDESTEP_TIME &&
+      closestDist > MELEE_DIST * 2.5
+    );
 
     if (state.current === 'chase' && closestTargetPos) {
       direction.subVectors(closestTargetPos, currentPos).normalize();
-      if (now - lastProgressTime.current > STUCK_SIDESTEP_TIME) {
+      if (isStuckChasing) {
         const side = new THREE.Vector3(-direction.z, 0, direction.x);
-        direction.add(side.multiplyScalar(Math.sin(now * 0.006 + data.position[0]) > 0 ? 0.85 : -0.85)).normalize();
+        direction.add(side.multiplyScalar(Math.sin(now * 0.006 + data.position[0]) > 0 ? 0.38 : -0.38)).normalize();
       }
       
       // Melee attack only. Clowns must reach the player before tagging them.
@@ -298,7 +327,7 @@ export function Enemy({ data }: { data: EnemyData }) {
       direction.subVectors(patrolTarget.current, currentPos).normalize();
     }
 
-    direction.copy(applyArenaAvoidance(currentPos, direction));
+    direction.copy(applyArenaAvoidance(currentPos, direction, isStuckChasing));
 
     const elapsed = state_fiber.clock.elapsedTime;
     const isMoving = direction.lengthSq() > 0.1;

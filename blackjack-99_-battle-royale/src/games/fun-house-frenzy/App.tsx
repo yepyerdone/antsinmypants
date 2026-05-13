@@ -303,6 +303,7 @@ export default function App() {
   const score = useGameStore(state => state.score);
   const startGame = useGameStore(state => state.startGame);
   const leaveGame = useGameStore(state => state.leaveGame);
+  const pauseGame = useGameStore(state => state.pauseGame);
   const resumeGame = useGameStore(state => state.resumeGame);
   const setPlayerName = useGameStore(state => state.setPlayerName);
   const loadHighScores = useGameStore(state => state.loadHighScores);
@@ -317,6 +318,20 @@ export default function App() {
   useEffect(() => {
     void loadHighScores();
   }, [loadHighScores]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'p' || event.repeat) return;
+      if (gameState === 'playing') {
+        pauseGame();
+      } else if (gameState === 'paused') {
+        resumeGame();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [gameState, pauseGame, resumeGame]);
 
   return (
     <div className="w-screen h-screen bg-stone-900 relative overflow-hidden font-mono select-none">
