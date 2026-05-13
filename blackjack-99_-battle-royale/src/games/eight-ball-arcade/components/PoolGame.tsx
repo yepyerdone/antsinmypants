@@ -15,21 +15,21 @@ import { useAuth } from '../../../context/AuthContext';
 
 const BALL_COLORS: Record<number, string> = {
   0: '#ffffff', // Cue
-  1: '#ffd700',
-  2: '#0000ff',
-  3: '#ff0000',
-  4: '#800080',
-  5: '#ff8c00',
-  6: '#008000',
-  7: '#8b0000',
+  1: '#ffd21f',
+  2: '#1f66ff',
+  3: '#ff3434',
+  4: '#9b4dff',
+  5: '#ff8f1f',
+  6: '#12b45a',
+  7: '#8f2a20',
   8: '#000000',
-  9: '#ffd700',
-  10: '#0000ff',
-  11: '#ff0000',
-  12: '#800080',
-  13: '#ff8c00',
-  14: '#008000',
-  15: '#8b0000',
+  9: '#ffd21f',
+  10: '#1f66ff',
+  11: '#ff3434',
+  12: '#9b4dff',
+  13: '#ff8f1f',
+  14: '#12b45a',
+  15: '#8f2a20',
 };
 
 function ScoreboardBall({ number, type, isPocketed }: { number: number; type: BallType; isPocketed: boolean; key?: React.Key }) {
@@ -1086,21 +1086,68 @@ export default function PoolGame() {
     const w = CONFIG.width;
     const h = CONFIG.height;
 
-    // Wood Rail Frame (Subtle dark border inside canvas)
-    ctx.fillStyle = '#2d150b';
+    const drawFeltPath = () => {
+      ctx.beginPath();
+      ctx.moveTo(cw + pr, cw);
+      ctx.lineTo(w / 2 - pr, cw);
+      ctx.quadraticCurveTo(w / 2, cw + 12, w / 2 + pr, cw);
+      ctx.lineTo(w - cw - pr, cw);
+      ctx.quadraticCurveTo(w - cw - 12, cw + 12, w - cw, cw + pr);
+      ctx.lineTo(w - cw, h - cw - pr);
+      ctx.quadraticCurveTo(w - cw - 12, h - cw - 12, w - cw - pr, h - cw);
+      ctx.lineTo(w / 2 + pr, h - cw);
+      ctx.quadraticCurveTo(w / 2, h - cw - 12, w / 2 - pr, h - cw);
+      ctx.lineTo(cw + pr, h - cw);
+      ctx.quadraticCurveTo(cw + 12, h - cw - 12, cw, h - cw - pr);
+      ctx.lineTo(cw, cw + pr);
+      ctx.quadraticCurveTo(cw + 12, cw + 10, cw + pr, cw);
+      ctx.closePath();
+    };
+
+    // Wood Rail Frame
+    const frameGrad = ctx.createLinearGradient(0, 0, w, h);
+    frameGrad.addColorStop(0, '#6b2d13');
+    frameGrad.addColorStop(0.35, '#3a1709');
+    frameGrad.addColorStop(0.65, '#8a431d');
+    frameGrad.addColorStop(1, '#2a1007');
+    ctx.fillStyle = frameGrad;
     ctx.fillRect(0, 0, w, h);
 
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    for (let x = -w; x < w * 2; x += 42) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.bezierCurveTo(x + 24, h * 0.22, x - 20, h * 0.62, x + 38, h);
+      ctx.strokeStyle = x % 84 === 0 ? 'rgba(255, 214, 156, 0.22)' : 'rgba(0, 0, 0, 0.22)';
+      ctx.lineWidth = x % 84 === 0 ? 2 : 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+
     // Pockets (Deep holes) - Drawn first so they are "under" the cushions and felt
-    ctx.fillStyle = '#020617';
-    
     const currentPlayer = state.players[state.turnIndex];
     const targetType = currentPlayer.group === 'solids' ? 'solid' : 'stripe';
     const hasRemainingBalls = state.balls.some(b => b.type === targetType && !b.isPocketed);
     const isOnEightBall = !!currentPlayer.group && !hasRemainingBalls;
 
     CONFIG.pockets.forEach(p => {
+      const pocketGrad = ctx.createRadialGradient(p.x - pr * 0.25, p.y - pr * 0.25, pr * 0.1, p.x, p.y, pr * 1.35);
+      pocketGrad.addColorStop(0, '#1f2937');
+      pocketGrad.addColorStop(0.48, '#020617');
+      pocketGrad.addColorStop(1, '#000000');
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, pr * 1.45, 0, Math.PI * 2);
+      ctx.fillStyle = '#3a1608';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, pr * 1.3, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 205, 127, 0.22)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
       ctx.beginPath();
       ctx.arc(p.x, p.y, pr * 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = pocketGrad;
       ctx.fill();
 
       // 8-Ball Pocket Nomination UI
@@ -1142,64 +1189,64 @@ export default function PoolGame() {
 
     // Green Cloth with "Pocket Notches"
     // This creates the "corners lead to pockets" visual by drawing a complex path for the felt
-    ctx.fillStyle = '#065f46';
-    ctx.beginPath();
-    
-    // Start after TL pocket
-    ctx.moveTo(cw + pr, cw);
-    
-    // Top rail to Mid pocket
-    ctx.lineTo(w/2 - pr, cw);
-    // Mid-Top pocket cutout (leads IN to the pocket)
-    ctx.quadraticCurveTo(w/2, cw + 12, w/2 + pr, cw);
-    
-    // Top rail to TR pocket
-    ctx.lineTo(w - cw - pr, cw);
-    // TR Corner pocket cutout
-    ctx.quadraticCurveTo(w - cw - 12, cw + 12, w - cw, cw + pr);
-    
-    // Right rail to BR pocket
-    ctx.lineTo(w - cw, h - cw - pr);
-    // BR Corner pocket cutout
-    ctx.quadraticCurveTo(w - cw - 12, h - cw - 12, w - cw - pr, h - cw);
-    
-    // Bottom rail to BM pocket
-    ctx.lineTo(w/2 + pr, h - cw);
-    // Mid-Bottom pocket cutout
-    ctx.quadraticCurveTo(w/2, h - cw - 12, w/2 - pr, h - cw);
-    
-    // Bottom rail to BL pocket
-    ctx.lineTo(cw + pr, h - cw);
-    // BL Corner pocket cutout
-    ctx.quadraticCurveTo(cw + 12, h - cw - 12, cw, h - cw - pr);
-    
-    // Left rail to TL pocket
-    ctx.lineTo(cw, cw + pr);
-    // TL Corner pocket cutout
-    ctx.quadraticCurveTo(cw + 12, cw + 10, cw + pr, cw);
-    
+    const clothGrad = ctx.createLinearGradient(cw, cw, w - cw, h - cw);
+    clothGrad.addColorStop(0, '#0e9f6e');
+    clothGrad.addColorStop(0.45, '#047857');
+    clothGrad.addColorStop(1, '#064e3b');
+    drawFeltPath();
+    ctx.fillStyle = clothGrad;
     ctx.fill();
 
     // Felt highlight/gradient overlay
+    drawFeltPath();
     const feltGrad = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 1.5);
-    feltGrad.addColorStop(0, 'rgba(52, 211, 153, 0.08)');
+    feltGrad.addColorStop(0, 'rgba(167, 243, 208, 0.22)');
+    feltGrad.addColorStop(0.55, 'rgba(16, 185, 129, 0.06)');
     feltGrad.addColorStop(1, 'transparent');
     ctx.fillStyle = feltGrad;
-    ctx.fill(); // Re-use the complex path for gradient
+    ctx.fill();
+
+    ctx.save();
+    drawFeltPath();
+    ctx.clip();
+    ctx.globalAlpha = 0.16;
+    for (let y = cw + 8; y < h - cw; y += 9) {
+      ctx.beginPath();
+      ctx.moveTo(cw + 8, y);
+      ctx.lineTo(w - cw - 8, y + Math.sin(y * 0.07) * 2);
+      ctx.strokeStyle = y % 18 === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(1, 48, 35, 0.28)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.22;
+    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cw + 18, cw + 18, w - (cw + 18) * 2, h - (cw + 18) * 2);
+    ctx.restore();
 
     // Cushions (Rails with angled ends for "mouths")
-    ctx.fillStyle = '#3f1a01';
-    
-    // Helper to draw angled rails
     const drawRail = (pts: {x: number, y: number}[]) => {
+       const xs = pts.map(p => p.x);
+       const ys = pts.map(p => p.y);
+       const minX = Math.min(...xs);
+       const maxX = Math.max(...xs);
+       const minY = Math.min(...ys);
+       const maxY = Math.max(...ys);
+       const railGrad = ctx.createLinearGradient(minX, minY, maxX || minX + 1, maxY || minY + 1);
+       railGrad.addColorStop(0, '#135f46');
+       railGrad.addColorStop(0.5, '#0b7a57');
+       railGrad.addColorStop(1, '#053d2d');
        ctx.beginPath();
        ctx.moveTo(pts[0].x, pts[0].y);
        pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
        ctx.closePath();
+       ctx.fillStyle = railGrad;
        ctx.fill();
-       // Subtle gradient/lighting on rail
        ctx.fillStyle = 'rgba(255,255,255,0.03)';
        ctx.fill();
+       ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+       ctx.lineWidth = 1;
+       ctx.stroke();
     };
 
     // Top Rails (2 segments)
@@ -1216,6 +1263,30 @@ export default function PoolGame() {
     // Right Rail
     drawRail([{x: w, y: cw + pr}, {x: w, y: h - cw - pr}, {x: w - cw, y: h - cw - pr - 8}, {x: w - cw, y: cw + pr + 8}]);
 
+    // Rail sights/diamonds
+    ctx.save();
+    ctx.fillStyle = '#f8d8a8';
+    ctx.shadowColor = 'rgba(255, 213, 128, 0.45)';
+    ctx.shadowBlur = 6;
+    const drawDiamond = (x: number, y: number, size = 4) => {
+      ctx.beginPath();
+      ctx.moveTo(x, y - size);
+      ctx.lineTo(x + size, y);
+      ctx.lineTo(x, y + size);
+      ctx.lineTo(x - size, y);
+      ctx.closePath();
+      ctx.fill();
+    };
+    [w * 0.25, w * 0.5, w * 0.75].forEach(x => {
+      drawDiamond(x, 12);
+      drawDiamond(x, h - 12);
+    });
+    [h * 0.28, h * 0.5, h * 0.72].forEach(y => {
+      drawDiamond(12, y);
+      drawDiamond(w - 12, y);
+    });
+    ctx.restore();
+
     // Head String (Kitchen Line)
     ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.setLineDash([2, 5]);
@@ -1228,62 +1299,80 @@ export default function PoolGame() {
     // Draw Balls
     state.balls.forEach(ball => {
       if (!ball.isPocketed) {
-        // Shadow
+        const radius = CONFIG.ballRadius;
+        const color = BALL_COLORS[ball.number] || '#fff';
+
+        // Contact shadow
         ctx.beginPath();
-        ctx.arc(ball.x + 2, ball.y + 2, CONFIG.ballRadius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.ellipse(ball.x + 2.5, ball.y + radius * 0.7, radius * 0.95, radius * 0.34, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.32)';
         ctx.fill();
 
-        // Ball body
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, CONFIG.ballRadius, 0, Math.PI * 2);
-        
-        const grad = ctx.createRadialGradient(
-          ball.x - CONFIG.ballRadius * 0.3, 
-          ball.y - CONFIG.ballRadius * 0.3, 
-          CONFIG.ballRadius * 0.1, 
-          ball.x, 
-          ball.y, 
-          CONFIG.ballRadius
-        );
-        
-        let color = BALL_COLORS[ball.number] || '#fff';
-        
-        grad.addColorStop(0, '#fff');
-        grad.addColorStop(0.2, color === '#ffffff' ? '#fff' : color);
-        grad.addColorStop(1, ball.type === 'cue' ? '#ddd' : '#000');
-        
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        // Transform for ball orientation (rolling)
         ctx.save();
         ctx.translate(ball.x, ball.y);
         ctx.rotate(ball.rotation || 0);
 
-        // Stripe styling
+        // Ball body with brighter billiard enamel
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(-radius * 0.42, -radius * 0.48, radius * 0.08, 0, 0, radius);
+        if (ball.type === 'cue') {
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.62, '#fff8e8');
+          grad.addColorStop(1, '#d2c6ad');
+        } else if (ball.type === 'black') {
+          grad.addColorStop(0, '#5b5b5b');
+          grad.addColorStop(0.22, '#171717');
+          grad.addColorStop(1, '#000000');
+        } else {
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.16, '#fff8e8');
+          grad.addColorStop(0.38, color);
+          grad.addColorStop(1, '#111827');
+        }
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        // Stripe styling with a curved glossy band
         if (ball.type === 'stripe') {
+          ctx.save();
           ctx.beginPath();
-          ctx.arc(0, 0, CONFIG.ballRadius, 0, Math.PI * 2);
+          ctx.arc(0, 0, radius * 0.96, 0, Math.PI * 2);
           ctx.clip();
-          ctx.fillStyle = color;
-          ctx.fillRect(-CONFIG.ballRadius, -CONFIG.ballRadius * 0.4, CONFIG.ballRadius * 2, CONFIG.ballRadius * 0.8);
+          const stripeGrad = ctx.createLinearGradient(0, -radius * 0.5, 0, radius * 0.5);
+          stripeGrad.addColorStop(0, '#ffffff');
+          stripeGrad.addColorStop(0.18, color);
+          stripeGrad.addColorStop(0.5, color);
+          stripeGrad.addColorStop(0.82, color);
+          stripeGrad.addColorStop(1, '#ffffff');
+          ctx.fillStyle = stripeGrad;
+          ctx.fillRect(-radius, -radius * 0.44, radius * 2, radius * 0.88);
+          ctx.restore();
         }
 
-        // Highlight (drawn relative to ball center now)
+        // Rim and highlight
         ctx.beginPath();
-        ctx.arc(-CONFIG.ballRadius * 0.4, -CONFIG.ballRadius * 0.4, CONFIG.ballRadius * 0.2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(-radius * 0.38, -radius * 0.45, radius * 0.24, radius * 0.16, -0.55, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.86)';
         ctx.fill();
         
         // Number circle
         if (ball.type !== 'cue') {
            ctx.beginPath();
-           ctx.arc(0, 0, CONFIG.ballRadius * 0.4, 0, Math.PI * 2);
+           ctx.arc(0, 0, radius * 0.42, 0, Math.PI * 2);
            ctx.fillStyle = '#fff';
            ctx.fill();
+           ctx.strokeStyle = ball.type === 'black' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.12)';
+           ctx.lineWidth = 1;
+           ctx.stroke();
            ctx.fillStyle = '#000';
-           ctx.font = `bold ${CONFIG.ballRadius * 0.5}px Inter`;
+           ctx.font = `900 ${radius * 0.5}px Inter`;
            ctx.textAlign = 'center';
            ctx.textBaseline = 'middle';
            ctx.fillText(ball.number ? ball.number.toString() : '', 0, 0);
@@ -1573,11 +1662,6 @@ export default function PoolGame() {
             className="rounded-[30px] shadow-[0_40px_100px_-30px_rgba(0,0,0,0.8)] cursor-crosshair border-[24px] border-[#451a03] relative"
           />
           
-          {/* Logo overlay on table */}
-          <div className="absolute top-6 right-8 text-white/5 text-4xl font-black italic tracking-tighter pointer-events-none select-none">
-             8 BALL POOL
-          </div>
-
           {displayState?.isBallInHand && !displayState.isMoving && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                <div className="bg-amber-400 text-black px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest flex flex-col items-center gap-2 shadow-2xl pointer-events-auto cursor-pointer active:scale-95 transition-transform" onClick={confirmPlacement}>

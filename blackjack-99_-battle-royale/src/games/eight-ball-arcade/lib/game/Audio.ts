@@ -28,7 +28,8 @@ export class AudioManager {
   }
 
   playCueHit(power: number) {
-    this.playTone(150 + power * 10, 'sine', 0.1, 0.2 + (power / 10) * 0.3);
+    void power;
+    // Cue impact is visual-only; the old low-frequency tone was too heavy.
   }
 
   playBallCollision() {
