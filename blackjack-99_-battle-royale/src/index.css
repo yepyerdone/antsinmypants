@@ -3053,6 +3053,54 @@ body {
   top: var(--site-topbar-height);
 }
 
+.linguist-game-stage {
+  padding-block: clamp(0.35rem, 1.25vh, 1rem);
+}
+
+.linguist-board {
+  gap: clamp(0.2rem, 0.8vh, 0.375rem);
+}
+
+.linguist-board-row {
+  gap: clamp(0.25rem, 1vh, 0.5rem);
+}
+
+.linguist-tile {
+  width: min(16vw, clamp(2.15rem, 6.7vh, 4rem));
+  height: min(16vw, clamp(2.15rem, 6.7vh, 4rem));
+  font-size: clamp(1.25rem, 3.8vh, 1.875rem);
+  line-height: 1;
+}
+
+.linguist-key {
+  height: clamp(2.35rem, 6.4vh, 3.5rem);
+}
+
+.linguist-keyboard {
+  padding-bottom: clamp(0.35rem, 1.5vh, 1rem);
+}
+
+@media (max-height: 760px) {
+  .linguist-game-side {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  .linguist-game-header {
+    margin-bottom: 0.4rem !important;
+  }
+}
+
+@media (max-height: 640px) {
+  .linguist-game-header p {
+    display: none;
+  }
+
+  .linguist-key {
+    border-radius: 0.45rem;
+  }
+}
+
 @media (max-width: 1180px) {
   :root {
     --site-topbar-height: 116px;

@@ -425,8 +425,8 @@ export default function App() {
   return (
     <div className="h-screen bg-[#121213] text-white flex flex-col md:flex-row font-sans select-none overflow-hidden">
       {/* Game Side */}
-      <div className="flex-1 flex flex-col p-2 sm:p-4 md:p-6 md:border-r border-[#3a3a3c] overflow-hidden">
-        <header className="max-w-md w-full mx-auto flex items-center justify-between mb-4 sm:mb-6">
+      <div className="linguist-game-side flex-1 flex flex-col p-2 sm:p-4 md:p-6 md:border-r border-[#3a3a3c] overflow-hidden">
+        <header className="linguist-game-header max-w-md w-full mx-auto flex items-center justify-between mb-4 sm:mb-6 shrink-0">
           <button 
             onClick={() => setCurrentLevel(null)}
             className="p-2 sm:p-3 bg-[#1e1e1f] border border-[#3a3a3c] rounded-xl hover:bg-neutral-800 transition-all shadow-lg"
@@ -440,14 +440,14 @@ export default function App() {
           <div className="w-10 sm:w-12 h-10 sm:h-12" /> {/* Balanced spacer since reset is removed */}
         </header>
 
-        <main className="flex-1 flex flex-col items-center justify-center gap-1 sm:gap-1.5 relative min-h-0">
-          <div className="grid grid-rows-6 gap-1 sm:gap-1.5">
+        <main className="linguist-game-stage flex-1 flex flex-col items-center justify-center gap-1 sm:gap-1.5 relative min-h-0">
+          <div className="linguist-board grid grid-rows-6 gap-1 sm:gap-1.5">
             {Array.from({ length: 6 }).map((_, rowIndex) => {
               const guess = guesses[rowIndex] || (rowIndex === guesses.length ? currentGuess : "");
               const isSubmitted = rowIndex < guesses.length;
               
               return (
-                <div key={rowIndex} className="flex gap-1 sm:gap-2">
+                <div key={rowIndex} className="linguist-board-row flex gap-1 sm:gap-2">
                   {Array.from({ length: 5 }).map((_, colIndex) => {
                     const letter = guess[colIndex] || "";
                     
@@ -463,7 +463,7 @@ export default function App() {
                         animate={isSubmitted ? { rotateX: [0, 90, 0] } : {}}
                         transition={{ duration: 0.5, delay: colIndex * 0.25 }}
                         className={`
-                          w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 flex items-center justify-center text-2xl sm:text-3xl font-black rounded-sm border-2 transition-all
+                          linguist-tile flex items-center justify-center text-2xl sm:text-3xl font-black rounded-sm border-2 transition-all
                           ${!isSubmitted && letter ? 'border-neutral-500 scale-105' : 'border-[#3a3a3c]'}
                           ${status === 'CORRECT' ? 'bg-[#538d4e] border-[#538d4e] text-white shadow-[0_0_15px_rgba(83,141,78,0.3)]' : ''}
                           ${status === 'PRESENT' ? 'bg-[#b59f3b] border-[#b59f3b] text-white shadow-[0_0_15px_rgba(181,159,59,0.3)]' : ''}
@@ -523,7 +523,7 @@ export default function App() {
           </AnimatePresence>
         </main>
 
-        <footer className="max-w-md w-full mx-auto pb-4 px-2">
+        <footer className="linguist-keyboard max-w-md w-full mx-auto pb-4 px-2 shrink-0">
           <div className="flex flex-col gap-1.5 sm:gap-2">
             {KEYBOARD_ROWS.map((row, i) => (
               <div key={i} className="flex justify-center gap-1 sm:gap-1.5 flex-1">
@@ -534,7 +534,7 @@ export default function App() {
                       key={key}
                       onClick={() => handleKeydown(key)}
                       className={`
-                        h-12 sm:h-14 flex items-center justify-center rounded-lg font-bold text-[10px] sm:text-xs tracking-tight transition-all active:scale-90
+                        linguist-key h-12 sm:h-14 flex items-center justify-center rounded-lg font-bold text-[10px] sm:text-xs tracking-tight transition-all active:scale-90
                         ${key === 'ENTER' || key === 'DELETE' ? 'px-2 sm:px-6 bg-[#818384] text-white' : 'flex-1'}
                         ${status === 'EMPTY' ? 'bg-[#818384]/30 hover:bg-[#818384]/50 text-white/70' : ''}
                         ${status === 'CORRECT' ? 'bg-[#538d4e] text-white shadow-[0_0_10px_rgba(83,141,78,0.4)]' : ''}
