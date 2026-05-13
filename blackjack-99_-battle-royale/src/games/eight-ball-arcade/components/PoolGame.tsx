@@ -1819,6 +1819,10 @@ export default function PoolGame() {
               <span>Lock Aim</span>
            </div>
            <div className="flex items-center gap-2">
+              <kbd className="bg-slate-800 text-slate-200 px-2 py-1 rounded border border-white/10 font-mono">SHIFT</kbd>
+              <span>Precision Aim</span>
+           </div>
+           <div className="flex items-center gap-2">
               <kbd className="bg-slate-800 text-slate-200 px-2 py-1 rounded border border-white/10 font-mono">R</kbd>
               <span>Reset Position</span>
            </div>
