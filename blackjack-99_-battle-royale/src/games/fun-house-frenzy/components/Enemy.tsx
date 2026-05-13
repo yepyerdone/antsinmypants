@@ -9,13 +9,101 @@ import { RigidBody, RapierRigidBody, CapsuleCollider } from '@react-three/rapier
 import * as THREE from 'three';
 import { useGameStore, EnemyData } from '../store';
 
-const ENEMY_SPEED = 5;
+const ENEMY_SPEED = 6.35;
 const CHASE_DIST = 120;
 const MELEE_DIST = 2.4;
 const MELEE_COOLDOWN = 1400;
-const FINAL_CLOWN_SPEED = 7.5;
+const FINAL_CLOWN_SPEED = 8.8;
 const FINAL_CLOWN_REPOSITION_DISTANCE = 62;
 const FINAL_CLOWN_STUCK_TIME = 2600;
+const STUCK_SIDESTEP_TIME = 1450;
+const STUCK_REPOSITION_TIME = 4300;
+const WALL_LIMIT = 90;
+const WALL_AVOID_MARGIN = 15;
+const OBSTACLE_AVOID_PADDING = 6.5;
+
+type AvoidObstacle = {
+  x: number;
+  z: number;
+  halfWidth: number;
+  halfDepth: number;
+};
+
+function mulberry32(seed: number) {
+  return function random() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function createAvoidObstacles(): AvoidObstacle[] {
+  const random = mulberry32(12345);
+  const obstacles: AvoidObstacle[] = [
+    { x: 0, z: 0, halfWidth: 24, halfDepth: 24 },
+    { x: -62, z: 58, halfWidth: 20, halfDepth: 20 },
+  ];
+
+  for (let index = 0; index < 80; index += 1) {
+    const x = (random() - 0.5) * 170;
+    const z = (random() - 0.5) * 170;
+
+    if (Math.abs(x) < 20 && Math.abs(z) < 20) {
+      continue;
+    }
+
+    random();
+    const isHorizontal = random() > 0.5;
+    const width = isHorizontal ? random() * 25 + 10 : random() * 3 + 1;
+    const depth = isHorizontal ? random() * 3 + 1 : random() * 25 + 10;
+    random();
+
+    obstacles.push({
+      x,
+      z,
+      halfWidth: width / 2,
+      halfDepth: depth / 2,
+    });
+  }
+
+  return obstacles;
+}
+
+const AVOID_OBSTACLES = createAvoidObstacles();
+
+function applyArenaAvoidance(position: THREE.Vector3, desiredDirection: THREE.Vector3) {
+  if (desiredDirection.lengthSq() < 0.001) return desiredDirection;
+
+  const direction = desiredDirection.clone().normalize();
+  const probe = position.clone().add(direction.clone().multiplyScalar(7));
+  const steering = direction.clone();
+
+  AVOID_OBSTACLES.forEach((obstacle) => {
+    const dx = probe.x - obstacle.x;
+    const dz = probe.z - obstacle.z;
+    const paddedWidth = obstacle.halfWidth + OBSTACLE_AVOID_PADDING;
+    const paddedDepth = obstacle.halfDepth + OBSTACLE_AVOID_PADDING;
+
+    if (Math.abs(dx) < paddedWidth && Math.abs(dz) < paddedDepth) {
+      const pushX = dx / Math.max(1, paddedWidth);
+      const pushZ = dz / Math.max(1, paddedDepth);
+      const repulsion = new THREE.Vector3(pushX, 0, pushZ);
+      if (repulsion.lengthSq() > 0.001) {
+        const strength = 1.15 - Math.min(0.85, Math.max(Math.abs(pushX), Math.abs(pushZ)));
+        steering.add(repulsion.normalize().multiplyScalar(strength * 1.35));
+      }
+    }
+  });
+
+  if (position.x > WALL_LIMIT - WALL_AVOID_MARGIN) steering.x -= (position.x - (WALL_LIMIT - WALL_AVOID_MARGIN)) / WALL_AVOID_MARGIN;
+  if (position.x < -WALL_LIMIT + WALL_AVOID_MARGIN) steering.x += ((-WALL_LIMIT + WALL_AVOID_MARGIN) - position.x) / WALL_AVOID_MARGIN;
+  if (position.z > WALL_LIMIT - WALL_AVOID_MARGIN) steering.z -= (position.z - (WALL_LIMIT - WALL_AVOID_MARGIN)) / WALL_AVOID_MARGIN;
+  if (position.z < -WALL_LIMIT + WALL_AVOID_MARGIN) steering.z += ((-WALL_LIMIT + WALL_AVOID_MARGIN) - position.z) / WALL_AVOID_MARGIN;
+
+  if (steering.lengthSq() < 0.001) return direction;
+  return steering.normalize();
+}
 
 const CLOWN_VARIANTS = [
   {
@@ -149,13 +237,14 @@ export function Enemy({ data }: { data: EnemyData }) {
       lastProgressPosition.current.copy(currentPos);
       lastProgressTime.current = now;
     } else if (
-      finalClownPressure &&
       closestTargetPos &&
-      closestDist > FINAL_CLOWN_REPOSITION_DISTANCE &&
-      now - lastProgressTime.current > FINAL_CLOWN_STUCK_TIME
+      (
+        (finalClownPressure && closestDist > FINAL_CLOWN_REPOSITION_DISTANCE && now - lastProgressTime.current > FINAL_CLOWN_STUCK_TIME)
+        || now - lastProgressTime.current > STUCK_REPOSITION_TIME
+      )
     ) {
       const angle = Math.random() * Math.PI * 2;
-      const distance = 34 + Math.random() * 10;
+      const distance = finalClownPressure ? 34 + Math.random() * 10 : 46 + Math.random() * 14;
       const nextX = THREE.MathUtils.clamp(closestTargetPos.x + Math.cos(angle) * distance, -82, 82);
       const nextZ = THREE.MathUtils.clamp(closestTargetPos.z + Math.sin(angle) * distance, -82, 82);
       body.current.setTranslation({ x: nextX, y: data.position[1], z: nextZ }, true);
@@ -184,6 +273,10 @@ export function Enemy({ data }: { data: EnemyData }) {
 
     if (state.current === 'chase' && closestTargetPos) {
       direction.subVectors(closestTargetPos, currentPos).normalize();
+      if (now - lastProgressTime.current > STUCK_SIDESTEP_TIME) {
+        const side = new THREE.Vector3(-direction.z, 0, direction.x);
+        direction.add(side.multiplyScalar(Math.sin(now * 0.006 + data.position[0]) > 0 ? 0.85 : -0.85)).normalize();
+      }
       
       // Melee attack only. Clowns must reach the player before tagging them.
       if (closestDist < MELEE_DIST && now - lastMeleeTime.current > MELEE_COOLDOWN) {
@@ -204,6 +297,8 @@ export function Enemy({ data }: { data: EnemyData }) {
       }
       direction.subVectors(patrolTarget.current, currentPos).normalize();
     }
+
+    direction.copy(applyArenaAvoidance(currentPos, direction));
 
     const elapsed = state_fiber.clock.elapsedTime;
     const isMoving = direction.lengthSq() > 0.1;
