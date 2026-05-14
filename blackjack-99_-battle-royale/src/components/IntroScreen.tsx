@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, ExternalLink, Flame, Gamepad2, Gauge, Play, Sparkles, Trophy, Users } from 'lucide-react';
 import {
   getSectionGames,
@@ -19,9 +19,18 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
   const [showFeaturedBackButton, setShowFeaturedBackButton] = useState(false);
   const [showArcadeBackButton, setShowArcadeBackButton] = useState(false);
   const [showMultiplayerBackButton, setShowMultiplayerBackButton] = useState(false);
+  const [heroSlide, setHeroSlide] = useState<'arcade' | 'events'>('arcade');
   const featuredScrollerRef = useRef<HTMLDivElement>(null);
   const arcadeScrollerRef = useRef<HTMLDivElement>(null);
   const multiplayerScrollerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setHeroSlide((currentSlide) => currentSlide === 'arcade' ? 'events' : 'arcade');
+    }, 5200);
+
+    return () => window.clearInterval(interval);
+  }, []);
 
   const launchGame = (game: GameCardData) => {
     if (game.internalPath) {
@@ -140,53 +149,101 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
     <div className="site-home">
       <main className="site-home-main">
         <section className="site-home-hero" aria-labelledby="site-home-title">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-            className="site-home-hero__copy"
-          >
-            <div className="site-home-pill">
-              <Flame size={16} />
-              <span>Quick-play arcade</span>
-            </div>
-            <h1 id="site-home-title">Pick a game. Chase the high score.</h1>
-            <p>A growing arcade of fast, simple games built for quick breaks.</p>
-            <div className="site-home-actions">
-              <a href="#games" className="site-home-primary">
-                <Play size={18} fill="currentColor" />
-                <span>Browse Games</span>
-              </a>
-              <span className="site-home-secondary">
-                <Sparkles size={17} />
-                Guests choose a player name
-              </span>
-            </div>
-          </motion.div>
+          <AnimatePresence mode="wait" initial={false}>
+            {heroSlide === 'arcade' ? (
+              <motion.div
+                key="arcade-hero"
+                initial={{ opacity: 0, x: 80 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -80 }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="site-home-hero__slide"
+              >
+                <div className="site-home-hero__copy">
+                  <div className="site-home-pill">
+                    <Flame size={16} />
+                    <span>Quick-play arcade</span>
+                  </div>
+                  <h1 id="site-home-title">Pick a game. Chase the high score.</h1>
+                  <p>A growing arcade of fast, simple games built for quick breaks.</p>
+                  <div className="site-home-actions">
+                    <a href="#games" className="site-home-primary">
+                      <Play size={18} fill="currentColor" />
+                      <span>Browse Games</span>
+                    </a>
+                    <span className="site-home-secondary">
+                      <Sparkles size={17} />
+                      Guests choose a player name
+                    </span>
+                  </div>
+                </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.05 }}
-            className="site-home-stats"
-            aria-label="Arcade highlights"
-          >
-            <div className="site-home-stat">
-              <Gamepad2 size={20} />
-              <strong>{games.length}</strong>
-              <span>Games available</span>
-            </div>
-            <div className="site-home-stat">
-              <Trophy size={20} />
-              <strong>Live</strong>
-              <span>Score chasing</span>
-            </div>
-            <div className="site-home-stat">
-              <Users size={20} />
-              <strong>Guest</strong>
-              <span>Play supported</span>
-            </div>
-          </motion.div>
+                <div className="site-home-stats" aria-label="Arcade highlights">
+                  <div className="site-home-stat">
+                    <Gamepad2 size={20} />
+                    <strong>{games.length}</strong>
+                    <span>Games available</span>
+                  </div>
+                  <div className="site-home-stat">
+                    <Trophy size={20} />
+                    <strong>Live</strong>
+                    <span>Score chasing</span>
+                  </div>
+                  <div className="site-home-stat">
+                    <Users size={20} />
+                    <strong>Guest</strong>
+                    <span>Play supported</span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="events-hero"
+                initial={{ opacity: 0, x: 80 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -80 }}
+                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                className="site-home-hero__slide"
+              >
+                <div className="site-home-hero__copy site-home-hero__copy--events">
+                  <div className="site-home-pill site-home-pill--events">
+                    <Trophy size={16} />
+                    <span>Events coming soon</span>
+                  </div>
+                  <h1 id="site-home-title">Events Coming Soon.</h1>
+                  <p>Chase highscores. Earn real money.</p>
+                  <div className="site-home-actions">
+                    <a href="#games" className="site-home-primary">
+                      <Play size={18} fill="currentColor" />
+                      <span>Train Now</span>
+                    </a>
+                    <span className="site-home-secondary">
+                      <Sparkles size={17} />
+                      Competitive score events are on deck
+                    </span>
+                  </div>
+                </div>
+
+                <div className="site-home-stats site-home-stats--events" aria-label="Upcoming event highlights">
+                  <div className="site-home-stat">
+                    <Trophy size={20} />
+                    <strong>Events</strong>
+                    <span>Coming soon</span>
+                  </div>
+                  <div className="site-home-stat">
+                    <Flame size={20} />
+                    <strong>Cash</strong>
+                    <span>Real rewards</span>
+                  </div>
+                  <div className="site-home-stat">
+                    <Gamepad2 size={20} />
+                    <strong>Scores</strong>
+                    <span>High-score races</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
 
         <section id="games" className="site-games-section" aria-labelledby="site-games-title">
