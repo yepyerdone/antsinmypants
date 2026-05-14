@@ -17,22 +17,28 @@ export class MultiplayerManager {
 
   static async startMatchmaking(player: GamePlayer, onMatch: (matchId: string, role: 'white' | 'black') => void): Promise<() => void> {
     const queueCol = collection(db, 'queue');
-    const now = Date.now();
-    const q = query(queueCol, limit(50));
-    const snapshot = await getDocs(q);
-    const opponentDoc = snapshot.docs.find((queuedPlayer) => {
-      const queuedData = queuedPlayer.data() as QueuedEightBallPlayer;
-      const isActive = typeof queuedData.lastSeenAt === 'number' && now - queuedData.lastSeenAt <= MultiplayerManager.QUEUE_TTL_MS;
-      return queuedPlayer.id !== player.uid && !!queuedData.uid && queuedData.uid !== player.uid && !!queuedData.queueToken && isActive;
-    });
+    const findActiveOpponent = async (now: number, joinedAtMs?: number) => {
+      const q = query(queueCol, limit(50));
+      const snapshot = await getDocs(q);
+      const staleDocs = snapshot.docs.filter((queuedPlayer) => {
+        const queuedData = queuedPlayer.data() as QueuedEightBallPlayer;
+        return typeof queuedData.lastSeenAt !== 'number' || now - queuedData.lastSeenAt > MultiplayerManager.QUEUE_TTL_MS;
+      });
+      await Promise.all(staleDocs.map((queuedPlayer) => deleteDoc(doc(db, 'queue', queuedPlayer.id)).catch(() => undefined)));
 
-    const staleDocs = snapshot.docs.filter((queuedPlayer) => {
-      const queuedData = queuedPlayer.data() as QueuedEightBallPlayer;
-      return typeof queuedData.lastSeenAt !== 'number' || now - queuedData.lastSeenAt > MultiplayerManager.QUEUE_TTL_MS;
-    });
-    await Promise.all(staleDocs.map((queuedPlayer) => deleteDoc(doc(db, 'queue', queuedPlayer.id)).catch(() => undefined)));
+      return snapshot.docs.find((queuedPlayer) => {
+        const queuedData = queuedPlayer.data() as QueuedEightBallPlayer;
+        const isActive = typeof queuedData.lastSeenAt === 'number' && now - queuedData.lastSeenAt <= MultiplayerManager.QUEUE_TTL_MS;
+        const isOpponent = queuedPlayer.id !== player.uid && !!queuedData.uid && queuedData.uid !== player.uid && !!queuedData.queueToken;
+        const queuedBeforeUs = joinedAtMs === undefined
+          || (typeof queuedData.createdAtMs === 'number' && queuedData.createdAtMs < joinedAtMs)
+          || (queuedData.createdAtMs === joinedAtMs && queuedData.uid < player.uid);
+        return isOpponent && isActive && queuedBeforeUs;
+      });
+    };
 
-    if (opponentDoc) {
+    const createMatchFromOpponent = async (opponentDoc: Awaited<ReturnType<typeof findActiveOpponent>>) => {
+      if (!opponentDoc) return false;
       const otherData = opponentDoc.data() as QueuedEightBallPlayer;
       const matchId = `match_${Date.now()}_${player.uid}`;
       const whitePlayer: GamePlayer = { uid: otherData.uid, name: otherData.name || 'Player 1', group: null, violations: 0 };
@@ -69,25 +75,49 @@ export class MultiplayerManager {
       await deleteDoc(doc(db, 'queue', opponentDoc.id));
       await deleteDoc(doc(db, 'queue', player.uid)).catch(() => undefined);
       onMatch(matchId, 'black');
+      return true;
+    };
+
+    const opponentDoc = await findActiveOpponent(Date.now());
+    if (opponentDoc) {
+      await createMatchFromOpponent(opponentDoc);
       return () => undefined;
     } else {
       let isSearching = true;
-      const queueToken = `${player.uid}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      let hasMatched = false;
+      const joinedAtMs = Date.now();
+      const queueToken = `${player.uid}_${joinedAtMs}_${Math.random().toString(36).slice(2)}`;
       const queueRef = doc(db, 'queue', player.uid);
       const refreshQueue = () => setDoc(queueRef, {
         uid: player.uid,
         name: player.name,
         queueToken,
         createdAt: new Date().toISOString(),
-        createdAtMs: Date.now(),
+        createdAtMs: joinedAtMs,
         lastSeenAt: Date.now()
       }, { merge: true });
+
+      const tryMatchWaitingOpponent = async () => {
+        if (!isSearching || hasMatched) return;
+        const opponent = await findActiveOpponent(Date.now(), joinedAtMs);
+        if (!opponent || hasMatched || !isSearching) return;
+        hasMatched = true;
+        isSearching = false;
+        window.clearInterval(heartbeat);
+        unsubscribe();
+        await createMatchFromOpponent(opponent);
+      };
 
       // Join queue
       await refreshQueue();
       const heartbeat = window.setInterval(() => {
-        if (isSearching) refreshQueue().catch(() => undefined);
-      }, 5000);
+        if (isSearching) {
+          refreshQueue().catch(() => undefined);
+          tryMatchWaitingOpponent().catch(() => {
+            if (!hasMatched) isSearching = true;
+          });
+        }
+      }, 3000);
 
       // Listen for a match created for us
       const matchesCol = collection(db, 'matches');
@@ -98,6 +128,8 @@ export class MultiplayerManager {
           return matchData?.whiteQueueToken === queueToken && matchData?.status === 'playing';
         });
         if (matchDoc) {
+          if (hasMatched) return;
+          hasMatched = true;
           isSearching = false;
           window.clearInterval(heartbeat);
           unsubscribe();
@@ -105,9 +137,15 @@ export class MultiplayerManager {
           onMatch(matchDoc.id, 'white');
         }
       });
+      window.setTimeout(() => {
+        tryMatchWaitingOpponent().catch(() => {
+          if (!hasMatched) isSearching = true;
+        });
+      }, 800);
 
       return () => {
         isSearching = false;
+        hasMatched = true;
         window.clearInterval(heartbeat);
         unsubscribe();
         deleteDoc(queueRef).catch(() => undefined);
