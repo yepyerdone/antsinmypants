@@ -35,7 +35,7 @@ const BALL_COLORS: Record<number, string> = {
 type OnlineReplayShot = {
   startBalls: Ball[];
   finalBalls: Ball[];
-  frames?: Ball[][];
+  frames?: Array<{ balls: Ball[] }>;
   angle: number;
   power: number;
   spin: { x: number; y: number };
@@ -276,7 +276,7 @@ export default function PoolGame() {
       const replayFrames = Array.isArray(shot.frames) && shot.frames.length > 1 ? shot.frames : null;
       const replayState: GameState = {
         ...finalState,
-        balls: cloneBalls(replayFrames?.[0] || shot.startBalls),
+        balls: cloneBalls(replayFrames?.[0]?.balls || shot.startBalls),
         isMoving: true,
         winner: null,
         status: 'playing',
@@ -290,7 +290,7 @@ export default function PoolGame() {
 
       if (replayFrames) {
         for (const frame of replayFrames.slice(1)) {
-          const nextReplayState = { ...replayState, balls: cloneBalls(frame) };
+          const nextReplayState = { ...replayState, balls: cloneBalls(frame.balls) };
           gameStateRef.current = nextReplayState;
           setGameState(nextReplayState);
           setDisplayState(nextReplayState);
@@ -666,10 +666,10 @@ export default function PoolGame() {
         if (pendingShotRef.current && shouldPublishOnlineTurn) {
           const now = performance.now();
           const frames = pendingShotRef.current.frames || [];
-          if ((now - lastReplayFrameAtRef.current >= 90 && frames.length < 64) || !stillMoving) {
+          if ((now - lastReplayFrameAtRef.current >= 120 && frames.length < 36) || !stillMoving) {
             pendingShotRef.current.frames = [
               ...frames,
-              cloneBalls(nextBalls),
+              { balls: cloneBalls(nextBalls) },
             ];
             lastReplayFrameAtRef.current = now;
           }
@@ -688,7 +688,7 @@ export default function PoolGame() {
                 finalBalls: cloneBalls(nextBalls),
                 frames: [
                   ...(pendingShot.frames || []),
-                  cloneBalls(nextBalls),
+                  { balls: cloneBalls(nextBalls) },
                 ],
               },
             ];
@@ -720,7 +720,7 @@ export default function PoolGame() {
                   finalBalls: cloneBalls(shot.finalBalls),
                 };
                 if (shot.frames?.length) {
-                  nextShot.frames = shot.frames.map(frame => cloneBalls(frame));
+                  nextShot.frames = shot.frames.map(frame => ({ balls: cloneBalls(frame.balls) }));
                 }
                 return nextShot;
              });
@@ -753,8 +753,15 @@ export default function PoolGame() {
                   white: updatedState.players[0],
                   black: updatedState.players[1]
                 }
-             } as any);
-             setOnlinePhase('waiting');
+             } as any)
+                .then(() => setOnlinePhase('waiting'))
+                .catch(() => {
+                  toast.error('Failed to send turn replay. Try the shot again.');
+                  gameStateRef.current = state;
+                  setGameState({ ...state, isMoving: false });
+                  setDisplayState({ ...state, isMoving: false });
+                  setOnlinePhase('playing');
+                });
           }
         } else {
           state.balls = nextBalls;
@@ -951,7 +958,7 @@ export default function PoolGame() {
       pendingShotRef.current = {
         startBalls,
         finalBalls: [],
-        frames: [startBalls],
+        frames: [{ balls: startBalls }],
         angle,
         power,
         spin: { ...cueSpinRef.current },
