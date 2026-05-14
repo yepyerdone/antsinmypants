@@ -368,6 +368,9 @@ export default function PoolGame() {
 
   // Initialize game
   const startGame = useCallback((selectedMode: GameMode, diff?: BotDifficulty, p1?: string, p2?: string) => {
+    if (selectedMode === 'online') {
+      return;
+    }
     matchmakingCleanupRef.current?.();
     matchmakingCleanupRef.current = null;
     matchUnsubscribeRef.current?.();
@@ -1984,7 +1987,7 @@ export default function PoolGame() {
                       <MenuButton icon={<RotateCcw />} label="Restart" onClick={() => {
                         setMenuStage('main');
                         startGame(mode || 'local');
-                      }} secondary disabled={!mode} />
+                      }} secondary disabled={!mode || matchmaking || mode === 'online'} />
                     </div>
                   </div>
 

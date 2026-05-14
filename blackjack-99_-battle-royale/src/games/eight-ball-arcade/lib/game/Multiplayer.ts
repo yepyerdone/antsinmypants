@@ -13,7 +13,7 @@ type QueuedEightBallPlayer = Pick<GamePlayer, 'uid' | 'name'> & {
 };
 
 export class MultiplayerManager {
-  private static readonly QUEUE_TTL_MS = 20000;
+  private static readonly QUEUE_TTL_MS = 7000;
 
   static async startMatchmaking(player: GamePlayer, onMatch: (matchId: string, role: 'white' | 'black') => void): Promise<() => void> {
     const queueCol = collection(db, 'queue');
@@ -67,7 +67,10 @@ export class MultiplayerManager {
         whiteQueueToken: otherData.queueToken,
         connectionReady: {
           white: false,
-          black: false,
+          black: true,
+        },
+        connectionReadyAt: {
+          black: Date.now(),
         },
       };
 
@@ -117,7 +120,7 @@ export class MultiplayerManager {
             if (!hasMatched) isSearching = true;
           });
         }
-      }, 3000);
+      }, 2000);
 
       // Listen for a match created for us
       const matchesCol = collection(db, 'matches');
