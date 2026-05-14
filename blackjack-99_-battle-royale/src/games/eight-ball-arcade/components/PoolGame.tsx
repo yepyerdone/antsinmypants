@@ -863,12 +863,12 @@ export default function PoolGame() {
 
   // Turn Timer Effect (Multiplayer only)
   useEffect(() => {
-    if (gameState?.mode !== 'online' || gameState.status === 'finished' || gameState.isMoving || onlinePhase !== 'playing') return;
+    if (gameState?.mode !== 'online' || gameState.status === 'finished' || gameState.isMoving || !canControlOnlineTurn(gameState)) return;
 
     const timer = setInterval(() => {
       const state = gameStateRef.current;
       if (!state || state.isMoving || state.status === 'finished' || state.mode !== 'online') return;
-      if (!isMyOnlineTurn(state)) return;
+      if (!canControlOnlineTurn(state)) return;
 
       if (state.turnStartTime) {
         const elapsed = Date.now() - state.turnStartTime;
@@ -909,7 +909,7 @@ export default function PoolGame() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState?.mode, gameState?.status, gameState?.isMoving, isMyOnlineTurn, onlineMatchId, onlinePhase]);
+  }, [canControlOnlineTurn, gameState, onlineMatchId]);
 
   const confirmPlacement = () => {
     setGameState(prev => {
@@ -1650,7 +1650,7 @@ export default function PoolGame() {
                 isTurn={displayState.turnIndex === 0 && !displayState.winner}
                 turnStartTime={displayState.turnStartTime}
                 mode={displayState.mode}
-                timerActive={displayState.mode !== 'online' || onlinePhase === 'playing'}
+                timerActive={displayState.mode !== 'online' || canControlOnlineTurn(displayState)}
              />
           </div>
 
@@ -1689,7 +1689,7 @@ export default function PoolGame() {
                    isTurn={displayState.turnIndex === 1 && !displayState.winner}
                    turnStartTime={displayState.turnStartTime}
                    mode={displayState.mode}
-                   timerActive={displayState.mode !== 'online' || onlinePhase === 'playing'}
+                   timerActive={displayState.mode !== 'online' || canControlOnlineTurn(displayState)}
                 />
              </div>
              <button onClick={() => setMenuOpen(true)} className="mt-2 p-3 hover:bg-white/10 rounded-2xl transition-all border border-white/5 self-start group">
@@ -1740,22 +1740,20 @@ export default function PoolGame() {
             className="rounded-[30px] shadow-[0_40px_100px_-30px_rgba(0,0,0,0.8)] cursor-crosshair border-[24px] border-[#451a03] relative"
           />
 
-          {displayState?.mode === 'online' && !menuOpen && !canControlOnlineTurn(displayState) && (
+          {displayState?.mode === 'online' && onlinePhase !== 'replaying' && !menuOpen && !canControlOnlineTurn(displayState) && (
             <div className={clsx(
               "absolute inset-0 pointer-events-none flex z-20",
-              onlinePhase === 'replaying' ? "items-start justify-center pt-8" : "items-center justify-center"
+              "items-center justify-center"
             )}>
               <div className="bg-slate-950/88 border border-cyan-300/20 text-white px-8 py-5 rounded-3xl shadow-2xl backdrop-blur-md text-center max-w-sm">
                 <div className="text-[10px] font-black uppercase tracking-[0.35em] text-cyan-200/70 mb-2">
-                  {onlinePhase === 'replaying' ? 'Opponent Replay' : 'Waiting for Opponent'}
+                  Waiting for Opponent
                 </div>
                 <div className="text-2xl font-black italic tracking-tighter">
-                  {onlinePhase === 'replaying' ? 'Watching Their Shot' : 'Waiting for Their Turn'}
+                  Waiting for Their Turn
                 </div>
                 <p className="mt-2 text-xs font-bold text-slate-300">
-                  {onlinePhase === 'replaying'
-                    ? 'Controls unlock after the replay finishes.'
-                    : 'Your controls unlock when the table is yours.'}
+                  Your controls unlock when the table is yours.
                 </p>
               </div>
             </div>
