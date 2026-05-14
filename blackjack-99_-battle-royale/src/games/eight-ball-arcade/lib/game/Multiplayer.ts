@@ -124,7 +124,7 @@ export class MultiplayerManager {
 
   static syncGameState(matchId: string, state: Partial<GameState>) {
     const matchRef = doc(db, 'matches', matchId);
-    updateDoc(matchRef, state);
+    return updateDoc(matchRef, state);
   }
 
   static listenToMatch(matchId: string, callback: (data: any) => void) {

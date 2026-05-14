@@ -225,7 +225,17 @@ export default function PoolGame() {
     return onlinePhase === 'playing' && state.players[state.turnIndex]?.uid === auth.currentUser?.uid;
   }, [onlinePhase]);
 
-  const cloneBalls = useCallback((balls: Ball[]) => balls.map(ball => ({ ...ball, pocketedIn: ball.pocketedIn ? { ...ball.pocketedIn } : ball.pocketedIn })), []);
+  const cloneBalls = useCallback((balls: Ball[]) => balls.map(ball => {
+    const cloned: Ball = { ...ball };
+    if (ball.pocketedIn) {
+      cloned.pocketedIn = { ...ball.pocketedIn };
+    } else if (ball.pocketedIn === null) {
+      cloned.pocketedIn = null;
+    } else {
+      delete cloned.pocketedIn;
+    }
+    return cloned;
+  }), []);
 
   const buildOnlineStateFromData = useCallback((data: any, prev: GameState | null): GameState => {
     const whitePlayer: GamePlayer = { uid: data.players?.white?.uid || '', name: data.players?.white?.name || 'Player 1', group: data.players?.white?.group ?? null, violations: data.players?.white?.violations || 0 };
@@ -412,6 +422,10 @@ export default function PoolGame() {
             if (!data.balls || isReplayingRef.current) return;
             const localState = gameStateRef.current;
             if (localState?.isMoving && isMyOnlineTurn(localState)) return;
+            if (data.isMoving && data.turn !== auth.currentUser?.uid) {
+              setOnlinePhase('waiting');
+              return;
+            }
 
             const nextState = buildOnlineStateFromData(data, localState);
             const replay = data.turnReplay as OnlineTurnReplay | undefined;
@@ -647,16 +661,21 @@ export default function PoolGame() {
           
           const shooterKeepsTurn = updatedState.players[updatedState.turnIndex].uid === shooterUid && !updatedState.winner;
           if (onlineMatchId && myRole && shouldPublishOnlineTurn && !shooterKeepsTurn) {
+             const replayShots = currentTurnShotsRef.current.map((shot) => ({
+                ...shot,
+                startBalls: cloneBalls(shot.startBalls),
+                finalBalls: cloneBalls(shot.finalBalls),
+             }));
              const turnReplay: OnlineTurnReplay = {
                 id: `${onlineMatchId}_${shooterUid}_${Date.now()}`,
                 playerUid: shooterUid,
-                shots: currentTurnShotsRef.current,
+                shots: replayShots,
                 createdAt: Date.now(),
              };
              currentTurnShotsRef.current = [];
              // Sync state to firebase
              MultiplayerManager.syncGameState(onlineMatchId, {
-                balls: updatedState.balls,
+                balls: cloneBalls(updatedState.balls),
                 isMoving: false,
                 isFoul: updatedState.isFoul,
                 foulReason: updatedState.foulReason,
@@ -668,7 +687,7 @@ export default function PoolGame() {
                 winner: updatedState.winner,
                 turn: updatedState.players[updatedState.turnIndex].uid,
                 turnStartTime: updatedState.turnStartTime,
-                turnReplay,
+                turnReplay: replayShots.length > 0 ? turnReplay : null,
                 liveShot: null,
                 players: {
                   white: updatedState.players[0],
