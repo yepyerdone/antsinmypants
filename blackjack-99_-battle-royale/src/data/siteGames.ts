@@ -15,7 +15,8 @@ export type PreviewType =
   | 'tachymetry'
   | 'eight-ball'
   | 'fun-house'
-  | 'linguist';
+  | 'linguist'
+  | 'good-boy';
 
 export type GameCardData = {
   id: string;
@@ -248,6 +249,17 @@ export const siteGames: GameCardData[] = [
     sections: ['arcade'],
     internalPath: '/tachymetry',
   },
+  {
+    id: 'good-boy',
+    title: 'Good Boy',
+    description: 'A retro arcade retriever hunt with pixel birds, quick shots, and round-by-round score pressure.',
+    category: 'Arcade',
+    meta: 'Score attack',
+    preview: 'good-boy',
+    primarySection: 'arcade',
+    sections: ['arcade'],
+    internalPath: '/good-boy',
+  },
 ];
 
 export const homeGameSections = [
@@ -257,7 +269,7 @@ export const homeGameSections = [
   },
   {
     title: 'Arcade Classics',
-    gameIds: ['molar-madness', 'snake-rush', 'space-runner', 'tachymetry'],
+    gameIds: ['molar-madness', 'snake-rush', 'space-runner', 'tachymetry', 'good-boy'],
   },
   {
     title: 'Multiplayer',

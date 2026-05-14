@@ -1,0 +1,78 @@
+.good-boy-page {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 204, 41, 0.18), transparent 28%),
+    linear-gradient(135deg, #120d18 0%, #241335 42%, #0d141f 100%);
+  font-family: "Courier New", Courier, monospace;
+  user-select: none;
+}
+
+.good-boy-page #game-container {
+  width: min(800px, calc(100vw - 48px));
+  aspect-ratio: 4 / 3;
+  height: auto;
+  background-color: #64b5f6;
+  position: relative;
+  box-shadow:
+    0 24px 0 #09070c,
+    0 34px 70px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 10px #ffcc29,
+    inset 0 0 0 18px #5c2d91,
+    inset 0 0 0 24px #15101e;
+  border: 10px solid #09070c;
+  border-radius: 18px;
+  overflow: visible;
+}
+
+.good-boy-page #game-container::before {
+  content: "GOOD BOY";
+  position: absolute;
+  left: 50%;
+  top: -58px;
+  transform: translateX(-50%);
+  width: 420px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: #ffcc29;
+  background: #15101e;
+  border: 6px solid #09070c;
+  box-shadow: inset 0 0 0 3px #ff3d71;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-shadow: 3px 3px 0 #5c2d91;
+  pointer-events: none;
+}
+
+.good-boy-page #game-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0)),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.12) 1px, transparent 1px, transparent 4px);
+  mix-blend-mode: soft-light;
+}
+
+.good-boy-page #game-canvas {
+  image-rendering: pixelated;
+  cursor: none;
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 8px;
+}
+
+@media (max-height: 760px) and (min-width: 900px) {
+  .good-boy-page #game-container {
+    width: min(800px, calc((100vh - 116px) * 1.333));
+  }
+}

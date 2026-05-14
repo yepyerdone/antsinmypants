@@ -34,6 +34,7 @@ import Tachymetry from './games/tachymetry/App';
 import EightBallArcade from './games/eight-ball-arcade/App';
 import FunHouseFrenzy from './games/fun-house-frenzy/App';
 import Linguist from './games/linguist/App';
+import GoodBoy from './games/good-boy/App';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -86,6 +87,9 @@ export default function App() {
       setShowIntro(false);
     } else if (location.pathname === '/linguist') {
       setSelectedGame('linguist');
+      setShowIntro(false);
+    } else if (location.pathname === '/good-boy') {
+      setSelectedGame('good-boy');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -600,6 +604,10 @@ export default function App() {
     return <Linguist />;
   }
 
+  if (selectedGame === 'good-boy') {
+    return <GoodBoy />;
+  }
+
   return (
     <div className="min-h-screen bg-bg-dark text-white font-sans selection:bg-stake-green selection:text-bg-dark overflow-hidden flex flex-col">
       <AnimatePresence mode="wait">
@@ -634,6 +642,8 @@ export default function App() {
                   setSelectedGame('fun-house-frenzy');
                 } else if (gameId === 'linguist') {
                   setSelectedGame('linguist');
+                } else if (gameId === 'good-boy') {
+                  setSelectedGame('good-boy');
                 } else {
                   setShowIntro(false);
                 }

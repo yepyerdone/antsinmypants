@@ -16,7 +16,8 @@ export type PreviewType =
   | 'tachymetry'
   | 'eight-ball'
   | 'fun-house'
-  | 'linguist';
+  | 'linguist'
+  | 'good-boy';
 
 interface GamePreviewProps {
   type: PreviewType;
@@ -155,6 +156,21 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
         <span className="preview-tachy-piece preview-tachy-piece--o" />
         <span className="preview-tachy-line" />
         <span className="preview-score">TETRIS</span>
+      </div>
+    );
+  }
+
+  if (type === 'good-boy') {
+    return (
+      <div className="site-game-preview site-game-preview--good-boy" aria-label={`${title} preview`}>
+        <span className="preview-good-boy-sun" />
+        <span className="preview-good-boy-cloud preview-good-boy-cloud--one" />
+        <span className="preview-good-boy-cloud preview-good-boy-cloud--two" />
+        <span className="preview-good-boy-grass" />
+        <span className="preview-good-boy-dog" />
+        <span className="preview-good-boy-bird" />
+        <span className="preview-good-boy-crosshair" />
+        <span className="preview-score">GOOD</span>
       </div>
     );
   }

@@ -1868,6 +1868,12 @@ body {
   background-size: 18px 18px, 18px 18px, 100% 100%, 100% 100%;
 }
 
+.site-game-preview--good-boy {
+  background:
+    radial-gradient(circle at 78% 22%, #ffcf57 0 0.9rem, transparent 0.96rem),
+    linear-gradient(180deg, #5aa9e6 0%, #8dd7ff 54%, #2f8f38 55%, #17612d 100%);
+}
+
 .site-game-preview--eight-ball {
   background:
     radial-gradient(circle at 70% 20%, rgba(251, 191, 36, 0.28), transparent 24%),
@@ -1942,6 +1948,125 @@ body {
   height: 0.18rem;
   background: #00f0f0;
   box-shadow: 0 0 16px rgba(0, 240, 240, 0.8);
+}
+
+.preview-good-boy-sun,
+.preview-good-boy-cloud,
+.preview-good-boy-grass,
+.preview-good-boy-dog,
+.preview-good-boy-bird,
+.preview-good-boy-crosshair {
+  position: absolute;
+  z-index: 1;
+}
+
+.preview-good-boy-sun {
+  right: 17%;
+  top: 16%;
+  width: 1.7rem;
+  height: 1.7rem;
+  background: #ffcf57;
+  box-shadow: inset 0 0 0 0.45rem #ffe082, 0 0 22px rgba(255, 207, 87, 0.7);
+}
+
+.preview-good-boy-cloud {
+  width: 2.3rem;
+  height: 0.7rem;
+  background: #fff8e1;
+  box-shadow: 0.75rem 0.48rem 0 #fff8e1, 1.35rem 0.25rem 0 #fff8e1, 0.5rem 0.9rem 0 #d7ecf3;
+}
+
+.preview-good-boy-cloud--one {
+  left: 14%;
+  top: 20%;
+}
+
+.preview-good-boy-cloud--two {
+  right: 25%;
+  top: 34%;
+  transform: scale(0.78);
+}
+
+.preview-good-boy-grass {
+  inset-inline: 0;
+  bottom: 0;
+  height: 2.6rem;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 0.45rem, rgba(16, 79, 36, 0.9) 0.45rem 0.62rem),
+    linear-gradient(180deg, #2f8f38, #104f24);
+  border-top: 0.32rem solid #17612d;
+}
+
+.preview-good-boy-dog {
+  left: 34%;
+  bottom: 18%;
+  width: 3.6rem;
+  height: 2.25rem;
+  background: #8a5832;
+  border: 2px solid #3e2723;
+  box-shadow:
+    0.8rem -1.2rem 0 -0.22rem #8a5832,
+    1.25rem -1rem 0 -0.34rem #d49a59,
+    -0.85rem 0.25rem 0 -0.22rem #4e2a18,
+    0.5rem 1.15rem 0 -0.32rem #4e2a18,
+    2.1rem 1.15rem 0 -0.32rem #4e2a18;
+}
+
+.preview-good-boy-dog::before {
+  content: "";
+  position: absolute;
+  right: 0.25rem;
+  top: -1.15rem;
+  width: 0.22rem;
+  height: 0.22rem;
+  background: #000;
+  box-shadow: 0.42rem 0 0 #000, 0.92rem 0.65rem 0 #000;
+}
+
+.preview-good-boy-bird {
+  left: 24%;
+  top: 32%;
+  width: 2rem;
+  height: 1.15rem;
+  background: #6d4c41;
+  box-shadow:
+    1.2rem -0.45rem 0 -0.15rem #2e7d32,
+    -0.9rem -0.15rem 0 -0.22rem #3e2723,
+    0.15rem -0.9rem 0 -0.2rem #8d6e63;
+  transform: rotate(-12deg);
+}
+
+.preview-good-boy-crosshair {
+  right: 29%;
+  top: 36%;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 3px solid #d32f2f;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(211, 47, 47, 0.6);
+}
+
+.preview-good-boy-crosshair::before,
+.preview-good-boy-crosshair::after {
+  content: "";
+  position: absolute;
+  background: #d32f2f;
+}
+
+.preview-good-boy-crosshair::before {
+  left: 50%;
+  top: -0.7rem;
+  bottom: -0.7rem;
+  width: 3px;
+  transform: translateX(-50%);
+}
+
+.preview-good-boy-crosshair::after {
+  top: 50%;
+  left: -0.7rem;
+  right: -0.7rem;
+  height: 3px;
+  transform: translateY(-50%);
 }
 
 .preview-states-map,
