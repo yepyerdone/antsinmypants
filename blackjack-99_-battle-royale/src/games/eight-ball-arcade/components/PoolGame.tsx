@@ -184,6 +184,7 @@ export default function PoolGame() {
   const [myRole, setMyRole] = useState<'white' | 'black' | null>(null);
   const [onlineMatchId, setOnlineMatchId] = useState<string | null>(null);
   const [onlinePhase, setOnlinePhase] = useState<'playing' | 'waiting' | 'replaying'>('playing');
+  const [onlineTurnUid, setOnlineTurnUid] = useState<string | null>(null);
 
   // Simulation State (for loop performance)
   const gameStateRef = useRef<GameState | null>(null);
@@ -215,16 +216,24 @@ export default function PoolGame() {
   const currentTurnShotsRef = useRef<OnlineReplayShot[]>([]);
   const pendingShotRef = useRef<OnlineReplayShot | null>(null);
   const lastReplayFrameAtRef = useRef(0);
+  const onlineTurnUidRef = useRef<string | null>(null);
   const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
 
+  const updateOnlineTurnUid = useCallback((uid: string | null) => {
+    onlineTurnUidRef.current = uid;
+    setOnlineTurnUid(uid);
+  }, []);
+
   const isMyOnlineTurn = useCallback((state: GameState | null) => {
-    return !!state && state.mode === 'online' && state.players[state.turnIndex]?.uid === auth.currentUser?.uid;
+    const turnUid = onlineTurnUidRef.current || state?.players[state.turnIndex]?.uid;
+    return !!state && state.mode === 'online' && turnUid === auth.currentUser?.uid;
   }, []);
 
   const canControlOnlineTurn = useCallback((state: GameState | null) => {
     if (!state) return false;
     if (state.mode !== 'online') return true;
-    return onlinePhase === 'playing' && state.players[state.turnIndex]?.uid === auth.currentUser?.uid;
+    const turnUid = onlineTurnUidRef.current || state.players[state.turnIndex]?.uid;
+    return onlinePhase === 'playing' && turnUid === auth.currentUser?.uid && state.players[state.turnIndex]?.uid === turnUid;
   }, [onlinePhase]);
 
   const cloneBalls = useCallback((balls: Ball[]) => balls.map(ball => {
@@ -338,7 +347,9 @@ export default function PoolGame() {
       await sleep(850);
     }
 
-    const isNextTurnMine = finalState.players[finalState.turnIndex]?.uid === auth.currentUser?.uid;
+    const nextTurnUid = finalState.players[finalState.turnIndex]?.uid || null;
+    updateOnlineTurnUid(nextTurnUid);
+    const isNextTurnMine = nextTurnUid === auth.currentUser?.uid;
     const nextState = {
       ...finalState,
       isMoving: false,
@@ -355,7 +366,7 @@ export default function PoolGame() {
         turnReplay: null,
       } as any).catch(() => undefined);
     }
-  }, [cloneBalls, onlineMatchId]);
+  }, [cloneBalls, onlineMatchId, updateOnlineTurnUid]);
 
   useEffect(() => {
     isAimingRef.current = isAiming;
@@ -414,9 +425,10 @@ export default function PoolGame() {
     setOnlineMatchId(null);
     setMyRole(null);
     setOnlinePhase('playing');
+    updateOnlineTurnUid(null);
     currentTurnShotsRef.current = [];
     pendingShotRef.current = null;
-  }, [websitePlayerName]);
+  }, [updateOnlineTurnUid, websitePlayerName]);
 
   const handleOnlineMatch = async () => {
     if (matchmaking) return;
@@ -449,6 +461,7 @@ export default function PoolGame() {
           MultiplayerManager.markPlayerConnected(matchId, role).catch(() => undefined);
           
           matchUnsubscribeRef.current = MultiplayerManager.listenToMatch(matchId, (data) => {
+            updateOnlineTurnUid(typeof data.turn === 'string' ? data.turn : null);
             const bothPlayersConnected = !!data.connectionReady?.white && !!data.connectionReady?.black;
             if (bothPlayersConnected) {
               setMatchmaking(false);
@@ -551,6 +564,7 @@ export default function PoolGame() {
     setMode(null);
     setMenuStage('main');
     setOnlinePhase('playing');
+    updateOnlineTurnUid(null);
     currentTurnShotsRef.current = [];
     pendingShotRef.current = null;
     setMenuOpen(true);
@@ -570,6 +584,7 @@ export default function PoolGame() {
     setMode(null);
     setMenuStage('main');
     setOnlinePhase('playing');
+    updateOnlineTurnUid(null);
     currentTurnShotsRef.current = [];
     pendingShotRef.current = null;
     setIsAiming(false);
@@ -713,6 +728,8 @@ export default function PoolGame() {
           
           const shooterKeepsTurn = updatedState.players[updatedState.turnIndex].uid === shooterUid && !updatedState.winner;
           if (onlineMatchId && myRole && shouldPublishOnlineTurn && !shooterKeepsTurn) {
+             const nextTurnUid = updatedState.players[updatedState.turnIndex].uid;
+             updateOnlineTurnUid(nextTurnUid);
              const replayShots = currentTurnShotsRef.current.map((shot) => {
                 const nextShot: OnlineReplayShot = {
                   ...shot,
@@ -745,7 +762,7 @@ export default function PoolGame() {
                 nominatedPocket: updatedState.nominatedPocket,
                 status: updatedState.status,
                 winner: updatedState.winner,
-                turn: updatedState.players[updatedState.turnIndex].uid,
+                turn: nextTurnUid,
                 turnStartTime: updatedState.turnStartTime,
                 turnReplay: replayShots.length > 0 ? turnReplay : null,
                 liveShot: null,
@@ -760,6 +777,7 @@ export default function PoolGame() {
                   gameStateRef.current = state;
                   setGameState({ ...state, isMoving: false });
                   setDisplayState({ ...state, isMoving: false });
+                  updateOnlineTurnUid(shooterUid);
                   setOnlinePhase('playing');
                 });
           }
@@ -776,7 +794,7 @@ export default function PoolGame() {
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [cloneBalls, isMyOnlineTurn, onlineMatchId, myRole]);
+  }, [cloneBalls, isMyOnlineTurn, onlineMatchId, myRole, updateOnlineTurnUid]);
 
   // Bot Turn Logic
   useEffect(() => {
@@ -877,6 +895,8 @@ export default function PoolGame() {
 
           // Time out!
           const updatedState = Engine.forfeitTurn(state);
+          const nextTurnUid = updatedState.players[updatedState.turnIndex].uid;
+          updateOnlineTurnUid(nextTurnUid);
           gameStateRef.current = updatedState;
           setGameState(updatedState);
           setDisplayState(updatedState);
@@ -886,7 +906,7 @@ export default function PoolGame() {
               balls: updatedState.balls,
               status: updatedState.status,
               winner: updatedState.winner,
-              turn: updatedState.players[updatedState.turnIndex].uid,
+              turn: nextTurnUid,
               turnStartTime: updatedState.turnStartTime,
               isFoul: updatedState.isFoul,
               foulReason: updatedState.foulReason,
@@ -909,7 +929,7 @@ export default function PoolGame() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [canControlOnlineTurn, gameState, onlineMatchId]);
+  }, [canControlOnlineTurn, gameState, onlineMatchId, updateOnlineTurnUid]);
 
   const confirmPlacement = () => {
     setGameState(prev => {
@@ -1636,6 +1656,12 @@ export default function PoolGame() {
   };
 
   // Main Table Area
+  const activeTurnUid = displayState?.mode === 'online'
+    ? onlineTurnUid || displayState.players[displayState.turnIndex]?.uid
+    : displayState?.players[displayState.turnIndex]?.uid;
+  const activeTurnName = displayState?.players.find(player => player.uid === activeTurnUid)?.name;
+  const isLocalOnlineTurn = !!displayState && displayState.mode === 'online' && canControlOnlineTurn(displayState);
+
   return (
     <div className="eight-ball-pool-page min-h-screen bg-slate-950 text-white font-sans flex flex-col items-center overflow-hidden">
       <Toaster position="top-center" richColors />
@@ -1647,7 +1673,7 @@ export default function PoolGame() {
              <ScoreCard 
                 player={displayState.players[0]} 
                 balls={displayState.balls} 
-                isTurn={displayState.turnIndex === 0 && !displayState.winner}
+                isTurn={(displayState.mode === 'online' ? activeTurnUid === displayState.players[0].uid : displayState.turnIndex === 0) && !displayState.winner}
                 turnStartTime={displayState.turnStartTime}
                 mode={displayState.mode}
                 timerActive={displayState.mode !== 'online' || canControlOnlineTurn(displayState)}
@@ -1671,11 +1697,17 @@ export default function PoolGame() {
              ) : (
                 <div className="flex flex-col items-center">
                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-0.5">
-                      {displayState.mode} Mode
+                      {displayState.mode === 'online'
+                        ? onlinePhase === 'replaying'
+                          ? 'Replay'
+                          : isLocalOnlineTurn
+                            ? 'Your Turn'
+                            : `Waiting: ${activeTurnName || 'Opponent'}`
+                        : `${displayState.mode} Mode`}
                    </p>
                    <div className="flex h-1 gap-1 w-24 bg-slate-800 rounded-full overflow-hidden mt-1">
-                      <div className={clsx("h-full transition-all duration-500 bg-amber-400", displayState.turnIndex === 0 ? "w-1/2" : "w-0")} />
-                      <div className={clsx("h-full transition-all duration-500 bg-amber-400", displayState.turnIndex === 1 ? "w-1/2" : "w-0")} />
+                      <div className={clsx("h-full transition-all duration-500 bg-amber-400", (displayState.mode === 'online' ? activeTurnUid === displayState.players[0].uid : displayState.turnIndex === 0) ? "w-1/2" : "w-0")} />
+                      <div className={clsx("h-full transition-all duration-500 bg-amber-400", (displayState.mode === 'online' ? activeTurnUid === displayState.players[1].uid : displayState.turnIndex === 1) ? "w-1/2" : "w-0")} />
                    </div>
                 </div>
              )}
@@ -1686,7 +1718,7 @@ export default function PoolGame() {
                 <ScoreCard 
                    player={displayState.players[1]} 
                    balls={displayState.balls} 
-                   isTurn={displayState.turnIndex === 1 && !displayState.winner}
+                   isTurn={(displayState.mode === 'online' ? activeTurnUid === displayState.players[1].uid : displayState.turnIndex === 1) && !displayState.winner}
                    turnStartTime={displayState.turnStartTime}
                    mode={displayState.mode}
                    timerActive={displayState.mode !== 'online' || canControlOnlineTurn(displayState)}
