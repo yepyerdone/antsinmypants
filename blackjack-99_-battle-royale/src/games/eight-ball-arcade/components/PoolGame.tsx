@@ -216,12 +216,14 @@ export default function PoolGame() {
   const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
 
   const isMyOnlineTurn = useCallback((state: GameState | null) => {
-    return !!onlineMatchId && !!state && state.players[state.turnIndex].uid === auth.currentUser?.uid;
-  }, [onlineMatchId]);
+    return !!state && state.mode === 'online' && state.players[state.turnIndex]?.uid === auth.currentUser?.uid;
+  }, []);
 
   const canControlOnlineTurn = useCallback((state: GameState | null) => {
-    return !onlineMatchId || (!!state && onlinePhase === 'playing' && state.players[state.turnIndex].uid === auth.currentUser?.uid);
-  }, [onlineMatchId, onlinePhase]);
+    if (!state) return false;
+    if (state.mode !== 'online') return true;
+    return onlinePhase === 'playing' && state.players[state.turnIndex]?.uid === auth.currentUser?.uid;
+  }, [onlinePhase]);
 
   const cloneBalls = useCallback((balls: Ball[]) => balls.map(ball => ({ ...ball, pocketedIn: ball.pocketedIn ? { ...ball.pocketedIn } : ball.pocketedIn })), []);
 
@@ -413,8 +415,10 @@ export default function PoolGame() {
 
             const nextState = buildOnlineStateFromData(data, localState);
             const replay = data.turnReplay as OnlineTurnReplay | undefined;
+            const replayShots = Array.isArray(replay?.shots) ? replay.shots : [];
             const shouldPlayReplay = replay?.id
               && replay.playerUid !== auth.currentUser?.uid
+              && replayShots.length > 0
               && !replayedTurnIdsRef.current.has(replay.id);
 
             if (shouldPlayReplay) {
@@ -834,7 +838,7 @@ export default function PoolGame() {
   const shoot = (angle: number, power: number) => {
     const state = gameStateRef.current;
     if (!state || state.isMoving || state.winner || isStrikingRef.current) return;
-    if (onlineMatchId && !canControlOnlineTurn(state)) return;
+    if (!canControlOnlineTurn(state)) return;
     
     // Enforce pocket nomination for 8-ball
     const currentPlayer = state.players[state.turnIndex];
@@ -921,7 +925,7 @@ export default function PoolGame() {
     if (!state || state.isMoving || state.winner || state.status === 'finished') return;
     
     // Check if it's our turn online
-    if (onlineMatchId && !canControlOnlineTurn(state)) return;
+    if (!canControlOnlineTurn(state)) return;
 
     const rect = canvasRef.current!.getBoundingClientRect();
     const x = e.clientX - rect.left - BORDER_OFFSET;
@@ -981,7 +985,7 @@ export default function PoolGame() {
     const handleGlobalMove = (e: MouseEvent) => {
       const state = gameStateRef.current;
       if (!canvasRef.current || displayState?.isMoving || !state) return;
-      if (onlineMatchId && !canControlOnlineTurn(state)) return;
+      if (!canControlOnlineTurn(state)) return;
       
       const rect = canvasRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left - BORDER_OFFSET;
@@ -1025,7 +1029,7 @@ export default function PoolGame() {
 
     const handleWheel = (e: WheelEvent) => {
       const state = gameStateRef.current;
-      if (onlineMatchId && !canControlOnlineTurn(state)) return;
+      if (!canControlOnlineTurn(state)) return;
       if (!isAiming || displayState?.isMoving || displayState?.winner) return;
       e.preventDefault();
       const delta = e.deltaY > 0 ? 0.005 : -0.005;
@@ -1046,7 +1050,7 @@ export default function PoolGame() {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!canvasRef.current || isAimLocked) return;
     const state = gameStateRef.current;
-    if (onlineMatchId && !canControlOnlineTurn(state)) return;
+    if (!canControlOnlineTurn(state)) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - BORDER_OFFSET;
     const y = e.clientY - rect.top - BORDER_OFFSET;
@@ -1645,7 +1649,7 @@ export default function PoolGame() {
             className="rounded-[30px] shadow-[0_40px_100px_-30px_rgba(0,0,0,0.8)] cursor-crosshair border-[24px] border-[#451a03] relative"
           />
 
-          {onlineMatchId && displayState && !menuOpen && onlinePhase !== 'playing' && (
+          {displayState?.mode === 'online' && !menuOpen && !canControlOnlineTurn(displayState) && (
             <div className={clsx(
               "absolute inset-0 pointer-events-none flex z-20",
               onlinePhase === 'replaying' ? "items-start justify-center pt-8" : "items-center justify-center"
@@ -1655,18 +1659,18 @@ export default function PoolGame() {
                   {onlinePhase === 'replaying' ? 'Opponent Replay' : 'Waiting for Opponent'}
                 </div>
                 <div className="text-2xl font-black italic tracking-tighter">
-                  {onlinePhase === 'replaying' ? 'Watching Their Shot' : 'Turn Sent'}
+                  {onlinePhase === 'replaying' ? 'Watching Their Shot' : 'Waiting for Their Turn'}
                 </div>
                 <p className="mt-2 text-xs font-bold text-slate-300">
                   {onlinePhase === 'replaying'
                     ? 'Controls unlock after the replay finishes.'
-                    : 'Your table is locked until the next replay arrives.'}
+                    : 'Your controls unlock when the table is yours.'}
                 </p>
               </div>
             </div>
           )}
           
-          {displayState?.isBallInHand && !displayState.isMoving && (!onlineMatchId || onlinePhase === 'playing') && (
+          {displayState?.isBallInHand && !displayState.isMoving && canControlOnlineTurn(displayState) && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                <div className="bg-amber-400 text-black px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest flex flex-col items-center gap-2 shadow-2xl pointer-events-auto cursor-pointer active:scale-95 transition-transform" onClick={confirmPlacement}>
                   <RotateCcw size={14} className="animate-spin-slow" />
@@ -1677,7 +1681,7 @@ export default function PoolGame() {
         </div>
 
         {/* CUE SPIN & POWER SIDEBAR */}
-        {!displayState?.isMoving && !displayState?.winner && !menuOpen && (!onlineMatchId || onlinePhase === 'playing') && (
+        {!displayState?.isMoving && !displayState?.winner && !menuOpen && canControlOnlineTurn(displayState) && (
            <div className="relative flex flex-col items-center gap-8 w-40">
               {/* Spin Selector */}
               <div className="flex flex-col items-center">
