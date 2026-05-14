@@ -46,6 +46,7 @@ type OnlineTurnReplay = {
   playerUid: string;
   shots: OnlineReplayShot[];
   createdAt: number;
+  shotNumber?: number;
 };
 
 function ScoreboardBall({ number, type, isPocketed }: { number: number; type: BallType; isPocketed: boolean; key?: React.Key }) {
@@ -217,6 +218,8 @@ export default function PoolGame() {
   const pendingShotRef = useRef<OnlineReplayShot | null>(null);
   const lastReplayFrameAtRef = useRef(0);
   const onlineTurnUidRef = useRef<string | null>(null);
+  const onlineShotNumberRef = useRef(0);
+  const pendingReplayAckIdRef = useRef<string | null>(null);
   const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
 
   const updateOnlineTurnUid = useCallback((uid: string | null) => {
@@ -363,7 +366,11 @@ export default function PoolGame() {
     if (isNextTurnMine && onlineMatchId && nextState.status !== 'finished') {
       MultiplayerManager.syncGameState(onlineMatchId, {
         turnStartTime: nextState.turnStartTime,
-        turnReplay: null,
+        replayAck: {
+          uid: auth.currentUser?.uid || null,
+          replayId: replay.id,
+          at: Date.now(),
+        },
       } as any).catch(() => undefined);
     }
   }, [cloneBalls, onlineMatchId, updateOnlineTurnUid]);
@@ -426,6 +433,8 @@ export default function PoolGame() {
     setMyRole(null);
     setOnlinePhase('playing');
     updateOnlineTurnUid(null);
+    onlineShotNumberRef.current = 0;
+    pendingReplayAckIdRef.current = null;
     currentTurnShotsRef.current = [];
     pendingShotRef.current = null;
   }, [updateOnlineTurnUid, websitePlayerName]);
@@ -477,6 +486,17 @@ export default function PoolGame() {
             }
 
             const nextState = buildOnlineStateFromData(data, localState);
+            if (typeof data.shotNumber === 'number') {
+              onlineShotNumberRef.current = Math.max(onlineShotNumberRef.current, data.shotNumber);
+            }
+            if (
+              pendingReplayAckIdRef.current
+              && data.replayAck?.replayId === pendingReplayAckIdRef.current
+              && data.turn === auth.currentUser?.uid
+            ) {
+              pendingReplayAckIdRef.current = null;
+              setOnlinePhase('playing');
+            }
             const replay = data.turnReplay as OnlineTurnReplay | undefined;
             const replayShots = Array.isArray(replay?.shots) ? replay.shots : [];
             const shouldPlayReplay = replay?.id
@@ -565,6 +585,8 @@ export default function PoolGame() {
     setMenuStage('main');
     setOnlinePhase('playing');
     updateOnlineTurnUid(null);
+    onlineShotNumberRef.current = 0;
+    pendingReplayAckIdRef.current = null;
     currentTurnShotsRef.current = [];
     pendingShotRef.current = null;
     setMenuOpen(true);
@@ -585,6 +607,8 @@ export default function PoolGame() {
     setMenuStage('main');
     setOnlinePhase('playing');
     updateOnlineTurnUid(null);
+    onlineShotNumberRef.current = 0;
+    pendingReplayAckIdRef.current = null;
     currentTurnShotsRef.current = [];
     pendingShotRef.current = null;
     setIsAiming(false);
@@ -727,9 +751,10 @@ export default function PoolGame() {
           setDisplayState(updatedState);
           
           const shooterKeepsTurn = updatedState.players[updatedState.turnIndex].uid === shooterUid && !updatedState.winner;
-          if (onlineMatchId && myRole && shouldPublishOnlineTurn && !shooterKeepsTurn) {
+          if (onlineMatchId && myRole && shouldPublishOnlineTurn) {
              const nextTurnUid = updatedState.players[updatedState.turnIndex].uid;
              updateOnlineTurnUid(nextTurnUid);
+             const nextShotNumber = onlineShotNumberRef.current + 1;
              const replayShots = currentTurnShotsRef.current.map((shot) => {
                 const nextShot: OnlineReplayShot = {
                   ...shot,
@@ -742,14 +767,17 @@ export default function PoolGame() {
                 return nextShot;
              });
              const turnReplay: OnlineTurnReplay = {
-                id: `${onlineMatchId}_${shooterUid}_${Date.now()}`,
+                id: `${onlineMatchId}_${nextShotNumber}_${shooterUid}`,
                 playerUid: shooterUid,
                 shots: replayShots,
                 createdAt: Date.now(),
+                shotNumber: nextShotNumber,
              };
              currentTurnShotsRef.current = [];
              pendingShotRef.current = null;
              lastReplayFrameAtRef.current = 0;
+             onlineShotNumberRef.current = nextShotNumber;
+             pendingReplayAckIdRef.current = shooterKeepsTurn ? turnReplay.id : null;
              // Sync state to firebase
              MultiplayerManager.syncGameState(onlineMatchId, {
                 balls: cloneBalls(updatedState.balls),
@@ -765,6 +793,8 @@ export default function PoolGame() {
                 turn: nextTurnUid,
                 turnStartTime: updatedState.turnStartTime,
                 turnReplay: replayShots.length > 0 ? turnReplay : null,
+                shotNumber: nextShotNumber,
+                updatedAtMs: Date.now(),
                 liveShot: null,
                 players: {
                   white: updatedState.players[0],
@@ -778,6 +808,7 @@ export default function PoolGame() {
                   setGameState({ ...state, isMoving: false });
                   setDisplayState({ ...state, isMoving: false });
                   updateOnlineTurnUid(shooterUid);
+                  pendingReplayAckIdRef.current = null;
                   setOnlinePhase('playing');
                 });
           }
