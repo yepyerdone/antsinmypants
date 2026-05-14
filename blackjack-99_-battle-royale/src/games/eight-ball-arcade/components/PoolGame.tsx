@@ -35,6 +35,7 @@ const BALL_COLORS: Record<number, string> = {
 type OnlineReplayShot = {
   startBalls: Ball[];
   finalBalls: Ball[];
+  frames?: Ball[][];
   angle: number;
   power: number;
   spin: { x: number; y: number };
@@ -73,7 +74,7 @@ function ScoreboardBall({ number, type, isPocketed }: { number: number; type: Ba
   );
 }
 
-function ScoreCard({ player, balls, isTurn, turnStartTime, mode }: { player: GamePlayer; balls: Ball[]; isTurn: boolean; turnStartTime?: number; mode?: GameMode }) {
+function ScoreCard({ player, balls, isTurn, turnStartTime, mode, timerActive = true }: { player: GamePlayer; balls: Ball[]; isTurn: boolean; turnStartTime?: number; mode?: GameMode; timerActive?: boolean }) {
    const groupType = player.group === 'solids' ? 'solid' : 'stripe';
    const playerBalls = balls.filter(b => b.type === groupType);
    const eightBall = balls.find(b => b.type === 'black')!;
@@ -82,7 +83,7 @@ function ScoreCard({ player, balls, isTurn, turnStartTime, mode }: { player: Gam
    const [timeLeft, setTimeLeft] = useState(30);
 
    useEffect(() => {
-      if (!isTurn || mode !== 'online' || !turnStartTime) {
+      if (!isTurn || mode !== 'online' || !turnStartTime || !timerActive) {
          setTimeLeft(30);
          return;
       }
@@ -98,7 +99,7 @@ function ScoreCard({ player, balls, isTurn, turnStartTime, mode }: { player: Gam
       }, 500);
 
       return () => clearInterval(interval);
-   }, [isTurn, turnStartTime, mode]);
+   }, [isTurn, turnStartTime, mode, timerActive]);
 
    return (
       <div className={clsx(
@@ -106,7 +107,7 @@ function ScoreCard({ player, balls, isTurn, turnStartTime, mode }: { player: Gam
          isTurn ? "border-amber-400 bg-slate-800/80 shadow-[0_0_30px_rgba(251,191,36,0.15)]" : "border-transparent opacity-60 bg-transparent"
       )}>
          {/* Timer Animation Bar */}
-         {isTurn && mode === 'online' && (
+         {isTurn && mode === 'online' && timerActive && (
             <motion.div 
                className="absolute bottom-0 left-0 h-1 bg-amber-400"
                initial={{ width: '100%' }}
@@ -123,7 +124,7 @@ function ScoreCard({ player, balls, isTurn, turnStartTime, mode }: { player: Gam
                {player.uid === 'p1' ? '1' : '2'}
                
                {/* Time Left Badge */}
-               {isTurn && mode === 'online' && (
+               {isTurn && mode === 'online' && timerActive && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-white text-black text-[10px] rounded-full flex items-center justify-center border border-amber-400 font-black animate-pulse shadow-lg">
                      {timeLeft}
                   </div>
@@ -213,6 +214,7 @@ export default function PoolGame() {
   const isReplayingRef = useRef(false);
   const currentTurnShotsRef = useRef<OnlineReplayShot[]>([]);
   const pendingShotRef = useRef<OnlineReplayShot | null>(null);
+  const lastReplayFrameAtRef = useRef(0);
   const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
 
   const isMyOnlineTurn = useCallback((state: GameState | null) => {
@@ -261,68 +263,99 @@ export default function PoolGame() {
   }, []);
 
   const playOnlineReplay = useCallback(async (replay: OnlineTurnReplay, finalState: GameState) => {
+    const sleep = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
     isReplayingRef.current = true;
     setOnlinePhase('replaying');
     setIsAiming(false);
     setIsStriking(false);
     setShotPower(0);
     setStrikeProgress(0);
+    await sleep(150);
 
     for (const shot of replay.shots) {
+      const replayFrames = Array.isArray(shot.frames) && shot.frames.length > 1 ? shot.frames : null;
       const replayState: GameState = {
         ...finalState,
-        balls: cloneBalls(shot.startBalls),
+        balls: cloneBalls(replayFrames?.[0] || shot.startBalls),
         isMoving: true,
         winner: null,
         status: 'playing',
+        turnStartTime: undefined,
       };
       gameStateRef.current = replayState;
       setGameState(replayState);
       setDisplayState(replayState);
 
-      await new Promise<void>((resolve) => {
-        const start = performance.now();
-        const duration = 1150;
-        const animate = (now: number) => {
-          const progress = Math.min(1, (now - start) / duration);
-          const eased = 1 - Math.pow(1 - progress, 3);
-          const balls = shot.startBalls.map((startBall) => {
-            const finalBall = shot.finalBalls.find(ball => ball.id === startBall.id) || startBall;
-            return {
-              ...startBall,
-              x: startBall.x + (finalBall.x - startBall.x) * eased,
-              y: startBall.y + (finalBall.y - startBall.y) * eased,
-              vx: 0,
-              vy: 0,
-              rotation: (startBall.rotation || 0) + ((finalBall.rotation || 0) - (startBall.rotation || 0)) * eased,
-              isPocketed: progress > 0.92 ? finalBall.isPocketed : startBall.isPocketed,
-              pocketedIn: finalBall.pocketedIn ? { ...finalBall.pocketedIn } : finalBall.pocketedIn,
-            };
-          });
-          const nextReplayState = { ...replayState, balls };
+      await sleep(500);
+
+      if (replayFrames) {
+        for (const frame of replayFrames.slice(1)) {
+          const nextReplayState = { ...replayState, balls: cloneBalls(frame) };
           gameStateRef.current = nextReplayState;
           setGameState(nextReplayState);
           setDisplayState(nextReplayState);
+          await sleep(75);
+        }
+      } else {
+        await new Promise<void>((resolve) => {
+          const start = performance.now();
+          const duration = 2200;
+          const animate = (now: number) => {
+            const progress = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const balls = shot.startBalls.map((startBall) => {
+              const finalBall = shot.finalBalls.find(ball => ball.id === startBall.id) || startBall;
+              return {
+                ...startBall,
+                x: startBall.x + (finalBall.x - startBall.x) * eased,
+                y: startBall.y + (finalBall.y - startBall.y) * eased,
+                vx: 0,
+                vy: 0,
+                rotation: (startBall.rotation || 0) + ((finalBall.rotation || 0) - (startBall.rotation || 0)) * eased,
+                isPocketed: progress > 0.96 ? finalBall.isPocketed : startBall.isPocketed,
+                pocketedIn: finalBall.pocketedIn ? { ...finalBall.pocketedIn } : finalBall.pocketedIn,
+              };
+            });
+            const nextReplayState = { ...replayState, balls };
+            gameStateRef.current = nextReplayState;
+            setGameState(nextReplayState);
+            setDisplayState(nextReplayState);
 
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          } else {
-            resolve();
-          }
-        };
-        requestAnimationFrame(animate);
-      });
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              resolve();
+            }
+          };
+          requestAnimationFrame(animate);
+        });
+      }
 
-      await new Promise(resolve => window.setTimeout(resolve, 450));
+      const settledReplayState = { ...replayState, balls: cloneBalls(shot.finalBalls), isMoving: false };
+      gameStateRef.current = settledReplayState;
+      setGameState(settledReplayState);
+      setDisplayState(settledReplayState);
+      await sleep(850);
     }
 
-    const nextState = { ...finalState, isMoving: false };
+    const isNextTurnMine = finalState.players[finalState.turnIndex]?.uid === auth.currentUser?.uid;
+    const nextState = {
+      ...finalState,
+      isMoving: false,
+      turnStartTime: isNextTurnMine && finalState.status !== 'finished' ? Date.now() : finalState.turnStartTime,
+    };
     gameStateRef.current = nextState;
     setGameState(nextState);
     setDisplayState(nextState);
     isReplayingRef.current = false;
-    setOnlinePhase(nextState.players[nextState.turnIndex]?.uid === auth.currentUser?.uid ? 'playing' : 'waiting');
-  }, [cloneBalls]);
+    setOnlinePhase(isNextTurnMine ? 'playing' : 'waiting');
+    if (isNextTurnMine && onlineMatchId && nextState.status !== 'finished') {
+      MultiplayerManager.syncGameState(onlineMatchId, {
+        turnStartTime: nextState.turnStartTime,
+        turnReplay: null,
+      } as any).catch(() => undefined);
+    }
+  }, [cloneBalls, onlineMatchId]);
 
   useEffect(() => {
     isAimingRef.current = isAiming;
@@ -627,6 +660,18 @@ export default function PoolGame() {
           }
         });
 
+        if (pendingShotRef.current && shouldPublishOnlineTurn) {
+          const now = performance.now();
+          const frames = pendingShotRef.current.frames || [];
+          if ((now - lastReplayFrameAtRef.current >= 90 && frames.length < 64) || !stillMoving) {
+            pendingShotRef.current.frames = [
+              ...frames,
+              cloneBalls(nextBalls),
+            ];
+            lastReplayFrameAtRef.current = now;
+          }
+        }
+
         if (!stillMoving) {
           // Turn ended
           const shooterUid = state.players[state.turnIndex].uid;
@@ -638,6 +683,10 @@ export default function PoolGame() {
               {
                 ...pendingShot,
                 finalBalls: cloneBalls(nextBalls),
+                frames: [
+                  ...(pendingShot.frames || []),
+                  cloneBalls(nextBalls),
+                ],
               },
             ];
             pendingShotRef.current = null;
@@ -661,11 +710,17 @@ export default function PoolGame() {
           
           const shooterKeepsTurn = updatedState.players[updatedState.turnIndex].uid === shooterUid && !updatedState.winner;
           if (onlineMatchId && myRole && shouldPublishOnlineTurn && !shooterKeepsTurn) {
-             const replayShots = currentTurnShotsRef.current.map((shot) => ({
-                ...shot,
-                startBalls: cloneBalls(shot.startBalls),
-                finalBalls: cloneBalls(shot.finalBalls),
-             }));
+             const replayShots = currentTurnShotsRef.current.map((shot) => {
+                const nextShot: OnlineReplayShot = {
+                  ...shot,
+                  startBalls: cloneBalls(shot.startBalls),
+                  finalBalls: cloneBalls(shot.finalBalls),
+                };
+                if (shot.frames?.length) {
+                  nextShot.frames = shot.frames.map(frame => cloneBalls(frame));
+                }
+                return nextShot;
+             });
              const turnReplay: OnlineTurnReplay = {
                 id: `${onlineMatchId}_${shooterUid}_${Date.now()}`,
                 playerUid: shooterUid,
@@ -673,6 +728,8 @@ export default function PoolGame() {
                 createdAt: Date.now(),
              };
              currentTurnShotsRef.current = [];
+             pendingShotRef.current = null;
+             lastReplayFrameAtRef.current = 0;
              // Sync state to firebase
              MultiplayerManager.syncGameState(onlineMatchId, {
                 balls: cloneBalls(updatedState.balls),
@@ -887,13 +944,16 @@ export default function PoolGame() {
     audioManager.playCueHit(power);
     const cueBall = state.balls.find(b => b.type === 'cue')!;
     if (onlineMatchId && isMyOnlineTurn(state)) {
+      const startBalls = cloneBalls(state.balls);
       pendingShotRef.current = {
-        startBalls: cloneBalls(state.balls),
+        startBalls,
         finalBalls: [],
+        frames: [startBalls],
         angle,
         power,
         spin: { ...cueSpinRef.current },
       };
+      lastReplayFrameAtRef.current = performance.now();
     }
     
     // Basic velocity
@@ -1580,6 +1640,7 @@ export default function PoolGame() {
                 isTurn={displayState.turnIndex === 0 && !displayState.winner}
                 turnStartTime={displayState.turnStartTime}
                 mode={displayState.mode}
+                timerActive={displayState.mode !== 'online' || onlinePhase === 'playing'}
              />
           </div>
 
@@ -1618,6 +1679,7 @@ export default function PoolGame() {
                    isTurn={displayState.turnIndex === 1 && !displayState.winner}
                    turnStartTime={displayState.turnStartTime}
                    mode={displayState.mode}
+                   timerActive={displayState.mode !== 'online' || onlinePhase === 'playing'}
                 />
              </div>
              <button onClick={() => setMenuOpen(true)} className="mt-2 p-3 hover:bg-white/10 rounded-2xl transition-all border border-white/5 self-start group">
