@@ -64,6 +64,7 @@ type ReaperMatch = {
   };
   status: 'playing' | 'finished';
   createdAtMs: number;
+  player1QueueToken?: string;
 };
 
 type ReaperQueueEntry = OnlinePlayer & {
@@ -150,6 +151,19 @@ export default function App() {
   const patchOnlineMatch = async (patch: Partial<ReaperMatch>) => {
     if (mode !== 'online' || !matchId) return;
     await updateDoc(doc(db, 'reaper_matches', matchId), patch);
+  };
+
+  const resetBoardState = () => {
+    setHiddenPositions([]);
+    setGuessedPositions([]);
+    setCurrentGuessIndex(null);
+    setActiveRevealIndex(null);
+    setGrabbedDoorIndex(null);
+    setCaughtDoorIndexes([]);
+    setRoundCaught(0);
+    setVictimByDoor({});
+    setSecretVictimByDoor({});
+    setIsReaperMoving(false);
   };
 
   useEffect(() => {
@@ -335,11 +349,13 @@ export default function App() {
         },
         status: 'playing',
         createdAtMs: Date.now(),
+        player1QueueToken: opponent.queueToken,
       };
 
       await setDoc(doc(db, 'reaper_matches', nextMatchId), match);
       await deleteDoc(doc(db, 'reaper_queue', opponent.uid)).catch(() => undefined);
       await deleteDoc(queueRef).catch(() => undefined);
+      resetBoardState();
       setLocalPlayerNumber(2);
       setMatchId(nextMatchId);
       return true;
@@ -369,13 +385,16 @@ export default function App() {
       (snapshot) => {
         const found = snapshot.docs.find((matchDoc) => {
           const data = matchDoc.data() as ReaperMatch;
-          return data.status === 'playing' && data.players.player1.uid === user.uid;
+          return data.status === 'playing'
+            && data.players.player1.uid === user.uid
+            && data.player1QueueToken === queueToken;
         });
         if (!found || !active) return;
         active = false;
         window.clearInterval(heartbeat);
         unsubscribe();
         deleteDoc(queueRef).catch(() => undefined);
+        resetBoardState();
         setLocalPlayerNumber(1);
         setMatchId(found.id);
       },
@@ -744,6 +763,14 @@ export default function App() {
         </div>
         
         <div className="flex gap-10 text-right">
+          {mode === 'online' && activeTurnPlayer && (
+            <div className="flex flex-col">
+              <span className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-[var(--font-mono)]">Turn Clock</span>
+              <span className={`text-2xl font-bold font-[var(--font-mono)] ${remainingTurnMs <= 10_000 ? 'text-[#991b1b]' : 'text-white/80'}`}>
+                {formatClock(remainingTurnMs)}
+              </span>
+            </div>
+          )}
           <div className="flex flex-col">
             <span className="text-[9px] uppercase tracking-[0.2em] opacity-40 font-[var(--font-mono)]">Level</span>
             <span className="text-xl font-bold italic text-white/80">Round {round}</span>
