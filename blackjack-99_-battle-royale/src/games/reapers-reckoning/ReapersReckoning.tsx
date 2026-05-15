@@ -147,6 +147,15 @@ export default function App() {
         ? `Your turn: choose 5 doors`
         : `${playerLabel(reaperPlayer)} is choosing doors`
       : null;
+  const resolvedWinner = winnerPlayer ?? (scores.player1 > scores.player2 ? 1 : 2);
+  const localOnlineOutcome =
+    mode === 'online'
+      ? winReason === 'timeout' && localPlayerNumber !== resolvedWinner
+        ? 'disqualified'
+        : localPlayerNumber === resolvedWinner
+        ? 'victory'
+        : 'defeat'
+      : 'victory';
 
   const patchOnlineMatch = async (patch: Partial<ReaperMatch>) => {
     if (mode !== 'online' || !matchId) return;
@@ -1057,8 +1066,24 @@ export default function App() {
                  <Skull className="w-48 h-48 text-white relative z-10 p-8 bg-[#050505]" />
               </div>
               <h2 className="text-8xl font-black italic mb-8 uppercase tracking-tighter">
-                {`${playerLabel(winnerPlayer ?? (scores.player1 > scores.player2 ? 1 : 2))} Ascendant`}
+                {mode === 'online'
+                  ? localOnlineOutcome === 'disqualified'
+                    ? 'You Have Been Disqualified'
+                    : localOnlineOutcome === 'victory'
+                    ? `${playerLabel(resolvedWinner)} Ascendant`
+                    : 'Defeat'
+                  : `${playerLabel(resolvedWinner)} Ascendant`}
               </h2>
+              {mode === 'online' && localOnlineOutcome === 'disqualified' && (
+                <p className="mb-10 max-w-xl text-lg italic text-white/55">
+                  You failed to complete your turn within the one minute time constraint.
+                </p>
+              )}
+              {mode === 'online' && localOnlineOutcome === 'defeat' && (
+                <p className="mb-10 text-lg italic text-white/55">
+                  {playerLabel(resolvedWinner)} claimed the reckoning.
+                </p>
+              )}
               <div className="flex gap-12 items-center mb-24 font-[var(--font-mono)]">
                 <div className="text-center">
                   <p className="text-[10px] opacity-30 uppercase tracking-widest mb-1">{playerLabel(1)}</p>
@@ -1070,7 +1095,7 @@ export default function App() {
                   <p className="text-3xl font-bold">{scores.player2}</p>
                 </div>
               </div>
-              {winReason === 'timeout' && winnerPlayer && (
+              {winReason === 'timeout' && winnerPlayer && localOnlineOutcome === 'victory' && (
                 <p className="mb-10 text-sm uppercase tracking-[0.35em] text-[#991b1b] font-[var(--font-mono)]">
                   {playerLabel(winnerPlayer === 1 ? 2 : 1)} ran out of time
                 </p>
