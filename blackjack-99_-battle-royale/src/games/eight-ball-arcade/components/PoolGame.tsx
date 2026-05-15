@@ -812,7 +812,44 @@ export default function PoolGame() {
                   black: updatedState.players[1]
                 }
              } as any)
-                .then(() => setOnlinePhase('waiting'))
+                .then(() => {
+                  setOnlinePhase('waiting');
+                  if (shooterKeepsTurn) {
+                    const longestReplayMs = replayShots.reduce((longest, shot) => {
+                      const frameCount = Math.max(shot.frames?.length || 0, 2);
+                      return Math.max(longest, 500 + (frameCount - 1) * 75 + 850);
+                    }, 2200);
+                    window.setTimeout(() => {
+                      const currentState = gameStateRef.current;
+                      if (
+                        pendingReplayAckIdRef.current !== turnReplay.id
+                        || !currentState
+                        || currentState.status === 'finished'
+                        || currentState.players[currentState.turnIndex]?.uid !== shooterUid
+                      ) {
+                        return;
+                      }
+
+                      const resumedAt = Date.now();
+                      pendingReplayAckIdRef.current = null;
+                      updateOnlineTurnUid(shooterUid);
+                      const resumedState = { ...currentState, turnStartTime: resumedAt, isMoving: false };
+                      gameStateRef.current = resumedState;
+                      setGameState(resumedState);
+                      setDisplayState(resumedState);
+                      setOnlinePhase('playing');
+                      MultiplayerManager.syncGameState(onlineMatchId, {
+                        turnStartTime: resumedAt,
+                        replayAck: {
+                          uid: auth.currentUser?.uid || null,
+                          replayId: turnReplay.id,
+                          at: resumedAt,
+                          source: 'fallback',
+                        },
+                      } as any).catch(() => undefined);
+                    }, longestReplayMs + 350);
+                  }
+                })
                 .catch(() => {
                   toast.error('Failed to send turn replay. Try the shot again.');
                   gameStateRef.current = state;
