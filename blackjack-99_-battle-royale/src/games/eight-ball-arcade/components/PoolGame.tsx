@@ -350,13 +350,18 @@ export default function PoolGame() {
       await sleep(850);
     }
 
+    const lastReplayShot = replay.shots[replay.shots.length - 1];
+    const finalReplayBalls = lastReplayShot?.finalBalls?.length ? cloneBalls(lastReplayShot.finalBalls) : cloneBalls(finalState.balls);
+    const replayCompletedAt = Date.now();
     const nextTurnUid = finalState.players[finalState.turnIndex]?.uid || null;
     updateOnlineTurnUid(nextTurnUid);
     const isNextTurnMine = nextTurnUid === auth.currentUser?.uid;
     const nextState = {
       ...finalState,
+      balls: finalReplayBalls,
       isMoving: false,
-      turnStartTime: isNextTurnMine && finalState.status !== 'finished' ? Date.now() : finalState.turnStartTime,
+      isBallInHand: finalState.isFoul ? finalState.isBallInHand : false,
+      turnStartTime: finalState.status !== 'finished' ? replayCompletedAt : finalState.turnStartTime,
     };
     gameStateRef.current = nextState;
     setGameState(nextState);
@@ -365,7 +370,9 @@ export default function PoolGame() {
     setOnlinePhase(isNextTurnMine ? 'playing' : 'waiting');
     if (onlineMatchId && nextState.status !== 'finished') {
       MultiplayerManager.syncGameState(onlineMatchId, {
-        ...(isNextTurnMine ? { turnStartTime: nextState.turnStartTime } : {}),
+        balls: cloneBalls(nextState.balls),
+        isBallInHand: nextState.isBallInHand,
+        turnStartTime: replayCompletedAt,
         replayAck: {
           uid: auth.currentUser?.uid || null,
           replayId: replay.id,
@@ -788,7 +795,7 @@ export default function PoolGame() {
                 isMoving: false,
                 isFoul: updatedState.isFoul,
                 foulReason: updatedState.foulReason,
-                isBallInHand: updatedState.isBallInHand,
+                isBallInHand: updatedState.isFoul ? updatedState.isBallInHand : false,
                 firstBallHit: updatedState.firstBallHit,
                 ballsPocketedThisTurn: updatedState.ballsPocketedThisTurn,
                 nominatedPocket: updatedState.nominatedPocket,
