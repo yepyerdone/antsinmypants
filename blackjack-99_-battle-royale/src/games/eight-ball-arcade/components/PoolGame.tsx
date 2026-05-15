@@ -297,7 +297,7 @@ export default function PoolGame() {
     setIsStriking(false);
     setShotPower(0);
     setStrikeProgress(0);
-    await sleep(150);
+    await sleep(100);
 
     for (const shot of replay.shots) {
       const replayFrames = Array.isArray(shot.frames) && shot.frames.length > 1 ? shot.frames : null;
@@ -314,7 +314,7 @@ export default function PoolGame() {
       setGameState(replayState);
       setDisplayState(replayState);
 
-      await sleep(500);
+      await sleep(250);
 
       if (replayFrames) {
         for (const frame of replayFrames.slice(1)) {
@@ -322,7 +322,7 @@ export default function PoolGame() {
           gameStateRef.current = nextReplayState;
           setGameState(nextReplayState);
           setDisplayState(nextReplayState);
-          await sleep(75);
+          await sleep(50);
         }
       } else {
         await new Promise<void>((resolve) => {
@@ -363,7 +363,7 @@ export default function PoolGame() {
       gameStateRef.current = settledReplayState;
       setGameState(settledReplayState);
       setDisplayState(settledReplayState);
-      await sleep(850);
+      await sleep(450);
     }
 
     const lastReplayShot = replay.shots[replay.shots.length - 1];
@@ -738,7 +738,7 @@ export default function PoolGame() {
         if (pendingShotRef.current && shouldPublishOnlineTurn) {
           const now = performance.now();
           const frames = pendingShotRef.current.frames || [];
-          if ((now - lastReplayFrameAtRef.current >= 120 && frames.length < 36) || !stillMoving) {
+          if ((now - lastReplayFrameAtRef.current >= 150 && frames.length < 24) || !stillMoving) {
             pendingShotRef.current.frames = [
               ...frames,
               { balls: cloneBalls(nextBalls) },
@@ -839,8 +839,8 @@ export default function PoolGame() {
                   if (shooterKeepsTurn) {
                     const longestReplayMs = replayShots.reduce((longest, shot) => {
                       const frameCount = Math.max(shot.frames?.length || 0, 2);
-                      return Math.max(longest, 500 + (frameCount - 1) * 75 + 850);
-                    }, 2200);
+                      return Math.max(longest, 250 + (frameCount - 1) * 50 + 450);
+                    }, 1400);
                     window.setTimeout(() => {
                       const currentState = gameStateRef.current;
                       if (
@@ -1158,6 +1158,7 @@ export default function PoolGame() {
             if (!prev) return null;
             const next = { ...prev, nominatedPocket: pocket };
             gameStateRef.current = next;
+            setDisplayState(next);
             return next;
           });
           return;
@@ -1762,6 +1763,15 @@ export default function PoolGame() {
     : displayState?.players[displayState.turnIndex]?.uid;
   const activeTurnName = displayState?.players.find(player => player.uid === activeTurnUid)?.name;
   const isLocalOnlineTurn = !!displayState && displayState.mode === 'online' && canControlOnlineTurn(displayState);
+  const tableStatusLabel = displayState?.winner
+    ? `${displayState.players.find(player => player.uid === displayState.winner)?.name || 'Winner'} won`
+    : displayState?.mode === 'online'
+      ? onlinePhase === 'replaying'
+        ? 'Replay in progress'
+        : isLocalOnlineTurn
+          ? 'Your turn'
+          : `Waiting for ${activeTurnName || 'opponent'}`
+      : `${displayState?.mode || 'game'} mode`;
   const finishedWinner = gameState?.winner ? gameState.players.find(player => player.uid === gameState.winner) : null;
   const finishedLoser = gameState?.winner ? gameState.players.find(player => player.uid !== gameState.winner) : null;
   const didLocalPlayerWin = gameState?.mode === 'online' && !!gameState.winner && gameState.winner === auth.currentUser?.uid;
@@ -1839,7 +1849,11 @@ export default function PoolGame() {
       <div className="eight-ball-pool-stage flex-1 w-full flex items-center justify-center relative p-8 gap-12">
         <div className="relative group">
           {/* Status Indicators (Top Centered) */}
-          <div className="absolute -top-16 left-0 right-0 flex justify-center gap-3 pointer-events-none z-30">
+          <div className="absolute -top-24 left-0 right-0 flex flex-col items-center gap-3 pointer-events-none z-30">
+            <div className="min-w-64 rounded-2xl border border-cyan-200/20 bg-slate-950/90 px-6 py-3 text-center shadow-2xl backdrop-blur-md">
+              <span className="text-sm font-black uppercase tracking-[0.18em] text-white">{tableStatusLabel}</span>
+            </div>
+            <div className="flex justify-center gap-3">
             <AnimatePresence>
               {isAimLocked && !displayState?.isMoving && !displayState?.winner && (
                 <motion.div 
@@ -1864,6 +1878,7 @@ export default function PoolGame() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </div>
           </div>
 
           <canvas
