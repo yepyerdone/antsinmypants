@@ -363,9 +363,9 @@ export default function PoolGame() {
     setDisplayState(nextState);
     isReplayingRef.current = false;
     setOnlinePhase(isNextTurnMine ? 'playing' : 'waiting');
-    if (isNextTurnMine && onlineMatchId && nextState.status !== 'finished') {
+    if (onlineMatchId && nextState.status !== 'finished') {
       MultiplayerManager.syncGameState(onlineMatchId, {
-        turnStartTime: nextState.turnStartTime,
+        ...(isNextTurnMine ? { turnStartTime: nextState.turnStartTime } : {}),
         replayAck: {
           uid: auth.currentUser?.uid || null,
           replayId: replay.id,
