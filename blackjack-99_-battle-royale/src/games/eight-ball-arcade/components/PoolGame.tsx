@@ -307,6 +307,7 @@ export default function PoolGame() {
         isMoving: true,
         winner: null,
         status: 'playing',
+        nominatedPocket: null,
         turnStartTime: undefined,
       };
       gameStateRef.current = replayState;
@@ -376,6 +377,7 @@ export default function PoolGame() {
       balls: finalReplayBalls,
       isMoving: false,
       isBallInHand: finalState.isFoul ? finalState.isBallInHand : false,
+      nominatedPocket: null,
       turnStartTime: finalState.status !== 'finished' ? replayCompletedAt : finalState.turnStartTime,
     };
     gameStateRef.current = nextState;
@@ -818,7 +820,7 @@ export default function PoolGame() {
                 isBallInHand: updatedState.isFoul ? updatedState.isBallInHand : false,
                 firstBallHit: updatedState.firstBallHit,
                 ballsPocketedThisTurn: updatedState.ballsPocketedThisTurn,
-                nominatedPocket: updatedState.nominatedPocket,
+                nominatedPocket: shooterKeepsTurn ? updatedState.nominatedPocket : null,
                 status: updatedState.status,
                 winner: updatedState.winner,
                 turn: nextTurnUid,
@@ -1145,7 +1147,7 @@ export default function PoolGame() {
     const hasRemainingBalls = state.balls.some(b => b.type === targetType && !b.isPocketed);
     const isOnEightBall = !!currentPlayer.group && !hasRemainingBalls;
 
-    if (isOnEightBall && !state.isMoving) {
+    if (isOnEightBall && !state.isMoving && canControlOnlineTurn(state)) {
       // Check if clicking near a pocket
       for (const pocket of CONFIG.pockets) {
         const dx = x - pocket.x;
@@ -1346,7 +1348,7 @@ export default function PoolGame() {
       ctx.fill();
 
       // 8-Ball Pocket Nomination UI
-      if (isOnEightBall && !state.winner && !state.isMoving) {
+      if (isOnEightBall && !state.winner && !state.isMoving && canControlOnlineTurn(state)) {
         const isNominated = state.nominatedPocket && 
                             Math.abs(state.nominatedPocket.x - p.x) < 5 && 
                             Math.abs(state.nominatedPocket.y - p.y) < 5;
