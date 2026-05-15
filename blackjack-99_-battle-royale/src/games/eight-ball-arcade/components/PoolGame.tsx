@@ -1762,6 +1762,9 @@ export default function PoolGame() {
     : displayState?.players[displayState.turnIndex]?.uid;
   const activeTurnName = displayState?.players.find(player => player.uid === activeTurnUid)?.name;
   const isLocalOnlineTurn = !!displayState && displayState.mode === 'online' && canControlOnlineTurn(displayState);
+  const finishedWinner = gameState?.winner ? gameState.players.find(player => player.uid === gameState.winner) : null;
+  const finishedLoser = gameState?.winner ? gameState.players.find(player => player.uid !== gameState.winner) : null;
+  const didLocalPlayerWin = gameState?.mode === 'online' && !!gameState.winner && gameState.winner === auth.currentUser?.uid;
 
   return (
     <div className="eight-ball-pool-page min-h-screen bg-slate-950 text-white font-sans flex flex-col items-center overflow-hidden">
@@ -2186,10 +2189,12 @@ export default function PoolGame() {
                     <Trophy size={48} className="text-amber-400" />
                  </div>
                  <h2 className="text-6xl font-black italic mb-4 tracking-tighter uppercase leading-none">
-                    {gameState.winner}<br/><span className="text-amber-400">VICTORIOUS</span>
+                    {gameState.mode === 'online' ? (didLocalPlayerWin ? 'Victory' : 'Defeat') : (finishedWinner?.name || 'Winner')}
+                    <br/><span className="text-amber-400">{finishedWinner?.name || 'Winner'} Won</span>
                  </h2>
                  <p className="text-slate-400 mb-12 font-bold uppercase tracking-widest text-xs opacity-60">
-                    {gameState.foulReason || 'Perfect Game - Legal Clearance'}
+                    {finishedLoser ? `${finishedLoser.name} lost` : 'Match complete'}
+                    {gameState.foulReason ? ` - ${gameState.foulReason}` : ''}
                  </p>
                  <div className="flex gap-4">
                     <button onClick={() => startGame(mode || 'local')} className="flex-1 py-5 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-amber-400 transition-colors shadow-lg shadow-white/10">Play Again</button>
