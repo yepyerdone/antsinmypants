@@ -27,6 +27,7 @@ const emptyDashboard: ProfileDashboard = {
     blackjackWins: 0,
     snakeRush: 0,
     molarMadness: 0,
+    goodBoy: 0,
   },
 };
 
@@ -213,6 +214,11 @@ export function ProfileModal({ isOpen, initialView = 'profile', onClose }: Profi
                         <Trophy size={18} />
                         <span>Snake</span>
                         <strong>{dashboard.highScores.snakeRush.toLocaleString()}</strong>
+                      </div>
+                      <div>
+                        <Trophy size={18} />
+                        <span>Good Boy</span>
+                        <strong>{dashboard.highScores.goodBoy.toLocaleString()}</strong>
                       </div>
                     </div>
                     {loading && <p className="site-profile-muted">Loading stats...</p>}

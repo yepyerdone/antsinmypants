@@ -13,8 +13,17 @@
   user-select: none;
 }
 
+.good-boy-layout {
+  width: min(1160px, calc(100vw - 48px));
+  display: grid;
+  grid-template-columns: minmax(0, 800px) minmax(240px, 280px);
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
 .good-boy-page #game-container {
-  width: min(800px, calc(100vw - 48px));
+  width: 100%;
   aspect-ratio: 4 / 3;
   height: auto;
   background-color: #64b5f6;
@@ -28,6 +37,74 @@
   border: 10px solid #09070c;
   border-radius: 18px;
   overflow: visible;
+}
+
+.good-boy-leaderboard {
+  min-height: 360px;
+  padding: 22px;
+  border: 6px solid #09070c;
+  background: rgba(21, 16, 30, 0.94);
+  box-shadow:
+    inset 0 0 0 3px #ff3d71,
+    0 18px 40px rgba(0, 0, 0, 0.45);
+  color: #fff6d5;
+}
+
+.good-boy-leaderboard-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ffcc29;
+}
+
+.good-boy-leaderboard-title h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.good-boy-last-score {
+  margin: 16px 0 18px;
+  color: #29f1ff;
+}
+
+.good-boy-last-score strong {
+  color: #ffcc29;
+}
+
+.good-boy-leaderboard ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.good-boy-leaderboard li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.good-boy-leaderboard li span {
+  color: #29f1ff;
+}
+
+.good-boy-leaderboard li strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.good-boy-leaderboard li em {
+  color: #ffcc29;
+  font-style: normal;
+}
+
+.good-boy-empty {
+  color: rgba(255, 246, 213, 0.72);
 }
 
 .good-boy-page #game-container::before {
@@ -74,5 +151,21 @@
 @media (max-height: 760px) and (min-width: 900px) {
   .good-boy-page #game-container {
     width: min(800px, calc((100vh - 116px) * 1.333));
+  }
+}
+
+@media (max-width: 980px) {
+  .good-boy-page {
+    justify-content: flex-start;
+    overflow: auto;
+    padding: 78px 0 28px;
+  }
+
+  .good-boy-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .good-boy-leaderboard {
+    min-height: 0;
   }
 }

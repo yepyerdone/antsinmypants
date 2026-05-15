@@ -132,6 +132,17 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidGoodBoyScore(data) {
+      return data.userId is string
+        && data.userId == request.auth.uid
+        && data.username is string
+        && data.username.size() >= 1
+        && data.username.size() <= 32
+        && data.score is number
+        && data.score > 0
+        && data.updatedAt is timestamp;
+    }
+
     // Daily Leaderboard Rules
     match /daily_leaderboard/{date}/players/{userId} {
       allow list: if true;
@@ -240,6 +251,21 @@ service cloud.firestore {
         && incoming().score > existing().score
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'score', 'wave', 'date', 'updatedAt']);
+    }
+
+    // Good Boy Leaderboard Rules
+    match /good_boy_leaderboard/{userId} {
+      allow list, get: if true;
+      allow create: if isOwner(userId)
+        && isValidId(userId)
+        && isValidGoodBoyScore(incoming())
+        && incoming().updatedAt == request.time;
+      allow update: if isOwner(userId)
+        && isValidGoodBoyScore(incoming())
+        && incoming().userId == existing().userId
+        && incoming().score > existing().score
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['username', 'score', 'updatedAt']);
     }
 
     // Linguist per-player progress. Private to the profile owner.

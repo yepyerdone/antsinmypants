@@ -21,6 +21,7 @@ export type ProfileHighScores = {
   blackjackWins: number;
   snakeRush: number;
   molarMadness: number;
+  goodBoy: number;
 };
 
 export type FriendEntry = {
@@ -59,13 +60,20 @@ async function getBestScore(collectionName: string, uid: string) {
   }, 0);
 }
 
+async function getSingleBestScore(collectionName: string, uid: string) {
+  const snap = await getDocs(query(collection(db, collectionName), where('userId', '==', uid), limit(1)));
+  const score = snap.docs[0]?.data()?.score;
+  return typeof score === 'number' ? score : 0;
+}
+
 export async function getProfileDashboard(uid: string): Promise<ProfileDashboard> {
   const path = `users/${uid}`;
   try {
     const profile = await getUserProfile(uid);
-    const [molarMadness, snakeRush] = await Promise.all([
+    const [molarMadness, snakeRush, goodBoy] = await Promise.all([
       getBestScore('leaderboard', uid),
       getBestScore('snake_rush_leaderboard', uid),
+      getSingleBestScore('good_boy_leaderboard', uid),
     ]);
 
     return {
@@ -74,6 +82,7 @@ export async function getProfileDashboard(uid: string): Promise<ProfileDashboard
         blackjackWins: profile?.totalWins ?? 0,
         snakeRush,
         molarMadness,
+        goodBoy,
       },
     };
   } catch (error) {
@@ -84,6 +93,7 @@ export async function getProfileDashboard(uid: string): Promise<ProfileDashboard
         blackjackWins: 0,
         snakeRush: 0,
         molarMadness: 0,
+        goodBoy: 0,
       },
     };
   }

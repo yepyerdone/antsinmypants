@@ -36,8 +36,9 @@ export class Game {
   private birdsSpawned: number = 0;
   private actionTimer: number = 0;
   private flash: number = 0;
+  private hasReportedGameOver: boolean = false;
 
-  constructor(canvasId: string) {
+  constructor(canvasId: string, private readonly onGameOver?: (score: number) => void) {
     this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
     this.ctx = this.canvas.getContext('2d')!;
     
@@ -87,6 +88,7 @@ export class Game {
 
         if (this.input.wasMouseClicked()) {
           this.score.resetGame();
+          this.hasReportedGameOver = false;
           this.startRound();
         }
         break;
@@ -165,6 +167,10 @@ export class Game {
           this.state = GameState.GAME_OVER;
           this.dog.setState(DogState.LAUGHING);
           this.audio.playGameOver();
+          if (!this.hasReportedGameOver) {
+            this.hasReportedGameOver = true;
+            this.onGameOver?.(this.score.getScore());
+          }
         }
         break;
 
