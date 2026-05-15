@@ -251,6 +251,20 @@ export default function PoolGame() {
     return cloned;
   }), []);
 
+  const mergeOnlineBalls = useCallback((remoteBalls: Ball[] | undefined, prevBalls: Ball[] | undefined) => {
+    if (!remoteBalls?.length) return prevBalls ? cloneBalls(prevBalls) : Engine.createBalls();
+    const previousById = new Map((prevBalls || []).map(ball => [ball.id, ball]));
+
+    return remoteBalls.map(remoteBall => {
+      const previousBall = previousById.get(remoteBall.id);
+      const clonedRemote = cloneBalls([remoteBall])[0];
+      if (previousBall && previousBall.type !== 'cue' && previousBall.isPocketed && !remoteBall.isPocketed) {
+        return cloneBalls([previousBall])[0];
+      }
+      return clonedRemote;
+    });
+  }, [cloneBalls]);
+
   const buildOnlineStateFromData = useCallback((data: any, prev: GameState | null): GameState => {
     const whitePlayer: GamePlayer = { uid: data.players?.white?.uid || '', name: data.players?.white?.name || 'Player 1', group: data.players?.white?.group ?? null, violations: data.players?.white?.violations || 0 };
     const blackPlayer: GamePlayer = { uid: data.players?.black?.uid || '', name: data.players?.black?.name || 'Player 2', group: data.players?.black?.group ?? null, violations: data.players?.black?.violations || 0 };
@@ -260,7 +274,7 @@ export default function PoolGame() {
       mode: 'online',
       players: [whitePlayer, blackPlayer],
       turnIndex: data.turn === blackPlayer.uid ? 1 : 0,
-      balls: data.balls || prev?.balls || Engine.createBalls(),
+      balls: mergeOnlineBalls(data.balls, prev?.balls),
       firstBallHit: data.firstBallHit || null,
       ballsPocketedThisTurn: data.ballsPocketedThisTurn || [],
       isMoving: data.isMoving || false,
@@ -272,7 +286,7 @@ export default function PoolGame() {
       winner: data.winner || null,
       status: data.status === 'finished' ? 'finished' : 'playing',
     };
-  }, []);
+  }, [mergeOnlineBalls]);
 
   const playOnlineReplay = useCallback(async (replay: OnlineTurnReplay, finalState: GameState) => {
     const sleep = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
@@ -370,8 +384,6 @@ export default function PoolGame() {
     setOnlinePhase(isNextTurnMine ? 'playing' : 'waiting');
     if (onlineMatchId && nextState.status !== 'finished') {
       MultiplayerManager.syncGameState(onlineMatchId, {
-        balls: cloneBalls(nextState.balls),
-        isBallInHand: nextState.isBallInHand,
         turnStartTime: replayCompletedAt,
         replayAck: {
           uid: auth.currentUser?.uid || null,
@@ -492,10 +504,7 @@ export default function PoolGame() {
               return;
             }
 
-            const nextState = buildOnlineStateFromData(data, localState);
-            if (typeof data.shotNumber === 'number') {
-              onlineShotNumberRef.current = Math.max(onlineShotNumberRef.current, data.shotNumber);
-            }
+            const incomingShotNumber = typeof data.shotNumber === 'number' ? data.shotNumber : onlineShotNumberRef.current;
             if (
               pendingReplayAckIdRef.current
               && data.replayAck?.replayId === pendingReplayAckIdRef.current
@@ -504,6 +513,10 @@ export default function PoolGame() {
               pendingReplayAckIdRef.current = null;
               setOnlinePhase('playing');
             }
+            if (incomingShotNumber < onlineShotNumberRef.current) return;
+
+            const nextState = buildOnlineStateFromData(data, localState);
+            onlineShotNumberRef.current = Math.max(onlineShotNumberRef.current, incomingShotNumber);
             const replay = data.turnReplay as OnlineTurnReplay | undefined;
             const replayShots = Array.isArray(replay?.shots) ? replay.shots : [];
             const shouldPlayReplay = replay?.id
