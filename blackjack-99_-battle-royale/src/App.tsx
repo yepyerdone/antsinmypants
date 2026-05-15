@@ -35,6 +35,7 @@ import EightBallArcade from './games/eight-ball-arcade/App';
 import FunHouseFrenzy from './games/fun-house-frenzy/App';
 import Linguist from './games/linguist/App';
 import GoodBoy from './games/good-boy/App';
+import ReapersReckoning from './games/reapers-reckoning/ReapersReckoning';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -90,6 +91,8 @@ export default function App() {
       setShowIntro(false);
     } else if (location.pathname === '/good-boy') {
       setSelectedGame('good-boy');
+    } else if (location.pathname === '/reapers-reckoning') {
+      setSelectedGame('reapers-reckoning');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -608,6 +611,10 @@ export default function App() {
     return <GoodBoy />;
   }
 
+  if (selectedGame === 'reapers-reckoning') {
+    return <ReapersReckoning />;
+  }
+
   return (
     <div className="min-h-screen bg-bg-dark text-white font-sans selection:bg-stake-green selection:text-bg-dark overflow-hidden flex flex-col">
       <AnimatePresence mode="wait">
@@ -644,6 +651,8 @@ export default function App() {
                   setSelectedGame('linguist');
                 } else if (gameId === 'good-boy') {
                   setSelectedGame('good-boy');
+                } else if (gameId === 'reapers-reckoning') {
+                  setSelectedGame('reapers-reckoning');
                 } else {
                   setShowIntro(false);
                 }

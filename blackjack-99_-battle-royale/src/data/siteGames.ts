@@ -16,7 +16,8 @@ export type PreviewType =
   | 'eight-ball'
   | 'fun-house'
   | 'linguist'
-  | 'good-boy';
+  | 'good-boy'
+  | 'reaper';
 
 export type GameCardData = {
   id: string;
@@ -206,6 +207,17 @@ export const siteGames: GameCardData[] = [
     internalPath: '/chairs-io',
   },
   {
+    id: 'reapers-reckoning',
+    title: "Reaper's Reckoning",
+    description: 'Hide mortal souls, hunt through the crypts, and outscore another player in a gothic duel.',
+    category: 'Strategy',
+    meta: 'Local or online',
+    preview: 'reaper',
+    primarySection: 'multiplayer',
+    sections: ['multiplayer'],
+    internalPath: '/reapers-reckoning',
+  },
+  {
     id: 'eight-ball-arcade',
     title: '8 Ball Pool',
     description: 'A shark-themed pool table with local, bot, and online 8-ball matches.',
@@ -273,7 +285,7 @@ export const homeGameSections = [
   },
   {
     title: 'Multiplayer',
-    gameIds: ['friend-chess', 'eight-ball-arcade', 'chairs-io', 'neon-snake'],
+    gameIds: ['friend-chess', 'eight-ball-arcade', 'reapers-reckoning', 'neon-snake', 'chairs-io'],
   },
   {
     title: 'Academic Weapon',

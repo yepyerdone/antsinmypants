@@ -1902,6 +1902,63 @@ body {
     linear-gradient(135deg, #052e16, #064e3b 58%, #111827);
 }
 
+.site-game-preview--reaper {
+  background:
+    radial-gradient(circle at 76% 22%, rgba(248, 250, 252, 0.2), transparent 1.2rem),
+    radial-gradient(circle at 50% 82%, rgba(153, 27, 27, 0.28), transparent 30%),
+    linear-gradient(135deg, #050505, #111 58%, #1f0b0b);
+}
+
+.preview-reaper-moon,
+.preview-reaper-door,
+.preview-reaper-figure {
+  position: absolute;
+  z-index: 1;
+}
+
+.preview-reaper-moon {
+  right: 16%;
+  top: 14%;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: rgba(248, 250, 252, 0.92);
+  box-shadow: 0 0 20px rgba(248, 250, 252, 0.24);
+}
+
+.preview-reaper-door {
+  bottom: 18%;
+  width: 2.25rem;
+  height: 4.1rem;
+  border: 0.18rem solid #3f2a1c;
+  background: linear-gradient(90deg, #5d321b, #7a4925 55%, #532b18);
+}
+
+.preview-reaper-door--one {
+  left: 18%;
+}
+
+.preview-reaper-door--two {
+  left: calc(50% - 1.125rem);
+}
+
+.preview-reaper-door--three {
+  right: 18%;
+}
+
+.preview-reaper-figure {
+  left: 50%;
+  bottom: 16%;
+  width: 1.8rem;
+  height: 3.8rem;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 18% 18%;
+  background: #050505;
+  box-shadow:
+    0 -0.95rem 0 -0.3rem #080808,
+    0.8rem -0.4rem 0 -0.64rem #991b1b;
+}
+
 .preview-tachy-grid,
 .preview-tachy-piece,
 .preview-tachy-line {

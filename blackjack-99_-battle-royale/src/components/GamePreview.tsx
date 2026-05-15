@@ -17,7 +17,8 @@ export type PreviewType =
   | 'eight-ball'
   | 'fun-house'
   | 'linguist'
-  | 'good-boy';
+  | 'good-boy'
+  | 'reaper';
 
 interface GamePreviewProps {
   type: PreviewType;
@@ -171,6 +172,19 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
         <span className="preview-good-boy-bird" />
         <span className="preview-good-boy-crosshair" />
         <span className="preview-score">GOOD</span>
+      </div>
+    );
+  }
+
+  if (type === 'reaper') {
+    return (
+      <div className="site-game-preview site-game-preview--reaper" aria-label={`${title} preview`}>
+        <span className="preview-reaper-moon" />
+        <span className="preview-reaper-door preview-reaper-door--one" />
+        <span className="preview-reaper-door preview-reaper-door--two" />
+        <span className="preview-reaper-door preview-reaper-door--three" />
+        <span className="preview-reaper-figure" />
+        <span className="preview-score">SOULS</span>
       </div>
     );
   }

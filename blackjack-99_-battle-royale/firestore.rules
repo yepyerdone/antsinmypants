@@ -502,6 +502,33 @@ service cloud.firestore {
         && incoming().state == existing().state;
     }
 
+    // Reaper's Reckoning Matchmaking Rules
+    match /reaper_queue/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId)
+        && incoming().uid == request.auth.uid
+        && incoming().name is string
+        && incoming().name.size() >= 1
+        && incoming().name.size() <= 32;
+      allow delete: if isSignedIn();
+    }
+
+    match /reaper_matches/{matchId} {
+      function isReaperPlayer(data) {
+        return isSignedIn()
+          && (
+            data.players.player1.uid == request.auth.uid ||
+            data.players.player2.uid == request.auth.uid
+          );
+      }
+
+      allow read: if isReaperPlayer(existing());
+      allow create: if isReaperPlayer(incoming())
+        && incoming().status == 'playing';
+      allow update: if isReaperPlayer(existing())
+        && isReaperPlayer(incoming());
+    }
+
     // Friend Chess Rules
     match /friendChessUsers/{userId} {
       allow read: if isSignedIn();
