@@ -527,6 +527,24 @@ service cloud.firestore {
         && incoming().status == 'playing';
       allow update: if isReaperPlayer(existing())
         && isReaperPlayer(incoming());
+
+      match /secrets/{userId} {
+        function isSecretOwnerInMatch() {
+          let matchData = get(/databases/$(database)/documents/reaper_matches/$(matchId)).data;
+          return isOwner(userId)
+            && (
+              matchData.players.player1.uid == userId ||
+              matchData.players.player2.uid == userId
+            );
+        }
+
+        allow get: if isSecretOwnerInMatch();
+        allow create, update: if isSecretOwnerInMatch()
+          && incoming().ownerUid == userId
+          && incoming().hiddenPositions is list
+          && incoming().hiddenPositions.size() == 5
+          && incoming().victimByDoor is map;
+      }
     }
 
     // Friend Chess Rules

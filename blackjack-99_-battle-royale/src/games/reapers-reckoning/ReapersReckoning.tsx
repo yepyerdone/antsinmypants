@@ -48,7 +48,6 @@ type ReaperMatch = {
   scores: Score;
   hidingHider: PlayerNumber;
   reaperPlayer: PlayerNumber;
-  hiddenPositions: number[];
   guessedPositions: number[];
   currentGuessIndex: number | null;
   activeRevealIndex: number | null;
@@ -71,6 +70,12 @@ type ReaperQueueEntry = OnlinePlayer & {
   queueToken: string;
   createdAtMs: number;
   lastSeenAt: number;
+};
+
+type ReaperSecret = {
+  ownerUid: string;
+  hiddenPositions: number[];
+  victimByDoor: Record<number, VictimVariant>;
 };
 
 const TOTAL_DOORS = 10;
@@ -107,6 +112,7 @@ export default function App() {
   const [caughtDoorIndexes, setCaughtDoorIndexes] = useState<number[]>([]);
   const [roundCaught, setRoundCaught] = useState(0);
   const [victimByDoor, setVictimByDoor] = useState<Record<number, VictimVariant>>({});
+  const [secretVictimByDoor, setSecretVictimByDoor] = useState<Record<number, VictimVariant>>({});
   const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null);
   const [winnerPlayer, setWinnerPlayer] = useState<PlayerNumber | null>(null);
   const [winReason, setWinReason] = useState<'score' | 'timeout' | null>(null);
@@ -157,19 +163,34 @@ export default function App() {
       setScores(data.scores);
       setHidingHider(data.hidingHider);
       setReaperPlayer(data.reaperPlayer);
-      setHiddenPositions(data.hiddenPositions);
       setGuessedPositions(data.guessedPositions);
       setCurrentGuessIndex(data.currentGuessIndex);
       setActiveRevealIndex(data.activeRevealIndex);
       setGrabbedDoorIndex(data.grabbedDoorIndex);
       setCaughtDoorIndexes(data.caughtDoorIndexes);
       setRoundCaught(data.roundCaught);
-      setVictimByDoor(data.victimByDoor);
+      setVictimByDoor(data.victimByDoor ?? {});
+      setIsReaperMoving(
+        data.currentGuessIndex !== null
+        && !data.guessedPositions.includes(data.currentGuessIndex)
+      );
       setTurnStartedAt(data.turnStartedAt ?? null);
       setWinnerPlayer(data.winnerPlayer ?? null);
       setWinReason(data.winReason ?? null);
       setOnlinePlayers(data.players);
       setScreen('GAME');
+    });
+  }, [matchId, mode]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!matchId || mode !== 'online' || !user) return;
+
+    return onSnapshot(doc(db, 'reaper_matches', matchId, 'secrets', user.uid), (snapshot) => {
+      if (!snapshot.exists()) return;
+      const data = snapshot.data() as ReaperSecret;
+      setHiddenPositions(data.hiddenPositions);
+      setSecretVictimByDoor(data.victimByDoor);
     });
   }, [matchId, mode]);
 
@@ -223,6 +244,7 @@ export default function App() {
     setGrabbedDoorIndex(null);
     setCaughtDoorIndexes([]);
     setVictimByDoor({});
+    setSecretVictimByDoor({});
     setTurnStartedAt(Date.now());
     setWinnerPlayer(null);
     setWinReason(null);
@@ -297,7 +319,6 @@ export default function App() {
         scores: { player1: 0, player2: 0 },
         hidingHider: 1,
         reaperPlayer: 2,
-        hiddenPositions: [],
         guessedPositions: [],
         currentGuessIndex: null,
         activeRevealIndex: null,
@@ -372,17 +393,11 @@ export default function App() {
   const handleHideDoor = (index: number) => {
     if (gameState !== 'HIDING') return;
     if (!canActAs(hidingHider)) return;
-    const nextHiddenPositions = hiddenPositions.includes(index)
-      ? hiddenPositions.filter(i => i !== index)
-      : hiddenPositions.length < HIDE_COUNT
-      ? [...hiddenPositions, index]
-      : hiddenPositions;
     if (hiddenPositions.includes(index)) {
       setHiddenPositions(prev => prev.filter(i => i !== index));
     } else if (hiddenPositions.length < HIDE_COUNT) {
       setHiddenPositions(prev => [...prev, index]);
     }
-    void patchOnlineMatch({ hiddenPositions: nextHiddenPositions });
   };
 
   const confirmHiding = () => {
@@ -393,10 +408,17 @@ export default function App() {
           VICTIM_VARIANTS[Math.floor(Math.random() * VICTIM_VARIANTS.length)],
         ]),
       );
-      setVictimByDoor(nextVictimByDoor);
+      setSecretVictimByDoor(nextVictimByDoor);
       setGameState('GUESSING_TRANSITION');
       setTurnStartedAt(null);
-      void patchOnlineMatch({ victimByDoor: nextVictimByDoor, gameState: 'GUESSING_TRANSITION', turnStartedAt: null });
+      if (mode === 'online' && matchId && auth.currentUser) {
+        void setDoc(doc(db, 'reaper_matches', matchId, 'secrets', auth.currentUser.uid), {
+          ownerUid: auth.currentUser.uid,
+          hiddenPositions,
+          victimByDoor: nextVictimByDoor,
+        } satisfies ReaperSecret);
+      }
+      void patchOnlineMatch({ gameState: 'GUESSING_TRANSITION', turnStartedAt: null });
     }
   };
 
@@ -432,6 +454,8 @@ export default function App() {
     setGrabbedDoorIndex(null);
     setIsReaperMoving(true);
     void patchOnlineMatch({ currentGuessIndex: index, activeRevealIndex: null, grabbedDoorIndex: null });
+
+    if (mode === 'online') return;
     
     setTimeout(() => {
       setIsReaperMoving(false);
@@ -477,6 +501,67 @@ export default function App() {
     }, 1050);
   };
 
+  useEffect(() => {
+    if (
+      mode !== 'online'
+      || gameState !== 'GUESSING'
+      || currentGuessIndex === null
+      || guessedPositions.includes(currentGuessIndex)
+      || !canActAs(hidingHider)
+    ) {
+      return;
+    }
+
+    const index = currentGuessIndex;
+    const found = hiddenPositions.includes(index);
+    const nextGuessedPositions = [...guessedPositions, index];
+    const nextRoundCaught = found ? roundCaught + 1 : roundCaught;
+    const nextScores = found
+      ? {
+          ...scores,
+          [reaperPlayer === 1 ? 'player1' : 'player2']:
+            scores[reaperPlayer === 1 ? 'player1' : 'player2'] + 1,
+        }
+      : scores;
+    const nextVictimByDoor = found && secretVictimByDoor[index]
+      ? { ...victimByDoor, [index]: secretVictimByDoor[index] }
+      : victimByDoor;
+
+    const revealTimer = window.setTimeout(() => {
+      void patchOnlineMatch({
+        guessedPositions: nextGuessedPositions,
+        activeRevealIndex: index,
+        roundCaught: nextRoundCaught,
+        scores: nextScores,
+        victimByDoor: nextVictimByDoor,
+      });
+
+      if (found) {
+        window.setTimeout(() => patchOnlineMatch({ grabbedDoorIndex: index }), 450);
+        window.setTimeout(() => patchOnlineMatch({ caughtDoorIndexes: [...caughtDoorIndexes, index] }), 900);
+      }
+
+      if (nextGuessedPositions.length === GUESS_COUNT) {
+        window.setTimeout(() => endRound(), 2500);
+      }
+    }, 1050);
+
+    return () => window.clearTimeout(revealTimer);
+  }, [
+    caughtDoorIndexes,
+    currentGuessIndex,
+    gameState,
+    guessedPositions,
+    hiddenPositions,
+    hidingHider,
+    mode,
+    reaperPlayer,
+    roundCaught,
+    scores,
+    secretVictimByDoor,
+    victimByDoor,
+  ]);
+
   const endRound = useCallback(() => {
     setGameState('ROUND_OVER');
     setTurnStartedAt(null);
@@ -497,6 +582,7 @@ export default function App() {
       setGrabbedDoorIndex(null);
       setCaughtDoorIndexes([]);
       setVictimByDoor({});
+      setSecretVictimByDoor({});
       setGameState('HIDING');
       const nextTurnStartedAt = Date.now();
       setTurnStartedAt(nextTurnStartedAt);
@@ -504,7 +590,6 @@ export default function App() {
         round: 2,
         hidingHider: 2,
         reaperPlayer: 1,
-        hiddenPositions: [],
         guessedPositions: [],
         roundCaught: 0,
         currentGuessIndex: null,
@@ -539,13 +624,13 @@ export default function App() {
         setGrabbedDoorIndex(null);
         setCaughtDoorIndexes([]);
         setVictimByDoor({});
+        setSecretVictimByDoor({});
         setGameState('HIDING');
         const nextTurnStartedAt = Date.now();
         setTurnStartedAt(nextTurnStartedAt);
         void patchOnlineMatch({
           hidingHider: 2,
           reaperPlayer: 1,
-          hiddenPositions: [],
           guessedPositions: [],
           roundCaught: 0,
           currentGuessIndex: null,
@@ -579,6 +664,7 @@ export default function App() {
     setGrabbedDoorIndex(null);
     setCaughtDoorIndexes([]);
     setVictimByDoor({});
+    setSecretVictimByDoor({});
     setGameState('HIDING');
     const nextTurnStartedAt = Date.now();
     setTurnStartedAt(nextTurnStartedAt);
@@ -587,7 +673,6 @@ export default function App() {
       tiebreakerTurn: 1,
       hidingHider: 1,
       reaperPlayer: 2,
-      hiddenPositions: [],
       guessedPositions: [],
       roundCaught: 0,
       currentGuessIndex: null,
@@ -815,7 +900,10 @@ export default function App() {
                           isHiding={gameState === 'HIDING'}
                           isHidden={visibleHiddenPositions.includes(i)}
                           isGuessed={guessedPositions.includes(i)}
-                          isCorrect={gameState === 'GUESSING' && hiddenPositions.includes(i)}
+                          isCorrect={
+                            gameState === 'GUESSING'
+                            && (mode === 'online' ? victimByDoor[i] !== undefined : hiddenPositions.includes(i))
+                          }
                           isActiveReveal={activeRevealIndex === i}
                           isGrabbed={grabbedDoorIndex === i}
                           isCaught={caughtDoorIndexes.includes(i)}
