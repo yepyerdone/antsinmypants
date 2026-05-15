@@ -56,6 +56,9 @@ type ReaperMatch = {
   caughtDoorIndexes: number[];
   roundCaught: number;
   victimByDoor: Record<number, VictimVariant>;
+  turnStartedAt: number | null;
+  winnerPlayer: PlayerNumber | null;
+  winReason: 'score' | 'timeout' | null;
   players: {
     player1: OnlinePlayer;
     player2: OnlinePlayer;
@@ -75,6 +78,7 @@ const HIDE_COUNT = 5;
 const GUESS_COUNT = 5;
 const DOORS_PER_ROW = 5;
 const VICTIM_VARIANTS: VictimVariant[] = ['man', 'woman', 'girl'];
+const TURN_TIME_LIMIT_MS = 60_000;
 
 // --- Components ---
 
@@ -103,6 +107,11 @@ export default function App() {
   const [caughtDoorIndexes, setCaughtDoorIndexes] = useState<number[]>([]);
   const [roundCaught, setRoundCaught] = useState(0);
   const [victimByDoor, setVictimByDoor] = useState<Record<number, VictimVariant>>({});
+  const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null);
+  const [winnerPlayer, setWinnerPlayer] = useState<PlayerNumber | null>(null);
+  const [winReason, setWinReason] = useState<'score' | 'timeout' | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const timeoutHandledRef = useRef(false);
 
   const playerLabel = (player: PlayerNumber) =>
     mode === 'online'
@@ -110,24 +119,27 @@ export default function App() {
       : `Player ${player}`;
 
   const canActAs = (player: PlayerNumber) => mode === 'local' || localPlayerNumber === player;
-
-  const getOnlineSnapshot = (): Omit<ReaperMatch, 'players' | 'createdAtMs'> => ({
-    gameState,
-    round,
-    tiebreakerTurn,
-    scores,
-    hidingHider,
-    reaperPlayer,
-    hiddenPositions,
-    guessedPositions,
-    currentGuessIndex,
-    activeRevealIndex,
-    grabbedDoorIndex,
-    caughtDoorIndexes,
-    roundCaught,
-    victimByDoor,
-    status: gameState === 'GAME_OVER' ? 'finished' : 'playing',
-  });
+  const activeTurnPlayer = gameState === 'HIDING' ? hidingHider : gameState === 'GUESSING' ? reaperPlayer : null;
+  const isMyOnlineTurn = mode !== 'online' || activeTurnPlayer === localPlayerNumber;
+  const visibleHiddenPositions =
+    mode === 'online' && gameState === 'HIDING' && !canActAs(hidingHider)
+      ? []
+      : hiddenPositions;
+  const remainingTurnMs = turnStartedAt ? Math.max(0, TURN_TIME_LIMIT_MS - (now - turnStartedAt)) : TURN_TIME_LIMIT_MS;
+  const formatClock = (milliseconds: number) => {
+    const seconds = Math.ceil(milliseconds / 1000);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  };
+  const turnStatus =
+    gameState === 'HIDING'
+      ? canActAs(hidingHider)
+        ? `Your turn: hide 5 souls`
+        : `${playerLabel(hidingHider)} is hiding souls`
+      : gameState === 'GUESSING'
+      ? canActAs(reaperPlayer)
+        ? `Your turn: choose 5 doors`
+        : `${playerLabel(reaperPlayer)} is choosing doors`
+      : null;
 
   const patchOnlineMatch = async (patch: Partial<ReaperMatch>) => {
     if (mode !== 'online' || !matchId) return;
@@ -153,10 +165,48 @@ export default function App() {
       setCaughtDoorIndexes(data.caughtDoorIndexes);
       setRoundCaught(data.roundCaught);
       setVictimByDoor(data.victimByDoor);
+      setTurnStartedAt(data.turnStartedAt ?? null);
+      setWinnerPlayer(data.winnerPlayer ?? null);
+      setWinReason(data.winReason ?? null);
       setOnlinePlayers(data.players);
       setScreen('GAME');
     });
   }, [matchId, mode]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    timeoutHandledRef.current = false;
+  }, [turnStartedAt, gameState]);
+
+  useEffect(() => {
+    if (
+      mode !== 'online'
+      || !matchId
+      || !activeTurnPlayer
+      || !turnStartedAt
+      || remainingTurnMs > 0
+      || timeoutHandledRef.current
+    ) {
+      return;
+    }
+
+    timeoutHandledRef.current = true;
+    const nextWinner = activeTurnPlayer === 1 ? 2 : 1;
+    setWinnerPlayer(nextWinner);
+    setWinReason('timeout');
+    setGameState('GAME_OVER');
+    void patchOnlineMatch({
+      winnerPlayer: nextWinner,
+      winReason: 'timeout',
+      gameState: 'GAME_OVER',
+      status: 'finished',
+      turnStartedAt: null,
+    });
+  }, [activeTurnPlayer, gameState, matchId, mode, remainingTurnMs, turnStartedAt]);
 
   const startGame = () => {
     setGameState('HIDING');
@@ -173,6 +223,9 @@ export default function App() {
     setGrabbedDoorIndex(null);
     setCaughtDoorIndexes([]);
     setVictimByDoor({});
+    setTurnStartedAt(Date.now());
+    setWinnerPlayer(null);
+    setWinReason(null);
   };
 
   const startLocalMode = () => {
@@ -252,6 +305,9 @@ export default function App() {
         caughtDoorIndexes: [],
         roundCaught: 0,
         victimByDoor: {},
+        turnStartedAt: Date.now(),
+        winnerPlayer: null,
+        winReason: null,
         players: {
           player1: { uid: opponent.uid, name: opponent.name },
           player2: { uid: user.uid, name: playerName },
@@ -339,7 +395,8 @@ export default function App() {
       );
       setVictimByDoor(nextVictimByDoor);
       setGameState('GUESSING_TRANSITION');
-      void patchOnlineMatch({ victimByDoor: nextVictimByDoor, gameState: 'GUESSING_TRANSITION' });
+      setTurnStartedAt(null);
+      void patchOnlineMatch({ victimByDoor: nextVictimByDoor, gameState: 'GUESSING_TRANSITION', turnStartedAt: null });
     }
   };
 
@@ -351,6 +408,8 @@ export default function App() {
     setActiveRevealIndex(null);
     setGrabbedDoorIndex(null);
     setCaughtDoorIndexes([]);
+    const nextTurnStartedAt = Date.now();
+    setTurnStartedAt(nextTurnStartedAt);
     void patchOnlineMatch({
       gameState: 'GUESSING',
       guessedPositions: [],
@@ -358,6 +417,7 @@ export default function App() {
       activeRevealIndex: null,
       grabbedDoorIndex: null,
       caughtDoorIndexes: [],
+      turnStartedAt: nextTurnStartedAt,
     });
   };
 
@@ -419,7 +479,9 @@ export default function App() {
 
   const endRound = useCallback(() => {
     setGameState('ROUND_OVER');
-  }, []);
+    setTurnStartedAt(null);
+    void patchOnlineMatch({ gameState: 'ROUND_OVER', turnStartedAt: null });
+  }, [matchId, mode]);
 
   const nextRound = () => {
     if (mode === 'online' && !canActAs(reaperPlayer)) return;
@@ -436,6 +498,8 @@ export default function App() {
       setCaughtDoorIndexes([]);
       setVictimByDoor({});
       setGameState('HIDING');
+      const nextTurnStartedAt = Date.now();
+      setTurnStartedAt(nextTurnStartedAt);
       void patchOnlineMatch({
         round: 2,
         hidingHider: 2,
@@ -449,6 +513,7 @@ export default function App() {
         caughtDoorIndexes: [],
         victimByDoor: {},
         gameState: 'HIDING',
+        turnStartedAt: nextTurnStartedAt,
       });
     } else if (round === 2) {
       if (scores.player1 === scores.player2) {
@@ -456,7 +521,10 @@ export default function App() {
         void patchOnlineMatch({ gameState: 'TIEBREAKER_INTRO' });
       } else {
         setGameState('GAME_OVER');
-        void patchOnlineMatch({ gameState: 'GAME_OVER', status: 'finished' });
+        const nextWinner = scores.player1 > scores.player2 ? 1 : 2;
+        setWinnerPlayer(nextWinner);
+        setWinReason('score');
+        void patchOnlineMatch({ gameState: 'GAME_OVER', status: 'finished', winnerPlayer: nextWinner, winReason: 'score', turnStartedAt: null });
       }
     } else if (round === 3) {
       if (tiebreakerTurn === 1) {
@@ -472,6 +540,8 @@ export default function App() {
         setCaughtDoorIndexes([]);
         setVictimByDoor({});
         setGameState('HIDING');
+        const nextTurnStartedAt = Date.now();
+        setTurnStartedAt(nextTurnStartedAt);
         void patchOnlineMatch({
           hidingHider: 2,
           reaperPlayer: 1,
@@ -484,10 +554,14 @@ export default function App() {
           caughtDoorIndexes: [],
           victimByDoor: {},
           gameState: 'HIDING',
+          turnStartedAt: nextTurnStartedAt,
         });
       } else {
         setGameState('GAME_OVER');
-        void patchOnlineMatch({ gameState: 'GAME_OVER', status: 'finished' });
+        const nextWinner = scores.player1 > scores.player2 ? 1 : 2;
+        setWinnerPlayer(nextWinner);
+        setWinReason('score');
+        void patchOnlineMatch({ gameState: 'GAME_OVER', status: 'finished', winnerPlayer: nextWinner, winReason: 'score', turnStartedAt: null });
       }
     }
   };
@@ -506,6 +580,8 @@ export default function App() {
     setCaughtDoorIndexes([]);
     setVictimByDoor({});
     setGameState('HIDING');
+    const nextTurnStartedAt = Date.now();
+    setTurnStartedAt(nextTurnStartedAt);
     void patchOnlineMatch({
       round: 3,
       tiebreakerTurn: 1,
@@ -520,6 +596,7 @@ export default function App() {
       caughtDoorIndexes: [],
       victimByDoor: {},
       gameState: 'HIDING',
+      turnStartedAt: nextTurnStartedAt,
     });
   };
 
@@ -647,7 +724,9 @@ export default function App() {
             >
               {/* Sidebar Scoreboard */}
               <div className="w-56 flex flex-col gap-6 shrink-0 pt-4">
-                <div className={`p-5 transition-all duration-500 border-l-4 ${hidingHider === 1 && gameState === 'HIDING' ? 'bg-white/5 border-[#991b1b]' : 'bg-[#111] border-[#333]'}`}>
+                <div className={`p-5 transition-all duration-500 border-l-4 ${
+                  activeTurnPlayer === 1 ? 'bg-white/5 border-[#991b1b]' : 'bg-[#111] border-[#333]'
+                }`}>
                   <p className="text-[10px] font-[var(--font-mono)] uppercase tracking-widest opacity-40 mb-2">{playerLabel(1)}</p>
                   <p className="text-5xl font-bold flex items-baseline gap-2">
                     {scores.player1} 
@@ -655,7 +734,9 @@ export default function App() {
                   </p>
                 </div>
                 
-                <div className={`p-5 transition-all duration-500 border-l-4 ${reaperPlayer === 2 && gameState === 'GUESSING' ? 'bg-white/5 border-[#991b1b]' : 'bg-[#111] border-[#333]'}`}>
+                <div className={`p-5 transition-all duration-500 border-l-4 ${
+                  activeTurnPlayer === 2 ? 'bg-white/5 border-[#991b1b]' : 'bg-[#111] border-[#333]'
+                }`}>
                   <p className="text-[10px] font-[var(--font-mono)] uppercase tracking-widest opacity-40 mb-2">{playerLabel(2)}</p>
                   <p className="text-5xl font-bold flex items-baseline gap-2">
                     {scores.player2}
@@ -664,11 +745,26 @@ export default function App() {
                 </div>
 
                 <div className="mt-auto pb-12">
+                  {turnStatus && (
+                    <div className="mb-5 border border-[#991b1b]/50 bg-[#991b1b]/10 px-4 py-3">
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-[#991b1b] font-[var(--font-mono)]">Turn</p>
+                      <p className="mt-1 text-lg font-bold italic text-white">{turnStatus}</p>
+                      {mode === 'online' && (
+                        <p className="mt-2 text-[11px] font-[var(--font-mono)] uppercase tracking-[0.24em] text-white/55">
+                          Time left {formatClock(remainingTurnMs)}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <div className="h-px w-full bg-[#333] mb-6"></div>
                   <div className="flex justify-between text-[11px] font-[var(--font-mono)] tracking-widest opacity-40 uppercase mb-3">
                     <span>{gameState === 'HIDING' ? 'Souls to Hide' : 'Strikes Left'}</span>
                     <span>
-                      {gameState === 'HIDING' ? `${hiddenPositions.length}/5` : `${GUESS_COUNT - guessedPositions.length}/5`}
+                      {gameState === 'HIDING'
+                        ? mode === 'online' && !canActAs(hidingHider)
+                          ? 'Hidden'
+                          : `${hiddenPositions.length}/5`
+                        : `${GUESS_COUNT - guessedPositions.length}/5`}
                     </span>
                   </div>
                   <div className="flex gap-1.5">
@@ -677,14 +773,14 @@ export default function App() {
                         key={idx} 
                         className={`h-1.5 flex-grow rounded-full transition-colors duration-500 ${
                           gameState === 'HIDING' 
-                            ? (idx < hiddenPositions.length ? 'bg-[#991b1b]' : 'bg-[#333]')
+                            ? (idx < visibleHiddenPositions.length ? 'bg-[#991b1b]' : 'bg-[#333]')
                             : (idx < (GUESS_COUNT - guessedPositions.length) ? 'bg-[#991b1b]' : 'bg-[#333]')
                         }`} 
                       />
                     ))}
                   </div>
                   
-                  {gameState === 'HIDING' && hiddenPositions.length === HIDE_COUNT && (
+                  {gameState === 'HIDING' && canActAs(hidingHider) && hiddenPositions.length === HIDE_COUNT && (
                     <motion.button 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -717,9 +813,9 @@ export default function App() {
                           key={i}
                           index={i}
                           isHiding={gameState === 'HIDING'}
-                          isHidden={hiddenPositions.includes(i)}
+                          isHidden={visibleHiddenPositions.includes(i)}
                           isGuessed={guessedPositions.includes(i)}
-                          isCorrect={hiddenPositions.includes(i)}
+                          isCorrect={gameState === 'GUESSING' && hiddenPositions.includes(i)}
                           isActiveReveal={activeRevealIndex === i}
                           isGrabbed={grabbedDoorIndex === i}
                           isCaught={caughtDoorIndexes.includes(i)}
@@ -742,9 +838,14 @@ export default function App() {
                           exit={{ opacity: 0, x: 10 }}
                           className="italic opacity-60 uppercase tracking-[0.3em] text-[12px] font-[var(--font-mono)]"
                         >
-                          {isReaperMoving ? `The Reaper glides towards Sector ${currentGuessIndex! + 1}...` : 
-                           gameState === 'HIDING' ? 'Silence falls over the tomb as souls are hidden.' : 
-                           'Every shadow hides a secret. Choose wisely.'}
+                          {isReaperMoving ? `The Reaper glides towards Sector ${currentGuessIndex! + 1}...` :
+                           gameState === 'HIDING' && mode === 'online' && !canActAs(hidingHider)
+                             ? 'Waiting while your opponent conceals the souls.'
+                             : gameState === 'HIDING'
+                             ? 'Silence falls over the tomb as souls are hidden.'
+                             : mode === 'online' && !canActAs(reaperPlayer)
+                             ? 'Waiting while your opponent chooses doors.'
+                             : 'Every shadow hides a secret. Choose wisely.'}
                         </motion.p>
                       </AnimatePresence>
                     </div>
@@ -841,7 +942,7 @@ export default function App() {
                  <Skull className="w-48 h-48 text-white relative z-10 p-8 bg-[#050505]" />
               </div>
               <h2 className="text-8xl font-black italic mb-8 uppercase tracking-tighter">
-                {scores.player1 > scores.player2 ? `${playerLabel(1)} Ascendant` : `${playerLabel(2)} Ascendant`}
+                {`${playerLabel(winnerPlayer ?? (scores.player1 > scores.player2 ? 1 : 2))} Ascendant`}
               </h2>
               <div className="flex gap-12 items-center mb-24 font-[var(--font-mono)]">
                 <div className="text-center">
@@ -854,6 +955,11 @@ export default function App() {
                   <p className="text-3xl font-bold">{scores.player2}</p>
                 </div>
               </div>
+              {winReason === 'timeout' && winnerPlayer && (
+                <p className="mb-10 text-sm uppercase tracking-[0.35em] text-[#991b1b] font-[var(--font-mono)]">
+                  {playerLabel(winnerPlayer === 1 ? 2 : 1)} ran out of time
+                </p>
+              )}
               <button 
                 onClick={mode === 'online' ? leaveToMenu : startGame}
                 className="group flex items-center gap-4 px-12 py-5 bg-white/5 border border-white/20 hover:bg-white hover:text-black transition-all font-bold uppercase text-[10px] tracking-[0.5em]"
