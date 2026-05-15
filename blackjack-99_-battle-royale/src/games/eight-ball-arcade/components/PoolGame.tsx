@@ -513,6 +513,10 @@ export default function PoolGame() {
             gameStateRef.current = nextState;
             setGameState(nextState);
             setDisplayState(nextState);
+            if (pendingReplayAckIdRef.current && replay?.id === pendingReplayAckIdRef.current && replay.playerUid === auth.currentUser?.uid) {
+              setOnlinePhase('waiting');
+              return;
+            }
             setOnlinePhase(nextState.players[nextState.turnIndex]?.uid === auth.currentUser?.uid ? 'playing' : 'waiting');
           });
         }
@@ -1803,25 +1807,6 @@ export default function PoolGame() {
             className="rounded-[30px] shadow-[0_40px_100px_-30px_rgba(0,0,0,0.8)] cursor-crosshair border-[24px] border-[#451a03] relative"
           />
 
-          {displayState?.mode === 'online' && onlinePhase !== 'replaying' && !menuOpen && !canControlOnlineTurn(displayState) && (
-            <div className={clsx(
-              "absolute inset-0 pointer-events-none flex z-20",
-              "items-center justify-center"
-            )}>
-              <div className="bg-slate-950/88 border border-cyan-300/20 text-white px-8 py-5 rounded-3xl shadow-2xl backdrop-blur-md text-center max-w-sm">
-                <div className="text-[10px] font-black uppercase tracking-[0.35em] text-cyan-200/70 mb-2">
-                  Waiting for Opponent
-                </div>
-                <div className="text-2xl font-black italic tracking-tighter">
-                  Waiting for Their Turn
-                </div>
-                <p className="mt-2 text-xs font-bold text-slate-300">
-                  Your controls unlock when the table is yours.
-                </p>
-              </div>
-            </div>
-          )}
-          
           {displayState?.isBallInHand && !displayState.isMoving && canControlOnlineTurn(displayState) && (
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                <div className="bg-amber-400 text-black px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest flex flex-col items-center gap-2 shadow-2xl pointer-events-auto cursor-pointer active:scale-95 transition-transform" onClick={confirmPlacement}>
