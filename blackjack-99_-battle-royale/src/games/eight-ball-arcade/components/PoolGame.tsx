@@ -235,6 +235,7 @@ export default function PoolGame() {
   const canControlOnlineTurn = useCallback((state: GameState | null) => {
     if (!state) return false;
     if (state.mode !== 'online') return true;
+    if (isReplayingRef.current || pendingReplayAckIdRef.current) return false;
     const turnUid = onlineTurnUidRef.current || state.players[state.turnIndex]?.uid;
     return onlinePhase === 'playing' && turnUid === auth.currentUser?.uid && state.players[state.turnIndex]?.uid === turnUid;
   }, [onlinePhase]);
@@ -652,6 +653,12 @@ export default function PoolGame() {
       const state = gameStateRef.current;
       if (!state || state.status === 'finished') {
         if (state) render(ctx, state, mousePosRef.current, isAimingRef.current, shotAngleRef.current, shotPowerRef.current, isStrikingRef.current, strikeProgressRef.current);
+        rafId = requestAnimationFrame(loop);
+        return;
+      }
+
+      if (isReplayingRef.current) {
+        render(ctx, state, mousePosRef.current, false, shotAngleRef.current, 0, false, 0);
         rafId = requestAnimationFrame(loop);
         return;
       }
