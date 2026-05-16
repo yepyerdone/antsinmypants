@@ -186,6 +186,7 @@ export default function PoolGame() {
   const [onlineMatchId, setOnlineMatchId] = useState<string | null>(null);
   const [onlinePhase, setOnlinePhase] = useState<'playing' | 'waiting' | 'replaying'>('playing');
   const [onlineTurnUid, setOnlineTurnUid] = useState<string | null>(null);
+  const onlineMatchIdRef = useRef<string | null>(null);
 
   // Simulation State (for loop performance)
   const gameStateRef = useRef<GameState | null>(null);
@@ -221,6 +222,10 @@ export default function PoolGame() {
   const onlineShotNumberRef = useRef(0);
   const pendingReplayAckIdRef = useRef<string | null>(null);
   const websitePlayerName = displayName || auth.currentUser?.displayName || 'Player';
+
+  useEffect(() => {
+    onlineMatchIdRef.current = onlineMatchId;
+  }, [onlineMatchId]);
 
   const updateOnlineTurnUid = useCallback((uid: string | null) => {
     onlineTurnUidRef.current = uid;
@@ -558,6 +563,60 @@ export default function PoolGame() {
     };
   }, []);
 
+  const forfeitOnlineMatch = useCallback((updateLocalState = false) => {
+    const state = gameStateRef.current;
+    const matchId = onlineMatchIdRef.current;
+    if (!state || state.mode !== 'online' || state.status === 'finished' || !matchId || !auth.currentUser?.uid) {
+      return false;
+    }
+
+    const winner = state.players.find((player) => player.uid !== auth.currentUser?.uid)?.uid || null;
+    const nextState: GameState = {
+      ...state,
+      winner,
+      status: 'finished',
+      isMoving: false,
+      foulReason: 'Your opponent has left',
+    };
+
+    if (updateLocalState) {
+      gameStateRef.current = nextState;
+      setGameState(nextState);
+      setDisplayState(nextState);
+      setIsAiming(false);
+      setIsStriking(false);
+      setShotPower(0);
+      setOnlinePhase('waiting');
+      setMenuOpen(false);
+    }
+
+    void MultiplayerManager.syncGameState(matchId, {
+      balls: nextState.balls,
+      isMoving: false,
+      status: 'finished',
+      winner,
+      foulReason: nextState.foulReason,
+      turnReplay: null,
+      liveShot: null,
+    } as any);
+
+    return true;
+  }, []);
+
+  useEffect(() => {
+    const handlePageExit = () => {
+      forfeitOnlineMatch(false);
+    };
+
+    window.addEventListener('pagehide', handlePageExit);
+    window.addEventListener('beforeunload', handlePageExit);
+    return () => {
+      window.removeEventListener('pagehide', handlePageExit);
+      window.removeEventListener('beforeunload', handlePageExit);
+      handlePageExit();
+    };
+  }, [forfeitOnlineMatch]);
+
   const handleQuitGame = () => {
     matchmakingCleanupRef.current?.();
     matchmakingCleanupRef.current = null;
@@ -569,35 +628,7 @@ export default function PoolGame() {
       return;
     }
 
-    if (state.mode === 'online' && onlineMatchId && auth.currentUser?.uid) {
-      const winner = state.players.find((player) => player.uid !== auth.currentUser?.uid)?.uid || null;
-      const quitterName = state.players.find((player) => player.uid === auth.currentUser?.uid)?.name || 'Player';
-      const nextState: GameState = {
-        ...state,
-        winner,
-        status: 'finished',
-        isMoving: false,
-        foulReason: `${quitterName} forfeited the match`,
-      };
-
-      gameStateRef.current = nextState;
-      setGameState(nextState);
-      setDisplayState(nextState);
-      setIsAiming(false);
-      setIsStriking(false);
-      setShotPower(0);
-
-      MultiplayerManager.syncGameState(onlineMatchId, {
-        balls: nextState.balls,
-        isMoving: false,
-        status: 'finished',
-        winner,
-        foulReason: nextState.foulReason,
-        turnReplay: null,
-        liveShot: null,
-      } as any);
-      setOnlinePhase('waiting');
-      setMenuOpen(false);
+    if (forfeitOnlineMatch(true)) {
       return;
     }
 
@@ -620,6 +651,7 @@ export default function PoolGame() {
   };
 
   const returnToMainMenu = () => {
+    forfeitOnlineMatch(false);
     matchmakingCleanupRef.current?.();
     matchmakingCleanupRef.current = null;
     matchUnsubscribeRef.current?.();

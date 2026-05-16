@@ -57,7 +57,7 @@ type ReaperMatch = {
   victimByDoor: Record<number, VictimVariant>;
   turnStartedAt: number | null;
   winnerPlayer: PlayerNumber | null;
-  winReason: 'score' | 'timeout' | null;
+  winReason: 'score' | 'timeout' | 'left' | null;
   players: {
     player1: OnlinePlayer;
     player2: OnlinePlayer;
@@ -96,6 +96,11 @@ export default function App() {
   const [localPlayerNumber, setLocalPlayerNumber] = useState<PlayerNumber>(1);
   const [onlinePlayers, setOnlinePlayers] = useState<ReaperMatch['players'] | null>(null);
   const matchmakingCleanupRef = useRef<(() => void) | null>(null);
+  const matchIdRef = useRef<string | null>(null);
+  const modeRef = useRef<GameMode>('local');
+  const localPlayerNumberRef = useRef<PlayerNumber>(1);
+  const gameStateRef = useRef<GameState>('START');
+  const hasForfeitedRef = useRef(false);
   const [gameState, setGameState] = useState<GameState>('START');
   const [round, setRound] = useState(1);
   const [tiebreakerTurn, setTiebreakerTurn] = useState<1 | 2>(1);
@@ -116,7 +121,7 @@ export default function App() {
   const [secretVictimByDoor, setSecretVictimByDoor] = useState<Record<number, VictimVariant>>({});
   const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null);
   const [winnerPlayer, setWinnerPlayer] = useState<PlayerNumber | null>(null);
-  const [winReason, setWinReason] = useState<'score' | 'timeout' | null>(null);
+  const [winReason, setWinReason] = useState<'score' | 'timeout' | 'left' | null>(null);
   const [now, setNow] = useState(Date.now());
   const timeoutHandledRef = useRef(false);
 
@@ -157,10 +162,48 @@ export default function App() {
         : 'defeat'
       : 'victory';
 
+  useEffect(() => {
+    matchIdRef.current = matchId;
+  }, [matchId]);
+
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
+
+  useEffect(() => {
+    localPlayerNumberRef.current = localPlayerNumber;
+  }, [localPlayerNumber]);
+
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
   const patchOnlineMatch = async (patch: Partial<ReaperMatch>) => {
     if (mode !== 'online' || !matchId) return;
     await updateDoc(doc(db, 'reaper_matches', matchId), patch);
   };
+
+  const forfeitOnlineMatch = useCallback((reason: 'left' = 'left') => {
+    const activeMatchId = matchIdRef.current;
+    if (
+      modeRef.current !== 'online'
+      || !activeMatchId
+      || hasForfeitedRef.current
+      || gameStateRef.current === 'GAME_OVER'
+    ) {
+      return;
+    }
+
+    hasForfeitedRef.current = true;
+    const nextWinner: PlayerNumber = localPlayerNumberRef.current === 1 ? 2 : 1;
+    void updateDoc(doc(db, 'reaper_matches', activeMatchId), {
+      winnerPlayer: nextWinner,
+      winReason: reason,
+      gameState: 'GAME_OVER',
+      status: 'finished',
+      turnStartedAt: null,
+    });
+  }, []);
 
   const resetBoardState = () => {
     setHiddenPositions([]);
@@ -200,6 +243,9 @@ export default function App() {
       setTurnStartedAt(data.turnStartedAt ?? null);
       setWinnerPlayer(data.winnerPlayer ?? null);
       setWinReason(data.winReason ?? null);
+      if (data.status === 'finished') {
+        hasForfeitedRef.current = true;
+      }
       setOnlinePlayers(data.players);
       setScreen('GAME');
     });
@@ -283,14 +329,29 @@ export default function App() {
     matchmakingCleanupRef.current?.();
     matchmakingCleanupRef.current = null;
     if (mode === 'online' && matchId) {
-      await patchOnlineMatch({ status: 'finished' });
+      forfeitOnlineMatch('left');
     }
     setMatchId(null);
     setOnlinePlayers(null);
     setScreen('MENU');
     setMode('local');
     setLocalPlayerNumber(1);
+    hasForfeitedRef.current = false;
   };
+
+  useEffect(() => {
+    const handlePageExit = () => {
+      forfeitOnlineMatch('left');
+    };
+
+    window.addEventListener('pagehide', handlePageExit);
+    window.addEventListener('beforeunload', handlePageExit);
+    return () => {
+      window.removeEventListener('pagehide', handlePageExit);
+      window.removeEventListener('beforeunload', handlePageExit);
+      handlePageExit();
+    };
+  }, [forfeitOnlineMatch]);
 
   const startOnlineMode = async () => {
     const user = auth.currentUser;
@@ -365,6 +426,7 @@ export default function App() {
       await deleteDoc(doc(db, 'reaper_queue', opponent.uid)).catch(() => undefined);
       await deleteDoc(queueRef).catch(() => undefined);
       resetBoardState();
+      hasForfeitedRef.current = false;
       setLocalPlayerNumber(2);
       setMatchId(nextMatchId);
       return true;
@@ -404,6 +466,7 @@ export default function App() {
         unsubscribe();
         deleteDoc(queueRef).catch(() => undefined);
         resetBoardState();
+        hasForfeitedRef.current = false;
         setLocalPlayerNumber(1);
         setMatchId(found.id);
       },
@@ -1081,7 +1144,7 @@ export default function App() {
               )}
               {mode === 'online' && localOnlineOutcome === 'defeat' && (
                 <p className="mb-10 text-lg italic text-white/55">
-                  {playerLabel(resolvedWinner)} claimed the reckoning.
+                  {winReason === 'left' ? 'Your opponent has left.' : `${playerLabel(resolvedWinner)} claimed the reckoning.`}
                 </p>
               )}
               <div className="flex gap-12 items-center mb-24 font-[var(--font-mono)]">
@@ -1098,6 +1161,11 @@ export default function App() {
               {winReason === 'timeout' && winnerPlayer && localOnlineOutcome === 'victory' && (
                 <p className="mb-10 text-sm uppercase tracking-[0.35em] text-[#991b1b] font-[var(--font-mono)]">
                   {playerLabel(winnerPlayer === 1 ? 2 : 1)} ran out of time
+                </p>
+              )}
+              {winReason === 'left' && localOnlineOutcome === 'victory' && (
+                <p className="mb-10 text-sm uppercase tracking-[0.35em] text-[#991b1b] font-[var(--font-mono)]">
+                  Your opponent has left
                 </p>
               )}
               <button 
