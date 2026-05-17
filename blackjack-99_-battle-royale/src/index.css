@@ -3567,9 +3567,10 @@ body {
   overflow: hidden;
   color: #fff7ed;
   background:
-    radial-gradient(circle at 18% 12%, rgba(14, 165, 233, 0.22), transparent 26rem),
-    radial-gradient(circle at 82% 6%, rgba(250, 204, 21, 0.18), transparent 22rem),
-    linear-gradient(135deg, #111827, #020617 62%, #111827);
+    radial-gradient(circle at 18% 12%, rgba(14, 165, 233, 0.3), transparent 26rem),
+    radial-gradient(circle at 82% 6%, rgba(250, 204, 21, 0.24), transparent 22rem),
+    radial-gradient(circle at 52% 92%, rgba(244, 114, 182, 0.16), transparent 28rem),
+    linear-gradient(135deg, #172554, #07152f 62%, #111827);
   padding: 0.65rem;
 }
 
@@ -3647,7 +3648,7 @@ body {
   height: 100%;
   border: 1px solid rgba(125, 211, 252, 0.22);
   border-radius: 8px;
-  background: #000;
+  background: #07152f;
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
 }
 

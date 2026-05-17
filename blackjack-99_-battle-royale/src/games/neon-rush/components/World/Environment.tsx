@@ -20,7 +20,7 @@ const NebulaCloud: React.FC<{ position: [number, number, number]; color: string;
 }) => (
   <mesh position={position} scale={scale} rotation={[0.2, 0.3, -0.18]}>
     <sphereGeometry args={[1, 32, 16]} />
-    <meshBasicMaterial color={color} transparent opacity={0.13} depthWrite={false} blending={THREE.AdditiveBlending} />
+    <meshBasicMaterial color={color} transparent opacity={0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
   </mesh>
 );
 
@@ -113,7 +113,7 @@ const SpaceDust: React.FC = () => {
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, DUST_COUNT]}>
       <sphereGeometry args={[1, 6, 6]} />
-      <meshBasicMaterial color="#67e8f9" transparent opacity={0.58} toneMapped={false} />
+      <meshBasicMaterial color="#bae6fd" transparent opacity={0.72} toneMapped={false} />
     </instancedMesh>
   );
 };
@@ -130,7 +130,7 @@ const PlanetSet: React.FC = () => {
       <group position={[-34, 26, -145]}>
         <mesh>
           <sphereGeometry args={[8.5, 48, 32]} />
-          <meshStandardMaterial color="#7c3aed" emissive="#312e81" emissiveIntensity={0.22} roughness={0.85} />
+          <meshStandardMaterial color="#8b5cf6" emissive="#4338ca" emissiveIntensity={0.4} roughness={0.78} />
         </mesh>
         <mesh ref={ringsRef} rotation={[1.22, 0.05, 0.42]}>
           <torusGeometry args={[11.5, 0.18, 12, 96]} />
@@ -140,12 +140,12 @@ const PlanetSet: React.FC = () => {
 
       <mesh position={[39, 20, -210]}>
         <sphereGeometry args={[5.4, 36, 24]} />
-        <meshStandardMaterial color="#f59e0b" emissive="#7c2d12" emissiveIntensity={0.18} roughness={0.7} />
+        <meshStandardMaterial color="#fbbf24" emissive="#b45309" emissiveIntensity={0.34} roughness={0.66} />
       </mesh>
 
       <mesh position={[22, 42, -260]}>
         <sphereGeometry args={[3, 24, 16]} />
-        <meshStandardMaterial color="#22d3ee" emissive="#155e75" emissiveIntensity={0.25} roughness={0.5} />
+        <meshStandardMaterial color="#67e8f9" emissive="#0891b2" emissiveIntensity={0.42} roughness={0.46} />
       </mesh>
     </group>
   );
@@ -196,12 +196,22 @@ const Runway: React.FC = () => {
         >
           <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[platformWidth, segmentLength - 0.08]} />
-            <meshStandardMaterial color="#0b1120" roughness={0.48} metalness={0.55} />
+            <meshStandardMaterial color="#1e3a8a" emissive="#1d4ed8" emissiveIntensity={0.38} roughness={0.4} metalness={0.42} />
           </mesh>
 
           <mesh position={[0, 0.018, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[platformWidth - 0.5, 0.08]} />
-            <meshBasicMaterial color={index % 2 === 0 ? '#22d3ee' : '#a78bfa'} transparent opacity={0.42} toneMapped={false} />
+            <meshBasicMaterial color={index % 2 === 0 ? '#22d3ee' : '#f472b6'} transparent opacity={0.68} toneMapped={false} />
+          </mesh>
+
+          <mesh position={[0, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[platformWidth - 0.3, segmentLength - 0.28]} />
+            <meshBasicMaterial
+              color={index % 2 === 0 ? '#1d4ed8' : '#7c3aed'}
+              transparent
+              opacity={0.11}
+              toneMapped={false}
+            />
           </mesh>
 
           <mesh
@@ -211,7 +221,7 @@ const Runway: React.FC = () => {
             position={[-platformWidth / 2, 0.12, 0]}
           >
             <boxGeometry args={[0.12, 0.16, segmentLength - 0.25]} />
-            <meshStandardMaterial color="#164e63" emissive="#22d3ee" emissiveIntensity={1.1} roughness={0.35} metalness={0.7} />
+            <meshStandardMaterial color="#0f766e" emissive="#22d3ee" emissiveIntensity={1.35} roughness={0.32} metalness={0.68} />
           </mesh>
           <mesh
             ref={(node) => {
@@ -220,13 +230,13 @@ const Runway: React.FC = () => {
             position={[platformWidth / 2, 0.12, 0]}
           >
             <boxGeometry args={[0.12, 0.16, segmentLength - 0.25]} />
-            <meshStandardMaterial color="#164e63" emissive="#22d3ee" emissiveIntensity={1.1} roughness={0.35} metalness={0.7} />
+            <meshStandardMaterial color="#0f766e" emissive="#22d3ee" emissiveIntensity={1.35} roughness={0.32} metalness={0.68} />
           </mesh>
 
           {separators.map((x, lineIndex) => (
             <mesh key={`${index}-${lineIndex}`} position={[x, 0.025, 0]} rotation={[-Math.PI / 2, 0, 0]}>
               <planeGeometry args={[0.055, segmentLength - 1.4]} />
-              <meshBasicMaterial color="#60a5fa" transparent opacity={0.5} toneMapped={false} />
+              <meshBasicMaterial color={lineIndex % 2 === 0 ? '#7dd3fc' : '#f9a8d4'} transparent opacity={0.72} toneMapped={false} />
             </mesh>
           ))}
         </group>
@@ -238,17 +248,19 @@ const Runway: React.FC = () => {
 export const Environment: React.FC = () => {
   return (
     <>
-      <color attach="background" args={['#020617']} />
-      <fog attach="fog" args={['#020617', 65, 240]} />
+      <color attach="background" args={['#0b1f43']} />
+      <fog attach="fog" args={['#0b1f43', 84, 260]} />
 
-      <ambientLight intensity={0.55} color="#c4b5fd" />
-      <directionalLight position={[18, 28, 12]} intensity={1.25} color="#e0f2fe" castShadow />
-      <pointLight position={[-7, 7, 6]} intensity={1.4} color="#22d3ee" distance={35} />
-      <pointLight position={[7, 5, -20]} intensity={1.15} color="#f472b6" distance={42} />
+      <ambientLight intensity={0.82} color="#dbeafe" />
+      <hemisphereLight args={['#93c5fd', '#f9a8d4', 0.62]} />
+      <directionalLight position={[18, 28, 12]} intensity={1.55} color="#f8fafc" castShadow />
+      <pointLight position={[-7, 7, 6]} intensity={1.8} color="#22d3ee" distance={38} />
+      <pointLight position={[7, 5, -20]} intensity={1.55} color="#f472b6" distance={46} />
+      <pointLight position={[0, 10, -52]} intensity={1.2} color="#facc15" distance={58} />
 
-      <NebulaCloud position={[-44, 25, -180]} color="#7c3aed" scale={[19, 8, 7]} />
-      <NebulaCloud position={[40, 18, -150]} color="#0891b2" scale={[14, 6, 5]} />
-      <NebulaCloud position={[0, 36, -230]} color="#db2777" scale={[24, 8, 8]} />
+      <NebulaCloud position={[-44, 25, -180]} color="#8b5cf6" scale={[19, 8, 7]} />
+      <NebulaCloud position={[40, 18, -150]} color="#06b6d4" scale={[14, 6, 5]} />
+      <NebulaCloud position={[0, 36, -230]} color="#ec4899" scale={[24, 8, 8]} />
       <PlanetSet />
       <StarField />
       <SpaceDust />

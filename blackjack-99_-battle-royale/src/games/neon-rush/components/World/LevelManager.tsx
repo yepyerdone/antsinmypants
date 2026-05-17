@@ -517,21 +517,21 @@ const GameEntity: React.FC<{ data: GameObject }> = React.memo(({ data }) => {
                     <group>
                         <mesh geometry={ASTEROID_GEOMETRY} castShadow receiveShadow rotation={[0.5, 0.35, 0.2]} scale={[1.05, 0.88, 0.72]}>
                              <meshStandardMaterial
-                                 color="#8b5e3c"
-                                 emissive="#7f1d1d"
-                                 emissiveIntensity={0.16}
-                                 roughness={0.86}
-                                 metalness={0.12}
+                                 color="#b45309"
+                                 emissive="#7c2d12"
+                                 emissiveIntensity={0.3}
+                                 roughness={0.78}
+                                 metalness={0.14}
                              />
                         </mesh>
                         <mesh geometry={MINE_CORE_GEOMETRY} castShadow position={[0.38, 0.12, 0.2]} scale={[0.72, 0.72, 0.72]}>
-                            <meshStandardMaterial color="#1e293b" emissive={data.color || '#fb7185'} emissiveIntensity={0.9} roughness={0.42} metalness={0.68} />
+                            <meshStandardMaterial color="#334155" emissive={data.color || '#fb7185'} emissiveIntensity={1.15} roughness={0.36} metalness={0.68} />
                         </mesh>
                         <mesh geometry={MINE_RING_GEOMETRY} rotation={[Math.PI / 2, 0, 0]} position={[0.38, 0.12, 0.2]}>
-                            <meshBasicMaterial color={data.color || '#fb7185'} transparent opacity={0.8} toneMapped={false} />
+                            <meshBasicMaterial color={data.color || '#fb7185'} transparent opacity={0.95} toneMapped={false} />
                         </mesh>
                         <mesh geometry={WARNING_RING_GEOMETRY} rotation={[Math.PI / 2, 0, 0]}>
-                            <meshBasicMaterial color={data.color || '#fb7185'} transparent opacity={0.42} toneMapped={false} />
+                            <meshBasicMaterial color={data.color || '#fb7185'} transparent opacity={0.6} toneMapped={false} />
                         </mesh>
                     </group>
                 )}
@@ -540,13 +540,13 @@ const GameEntity: React.FC<{ data: GameObject }> = React.memo(({ data }) => {
                 {data.type === ObjectType.ALIEN && (
                     <group>
                         <mesh castShadow geometry={UFO_BODY_GEO}>
-                            <meshStandardMaterial color="#94a3b8" emissive="#155e75" emissiveIntensity={0.22} metalness={0.75} roughness={0.28} />
+                            <meshStandardMaterial color="#cbd5e1" emissive="#155e75" emissiveIntensity={0.34} metalness={0.75} roughness={0.24} />
                         </mesh>
                         <mesh position={[0, 0.11, 0]} geometry={UFO_DOME_GEO}>
-                            <meshStandardMaterial color="#22d3ee" emissive="#0891b2" emissiveIntensity={0.9} transparent opacity={0.78} roughness={0.08} metalness={0.25} />
+                            <meshStandardMaterial color="#67e8f9" emissive="#0891b2" emissiveIntensity={1.08} transparent opacity={0.84} roughness={0.08} metalness={0.25} />
                         </mesh>
                         <mesh position={[0, -0.42, 0.18]} rotation={[Math.PI, 0, 0]} geometry={UFO_BEAM_GEO}>
-                            <meshBasicMaterial color="#a855f7" transparent opacity={0.26} toneMapped={false} />
+                            <meshBasicMaterial color="#c084fc" transparent opacity={0.38} toneMapped={false} />
                         </mesh>
                         <mesh position={[0, -0.12, 0.46]} geometry={UFO_LIGHT_GEO}>
                              <meshBasicMaterial color="#fb7185" toneMapped={false} />
@@ -579,15 +579,15 @@ const GameEntity: React.FC<{ data: GameObject }> = React.memo(({ data }) => {
                             <meshStandardMaterial
                                 color={data.color || '#22d3ee'}
                                 emissive={data.color || '#22d3ee'}
-                                emissiveIntensity={1.1}
+                                emissiveIntensity={1.35}
                                 roughness={0.18}
                                 metalness={0.42}
                             />
                         </mesh>
                         <mesh rotation={[Math.PI / 2, 0, 0]} geometry={CRYSTAL_RING_GEOMETRY}>
-                            <meshBasicMaterial color={data.color || '#22d3ee'} transparent opacity={0.72} toneMapped={false} />
+                            <meshBasicMaterial color={data.color || '#22d3ee'} transparent opacity={0.88} toneMapped={false} />
                         </mesh>
-                        <pointLight color={data.color || '#22d3ee'} intensity={0.8} distance={3} />
+                        <pointLight color={data.color || '#22d3ee'} intensity={1.15} distance={3.6} />
                     </group>
                 )}
             </group>
