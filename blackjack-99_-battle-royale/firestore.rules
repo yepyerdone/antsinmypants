@@ -160,6 +160,7 @@ service cloud.firestore {
         && incoming().name.size() <= 15
         && incoming().score is number
         && incoming().score >= 0;
+      allow delete: if false;
     }
 
     // States Master Leaderboard Rules
@@ -168,6 +169,7 @@ service cloud.firestore {
       allow create: if isValidId(entryId)
         && isValidStatesScore(incoming())
         && incoming().completedAt == request.time;
+      allow delete: if false;
     }
 
     // Tachymetry Leaderboard Rules
@@ -184,6 +186,7 @@ service cloud.firestore {
         && incoming().score >= existing().score
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly(['score', 'updatedAt', 'username']);
+      allow delete: if false;
     }
 
     // Snake Rush Leaderboard Rules
@@ -196,6 +199,7 @@ service cloud.firestore {
         && incoming().score is number
         && incoming().score >= 0
         && incoming().gameMode is string;
+      allow delete: if false;
     }
 
     // Mole Mania Leaderboard Rules
@@ -209,6 +213,7 @@ service cloud.firestore {
         && incoming().score >= 0
         && incoming().userId == request.auth.uid
         && incoming().timestamp is number;
+      allow delete: if false;
     }
 
     // Space Runner Leaderboard Rules
@@ -224,6 +229,7 @@ service cloud.firestore {
         && incoming().distance >= 0
         && incoming().gems is number
         && incoming().gems >= 0;
+      allow delete: if false;
     }
 
     // The Ascension Leaderboard Rules
@@ -236,6 +242,7 @@ service cloud.firestore {
         && incoming().score is number
         && incoming().score > 0
         && (!incoming().keys().hasAny(['uid']) || incoming().uid == null || incoming().uid == request.auth.uid);
+      allow delete: if false;
     }
 
     // Fun House Frenzy Leaderboard Rules
@@ -251,6 +258,7 @@ service cloud.firestore {
         && incoming().score > existing().score
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'score', 'wave', 'date', 'updatedAt']);
+      allow delete: if false;
     }
 
     // Good Boy Leaderboard Rules
@@ -266,6 +274,7 @@ service cloud.firestore {
         && incoming().score > existing().score
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly(['username', 'score', 'updatedAt']);
+      allow delete: if false;
     }
 
     // Linguist per-player progress. Private to the profile owner.
