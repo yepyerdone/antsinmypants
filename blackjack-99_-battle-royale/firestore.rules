@@ -513,6 +513,17 @@ service cloud.firestore {
       allow delete: if isSignedIn();
     }
 
+    match /reaper_records/{userId} {
+      allow get: if isSignedIn();
+      allow create, update: if isOwner(userId)
+        && incoming().userId == userId
+        && incoming().wins is number
+        && incoming().wins >= 0
+        && incoming().losses is number
+        && incoming().losses >= 0
+        && incoming().updatedAt == request.time;
+    }
+
     match /reaper_matches/{matchId} {
       function isReaperPlayer(data) {
         return isSignedIn()

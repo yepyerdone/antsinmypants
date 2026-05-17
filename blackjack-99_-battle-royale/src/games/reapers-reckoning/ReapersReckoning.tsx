@@ -10,10 +10,13 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
+  increment,
   limit,
   onSnapshot,
   query,
+  serverTimestamp,
   setDoc,
   updateDoc,
   where,
@@ -32,13 +35,19 @@ interface Score {
   player2: number;
 }
 
-type Screen = 'MENU' | 'MATCHMAKING' | 'GAME';
+type Screen = 'MENU' | 'MATCHMAKING' | 'HEAD_TO_HEAD' | 'GAME';
 type GameMode = 'local' | 'online';
 type PlayerNumber = 1 | 2;
 
 type OnlinePlayer = {
   uid: string;
   name: string;
+  record: ReaperRecord;
+};
+
+type ReaperRecord = {
+  wins: number;
+  losses: number;
 };
 
 type ReaperMatch = {
@@ -67,7 +76,7 @@ type ReaperMatch = {
   player1QueueToken?: string;
 };
 
-type ReaperQueueEntry = OnlinePlayer & {
+type ReaperQueueEntry = Omit<OnlinePlayer, 'record'> & {
   queueToken: string;
   createdAtMs: number;
   lastSeenAt: number;
@@ -124,11 +133,16 @@ export default function App() {
   const [winReason, setWinReason] = useState<'score' | 'timeout' | 'left' | null>(null);
   const [now, setNow] = useState(Date.now());
   const timeoutHandledRef = useRef(false);
+  const recordedMatchIdsRef = useRef<Set<string>>(new Set());
+  const introMatchIdRef = useRef<string | null>(null);
+  const [myRecord, setMyRecord] = useState<ReaperRecord>({ wins: 0, losses: 0 });
 
   const playerLabel = (player: PlayerNumber) =>
     mode === 'online'
       ? onlinePlayers?.[`player${player}`].name || `Player ${player}`
       : `Player ${player}`;
+  const playerRecord = (player: PlayerNumber) =>
+    onlinePlayers?.[`player${player}`].record || { wins: 0, losses: 0 };
 
   const canActAs = (player: PlayerNumber) => mode === 'local' || localPlayerNumber === player;
   const activeTurnPlayer = gameState === 'HIDING' ? hidingHider : gameState === 'GUESSING' ? reaperPlayer : null;
@@ -218,6 +232,27 @@ export default function App() {
     setIsReaperMoving(false);
   };
 
+  const loadReaperRecord = async (uid: string): Promise<ReaperRecord> => {
+    const snapshot = await getDoc(doc(db, 'reaper_records', uid));
+    const data = snapshot.data();
+    return {
+      wins: typeof data?.wins === 'number' ? data.wins : 0,
+      losses: typeof data?.losses === 'number' ? data.losses : 0,
+    };
+  };
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+    return onSnapshot(doc(db, 'reaper_records', user.uid), (snapshot) => {
+      const data = snapshot.data();
+      setMyRecord({
+        wins: typeof data?.wins === 'number' ? data.wins : 0,
+        losses: typeof data?.losses === 'number' ? data.losses : 0,
+      });
+    });
+  }, []);
+
   useEffect(() => {
     if (!matchId || mode !== 'online') return;
     return onSnapshot(doc(db, 'reaper_matches', matchId), (snapshot) => {
@@ -247,9 +282,38 @@ export default function App() {
         hasForfeitedRef.current = true;
       }
       setOnlinePlayers(data.players);
-      setScreen('GAME');
+      if (data.status === 'playing' && introMatchIdRef.current !== matchId) {
+        introMatchIdRef.current = matchId;
+        setScreen('HEAD_TO_HEAD');
+        window.setTimeout(() => setScreen('GAME'), 3200);
+      } else if (data.status === 'finished' || introMatchIdRef.current === matchId) {
+        setScreen('GAME');
+      }
     });
   }, [matchId, mode]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (
+      mode !== 'online'
+      || !matchId
+      || gameState !== 'GAME_OVER'
+      || !winnerPlayer
+      || !user
+      || recordedMatchIdsRef.current.has(matchId)
+    ) {
+      return;
+    }
+
+    recordedMatchIdsRef.current.add(matchId);
+    const isWin = localPlayerNumber === winnerPlayer;
+    void setDoc(doc(db, 'reaper_records', user.uid), {
+      userId: user.uid,
+      wins: increment(isWin ? 1 : 0),
+      losses: increment(isWin ? 0 : 1),
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  }, [gameState, localPlayerNumber, matchId, mode, winnerPlayer]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -395,6 +459,10 @@ export default function App() {
     const createMatch = async (opponentDoc: Awaited<ReturnType<typeof findOpponent>>) => {
       if (!opponentDoc) return false;
       const opponent = opponentDoc.data() as ReaperQueueEntry;
+      const [opponentRecord, currentPlayerRecord] = await Promise.all([
+        loadReaperRecord(opponent.uid),
+        loadReaperRecord(user.uid),
+      ]);
       const nextMatchId = `reaper_${Date.now()}_${user.uid}`;
       const match: ReaperMatch = {
         gameState: 'HIDING',
@@ -414,8 +482,8 @@ export default function App() {
         winnerPlayer: null,
         winReason: null,
         players: {
-          player1: { uid: opponent.uid, name: opponent.name },
-          player2: { uid: user.uid, name: playerName },
+          player1: { uid: opponent.uid, name: opponent.name, record: opponentRecord },
+          player2: { uid: user.uid, name: playerName, record: currentPlayerRecord },
         },
         status: 'playing',
         createdAtMs: Date.now(),
@@ -796,6 +864,10 @@ export default function App() {
             <Skull className="mx-auto mb-8 h-24 w-24 text-[#991b1b]" />
             <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase italic text-white">Reaper's Reckoning</h1>
             <p className="mt-5 text-white/45 text-lg italic">Choose how the harvest begins.</p>
+            <div className="mt-8 inline-flex items-center gap-6 border border-white/10 bg-white/[0.03] px-6 py-3 font-[var(--font-mono)] text-sm uppercase tracking-[0.25em]">
+              <span className="text-white/45">Your Record</span>
+              <strong className="text-white">{myRecord.wins}-{myRecord.losses}</strong>
+            </div>
             <div className="mt-12 grid gap-4 md:grid-cols-2">
               <button onClick={startLocalMode} className="reaper-mode-card">
                 <strong>Local Mode</strong>
@@ -818,6 +890,26 @@ export default function App() {
           <button onClick={() => void leaveToMenu()} className="mt-10 px-8 py-4 border border-white/20 hover:bg-white hover:text-black transition-all uppercase tracking-[0.3em] text-xs">
             Cancel
           </button>
+        </main>
+      )}
+
+      {screen === 'HEAD_TO_HEAD' && onlinePlayers && (
+        <main className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <p className="mb-8 text-xs uppercase tracking-[0.5em] text-[#991b1b] font-[var(--font-mono)]">Head To Head</p>
+          <div className="grid w-full max-w-4xl gap-6 md:grid-cols-[1fr_auto_1fr] items-center">
+            {([1, 2] as const).map((player, index) => (
+              <React.Fragment key={player}>
+                <div className="border border-white/10 bg-white/[0.03] p-8">
+                  <p className="text-4xl font-black italic uppercase">{playerLabel(player)}</p>
+                  <p className="mt-4 font-[var(--font-mono)] text-sm uppercase tracking-[0.35em] text-white/45">
+                    {playerRecord(player).wins}-{playerRecord(player).losses}
+                  </p>
+                </div>
+                {index === 0 && <span className="text-3xl font-black italic text-[#991b1b]">VS</span>}
+              </React.Fragment>
+            ))}
+          </div>
+          <p className="mt-10 text-white/45 italic">The reckoning begins...</p>
         </main>
       )}
 
@@ -912,6 +1004,11 @@ export default function App() {
                   activeTurnPlayer === 1 ? 'bg-white/5 border-[#991b1b]' : 'bg-[#111] border-[#333]'
                 }`}>
                   <p className="text-[10px] font-[var(--font-mono)] uppercase tracking-widest opacity-40 mb-2">{playerLabel(1)}</p>
+                  {mode === 'online' && onlinePlayers && (
+                    <p className="mb-2 text-[10px] font-[var(--font-mono)] uppercase tracking-widest text-white/35">
+                      {playerRecord(1).wins}-{playerRecord(1).losses}
+                    </p>
+                  )}
                   <p className="text-5xl font-bold flex items-baseline gap-2">
                     {scores.player1} 
                     <span className="text-xs uppercase font-[var(--font-mono)] opacity-30 tracking-tighter">Caught</span>
@@ -922,6 +1019,11 @@ export default function App() {
                   activeTurnPlayer === 2 ? 'bg-white/5 border-[#991b1b]' : 'bg-[#111] border-[#333]'
                 }`}>
                   <p className="text-[10px] font-[var(--font-mono)] uppercase tracking-widest opacity-40 mb-2">{playerLabel(2)}</p>
+                  {mode === 'online' && onlinePlayers && (
+                    <p className="mb-2 text-[10px] font-[var(--font-mono)] uppercase tracking-widest text-white/35">
+                      {playerRecord(2).wins}-{playerRecord(2).losses}
+                    </p>
+                  )}
                   <p className="text-5xl font-bold flex items-baseline gap-2">
                     {scores.player2}
                     <span className="text-xs uppercase font-[var(--font-mono)] opacity-30 tracking-tighter">Caught</span>
