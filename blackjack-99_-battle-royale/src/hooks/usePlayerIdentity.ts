@@ -15,7 +15,7 @@ export function usePlayerIdentity(): PlayerIdentity {
 
   return {
     playerName: displayName || 'Player',
-    playerId: uid,
+    playerId: isGuest ? null : uid,
     isGuest,
   };
 }

@@ -25,6 +25,7 @@ import {
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 import { GameState, Score, Mole } from './types';
 import { db, auth, signInWithGoogle } from './firebase';
+import { useAuth } from '../../context/AuthContext';
 
 // Constants
 const INITIAL_TIME = 10;
@@ -77,6 +78,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 export default function App() {
+  const { isGuest, displayName } = useAuth();
   const [gameState, setGameState] = useState<GameState>(GameState.START);
   const [score, setScore] = useState(0);
   const [timeLeft, setTimeLeft] = useState(INITIAL_TIME);
@@ -132,9 +134,12 @@ export default function App() {
 
   // Leaderboard Listener
   useEffect(() => {
-    const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
+    const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const scores = snapshot.docs.map(doc => doc.data() as Score);
+      const scores = snapshot.docs
+        .map(doc => doc.data() as Score)
+        .filter((score) => Boolean(score.userId))
+        .slice(0, 10);
       setHighScores(scores);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'scores');
@@ -301,6 +306,10 @@ export default function App() {
   };
 
   const submitScore = async () => {
+    if (isGuest) {
+      setGameState(GameState.START);
+      return;
+    }
     if (!user) {
       await signInWithGoogle();
       return;
@@ -309,7 +318,7 @@ export default function App() {
     setIsSubmitting(true);
     try {
       await addDoc(collection(db, 'scores'), {
-        playerName: playerName.slice(0, 15),
+        playerName: (displayName || playerName).slice(0, 15),
         score: score,
         userId: user.uid,
         timestamp: Date.now()

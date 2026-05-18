@@ -66,7 +66,7 @@ export const subscribeToLeaderboard = (callback: (entries: LeaderboardEntry[]) =
 
 export const saveHighScore = async (score: number) => {
   const user = auth.currentUser;
-  if (!user) return;
+  if (!user || user.isAnonymous) return;
 
   const userDocRef = doc(db, 'tachymetry_leaderboard', user.uid);
   

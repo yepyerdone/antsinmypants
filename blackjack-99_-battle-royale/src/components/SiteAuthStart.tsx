@@ -227,7 +227,7 @@ export function SiteAuthStart() {
             <span>Play as Guest</span>
           </button>
           <p className="site-auth-guest-note">
-            Guest players choose a display name next and stay marked as guests.
+            Guests receive an automatic Guest#### name and can play, but cannot join leaderboards or events.
           </p>
         </div>
       </motion.section>

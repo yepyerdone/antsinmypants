@@ -761,13 +761,13 @@ export const Game: React.FC = () => {
         console.error('Failed to sign in anonymously for leaderboard:', error);
       }
 
-      const q = query(collection(db, 'leaderboard'), orderBy('score', 'desc'), limit(10));
+      const q = query(collection(db, 'leaderboard'), orderBy('score', 'desc'), limit(50));
       unsubscribe = onSnapshot(q, (snapshot) => {
         const scores = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data()
-        })) as {name: string, score: number, id: string}[];
-        setLeaderboard(scores);
+        })) as {name: string, score: number, id: string, playerId?: string | null, isGuest?: boolean}[];
+        setLeaderboard(scores.filter((score) => Boolean(score.playerId) && !score.isGuest).slice(0, 10));
       }, (error) => {
         console.error('Firestore Error:', error);
       });
@@ -850,14 +850,14 @@ export const Game: React.FC = () => {
   };
 
   const submitScore = async () => {
-    if (isSubmitting || scoreSaved) return;
+    if (isSubmitting || scoreSaved || isGuest || !playerId) return;
     setSaveError(null);
     setIsSubmitting(true);
     try {
       if (!auth.currentUser) {
         await signInAnonymously(auth);
       }
-      const trimmedName = playerName.trim().substring(0, 16) || (isGuest ? 'Guest Player' : 'Player');
+      const trimmedName = playerName.trim().substring(0, 16) || 'Player';
       await addDoc(collection(db, 'leaderboard'), {
         name: trimmedName,
         score: Math.trunc(scoreRef.current),

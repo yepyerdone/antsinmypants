@@ -33,7 +33,7 @@ export function subscribeToGoodBoyLeaderboard(
 
 export async function saveGoodBoyHighScore(score: number, username: string) {
   const user = auth.currentUser;
-  if (!user || score <= 0) return;
+  if (!user || user.isAnonymous || score <= 0) return;
 
   const scoreRef = doc(db, GOOD_BOY_COLLECTION, user.uid);
 

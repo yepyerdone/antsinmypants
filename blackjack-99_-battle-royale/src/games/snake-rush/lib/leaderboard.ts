@@ -66,7 +66,7 @@ export const getScores = async (limit?: number): Promise<LeaderboardEntry[]> => 
       } as LeaderboardEntry;
     });
 
-    return results;
+    return results.filter((entry) => Boolean(entry.playerId) && !entry.isGuest);
   } catch (error) {
     console.error('Failed to load leaderboard from Firebase, falling back to localStorage:', error);
     try {
@@ -90,6 +90,7 @@ export const addScore = async (
   isGuest?: boolean
 ): Promise<void> => {
   await fallbackDelay();
+  if (isGuest || !playerId) return;
 
   const entry: LeaderboardEntry = {
     id: Date.now().toString(),
@@ -98,7 +99,7 @@ export const addScore = async (
     date: new Date().toISOString(),
     gameMode,
     playerId: playerId ?? null,
-    isGuest: Boolean(isGuest),
+    isGuest: false,
   };
 
   try {

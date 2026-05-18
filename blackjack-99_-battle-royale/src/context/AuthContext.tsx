@@ -75,6 +75,8 @@ const getProviderId = (user: User) => {
   return user.providerData[0]?.providerId || (user.email ? 'password' : 'firebase');
 };
 
+const createGuestName = () => `Guest${Math.floor(1000 + Math.random() * 9000)}`;
+
 export const normalizePlayerName = (value: string) => value.trim().replace(/\s+/g, ' ');
 
 export const validatePlayerName = (value: string): UsernameValidationResult => {
@@ -129,10 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setFirebaseUser(user);
 
       if (user?.isAnonymous) {
-        const nextGuestName = getStoredGuestDisplayName() || user.displayName?.trim() || '';
-        if (nextGuestName) {
-          setStoredGuestDisplayName(nextGuestName);
-        }
+        const nextGuestName = getStoredGuestDisplayName() || user.displayName?.trim() || createGuestName();
+        setStoredGuestDisplayName(nextGuestName);
         setProfile(null);
         setProfileLoading(false);
         setStoredGuestMode(true);
@@ -198,16 +198,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const continueAsGuest = useCallback(async (displayName?: string) => {
-    if (displayName !== undefined) {
-      const validation = validatePlayerName(displayName);
-      if (validation.error) {
-        throw new Error(validation.error);
-      }
-      setStoredGuestDisplayName(validation.value);
-      setGuestDisplayName(validation.value);
-    }
-
+  const continueAsGuest = useCallback(async () => {
+    const nextName = getStoredGuestDisplayName() || createGuestName();
+    setStoredGuestDisplayName(nextName);
+    setGuestDisplayName(nextName);
     setStoredGuestMode(true);
     setGuestMode(true);
 
@@ -215,10 +209,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = auth.currentUser?.isAnonymous
         ? { user: auth.currentUser }
         : await signInAnonymously(auth);
-
-      const nextName = displayName !== undefined
-        ? validatePlayerName(displayName).value
-        : getStoredGuestDisplayName();
 
       if (nextName && result.user.displayName !== nextName) {
         await updateProfile(result.user, { displayName: nextName });
@@ -235,15 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (guestMode || firebaseUser?.isAnonymous) {
-      setStoredGuestMode(true);
-      setStoredGuestDisplayName(validation.value);
-      setGuestMode(true);
-      setGuestDisplayName(validation.value);
-
-      if (firebaseUser?.isAnonymous && firebaseUser.displayName !== validation.value) {
-        await updateProfile(firebaseUser, { displayName: validation.value });
-      }
-      return;
+      throw new Error('Guest usernames are assigned automatically. Create an account to choose a leaderboard name.');
     }
 
     if (!firebaseUser) {
@@ -275,7 +257,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedProfileName = profile?.displayName || profile?.username || '';
     const displayName = isGuest ? guestDisplayName : savedProfileName;
     const hasAccess = Boolean(firebaseUser && !firebaseUser.isAnonymous) || isGuest;
-    const needsUsernameSetup = hasAccess && !profileLoading && !displayName;
+    const needsUsernameSetup = hasAccess && !isGuest && !profileLoading && !displayName;
 
     return {
       currentUser: firebaseUser,

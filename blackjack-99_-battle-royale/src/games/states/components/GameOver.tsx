@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Trophy, RefreshCw, Send, X } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 
 interface GameOverProps {
   time: number;
@@ -12,18 +13,20 @@ interface GameOverProps {
 }
 
 export default function GameOver({ time, onRestart, onClose, isVictory }: GameOverProps) {
-  const [playerName, setPlayerName] = useState('');
+  const { displayName, isGuest, uid } = useAuth();
+  const [playerName, setPlayerName] = useState(displayName);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!isVictory || !playerName.trim() || submitting || submitted) return;
+    if (!isVictory || isGuest || !playerName.trim() || submitting || submitted) return;
 
     setSubmitting(true);
     try {
       await addDoc(collection(db, 'states_leaderboard'), {
         playerName: playerName.trim(),
+        playerId: uid,
         timeSeconds: time,
         statesGuessed: 50,
         completedAt: serverTimestamp()
@@ -73,7 +76,13 @@ export default function GameOver({ time, onRestart, onClose, isVictory }: GameOv
         </div>
 
         <div className="p-10 space-y-8">
-          {isVictory && !submitted ? (
+          {isVictory && isGuest ? (
+            <div className="bg-slate-950/60 p-6 rounded-2xl border border-slate-800 text-center">
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+                Create an account to submit leaderboard times.
+              </p>
+            </div>
+          ) : isVictory && !submitted ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <label className="block text-sm font-bold text-slate-500 uppercase tracking-wider text-center">
                 Submit to Global Leaderboard

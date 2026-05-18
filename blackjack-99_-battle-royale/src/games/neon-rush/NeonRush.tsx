@@ -91,7 +91,7 @@ function Scene() {
 }
 
 function SpaceRunnerLeaderboard() {
-  const { displayName } = useAuth();
+  const { displayName, isGuest } = useAuth();
   const { status, score, distance, gemsCollected } = useStore();
   const [scores, setScores] = useState<SpaceRunnerLeaderboardEntry[]>([]);
   const [name, setName] = useState(displayName || 'Pilot');
@@ -100,7 +100,7 @@ function SpaceRunnerLeaderboard() {
   const [error, setError] = useState<string | null>(null);
 
   const finalScore = Math.floor(score);
-  const canSubmit = status === GameStatus.GAME_OVER && finalScore > 0 && submittedScore !== finalScore;
+  const canSubmit = !isGuest && status === GameStatus.GAME_OVER && finalScore > 0 && submittedScore !== finalScore;
 
   const refreshScores = () => {
     getSpaceRunnerScores(10)
@@ -150,7 +150,7 @@ function SpaceRunnerLeaderboard() {
         <Trophy size={22} />
       </div>
 
-      {status === GameStatus.GAME_OVER && (
+      {status === GameStatus.GAME_OVER && !isGuest && (
         <form className="space-runner-submit" onSubmit={submitScore}>
           <div className="space-runner-submit__score">
             <span>Mission Score</span>
@@ -164,6 +164,10 @@ function SpaceRunnerLeaderboard() {
             {submittedScore === finalScore ? 'Score Saved' : submitting ? 'Saving...' : 'Submit Score'}
           </button>
         </form>
+      )}
+
+      {status === GameStatus.GAME_OVER && isGuest && (
+        <div className="space-runner-empty">Create an account to place scores on the leaderboard.</div>
       )}
 
       {error && <p className="space-runner-error">{error}</p>}

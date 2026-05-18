@@ -456,7 +456,7 @@ async function loadFirebaseHighScores(): Promise<HighScoreEntry[]> {
 
 async function saveFirebaseHighScore(score: number, wave: number, name: string) {
   const user = auth.currentUser;
-  if (!user || score <= 0) return;
+  if (!user || user.isAnonymous || score <= 0) return;
 
   const scoreRef = doc(db, FUN_HOUSE_SCORES_COLLECTION, user.uid);
   const currentScore = await getDoc(scoreRef);

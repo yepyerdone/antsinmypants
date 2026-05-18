@@ -6,6 +6,7 @@ import { Medal } from 'lucide-react';
 interface LeaderboardEntry {
   playerName: string;
   timeSeconds: number;
+  playerId?: string | null;
 }
 
 export default function Leaderboard() {
@@ -15,9 +16,12 @@ export default function Leaderboard() {
   useEffect(() => {
     async function fetchScores() {
       try {
-        const q = query(collection(db, 'states_leaderboard'), orderBy('timeSeconds', 'asc'), limit(10));
+        const q = query(collection(db, 'states_leaderboard'), orderBy('timeSeconds', 'asc'), limit(50));
         const querySnapshot = await getDocs(q);
-        const fetchedScores = querySnapshot.docs.map(doc => doc.data() as LeaderboardEntry);
+        const fetchedScores = querySnapshot.docs
+          .map(doc => doc.data() as LeaderboardEntry)
+          .filter((score) => Boolean(score.playerId))
+          .slice(0, 10);
         setScores(fetchedScores);
       } catch (error) {
         console.error('Error fetching scores:', error);

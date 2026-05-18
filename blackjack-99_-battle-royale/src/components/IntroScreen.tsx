@@ -173,7 +173,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
                     </a>
                     <span className="site-home-secondary">
                       <Sparkles size={17} />
-                      Guests choose a player name
+                      Guests can play casually
                     </span>
                   </div>
                 </div>
@@ -219,7 +219,7 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
                     </a>
                     <span className="site-home-secondary">
                       <Sparkles size={17} />
-                      Competitive score events are on deck
+                      Guests cannot win events
                     </span>
                   </div>
                 </div>

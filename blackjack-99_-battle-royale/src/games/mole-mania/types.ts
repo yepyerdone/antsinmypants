@@ -8,6 +8,7 @@ export interface Score {
   playerName: string;
   score: number;
   timestamp: number;
+  userId?: string;
 }
 
 export interface Mole {

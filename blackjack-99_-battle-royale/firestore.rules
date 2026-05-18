@@ -11,6 +11,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isRegisteredAccount() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
@@ -99,6 +103,7 @@ service cloud.firestore {
       return data.playerName is string
         && data.playerName.size() > 0
         && data.playerName.size() <= 32
+        && data.playerId == request.auth.uid
         && data.timeSeconds is number
         && data.timeSeconds > 0
         && data.statesGuessed == 50
@@ -154,7 +159,7 @@ service cloud.firestore {
     // Classic Molar Madness Top Scores
     match /leaderboard/{entryId} {
       allow list, get: if true;
-      allow create: if isSignedIn()
+      allow create: if isRegisteredAccount()
         && incoming().name is string
         && incoming().name.size() >= 1
         && incoming().name.size() <= 15
@@ -166,7 +171,8 @@ service cloud.firestore {
     // States Master Leaderboard Rules
     match /states_leaderboard/{entryId} {
       allow list, get: if true;
-      allow create: if isValidId(entryId)
+      allow create: if isRegisteredAccount()
+        && isValidId(entryId)
         && isValidStatesScore(incoming())
         && incoming().completedAt == request.time;
       allow delete: if false;
@@ -175,12 +181,14 @@ service cloud.firestore {
     // Tachymetry Leaderboard Rules
     match /tachymetry_leaderboard/{userId} {
       allow list, get: if true;
-      allow create: if isOwner(userId)
+      allow create: if isRegisteredAccount()
+        && isOwner(userId)
         && isValidId(userId)
         && isValidTachymetryScore(incoming())
         && incoming().userId == request.auth.uid
         && incoming().updatedAt == request.time;
-      allow update: if isOwner(userId)
+      allow update: if isRegisteredAccount()
+        && isOwner(userId)
         && isValidTachymetryScore(incoming())
         && incoming().userId == existing().userId
         && incoming().score >= existing().score
@@ -192,7 +200,7 @@ service cloud.firestore {
     // Snake Rush Leaderboard Rules
     match /snake_rush_leaderboard/{entryId} {
       allow list, get: if true;
-      allow create: if isSignedIn()
+      allow create: if isRegisteredAccount()
         && incoming().name is string
         && incoming().name.size() >= 1
         && incoming().name.size() <= 16
@@ -205,7 +213,7 @@ service cloud.firestore {
     // Mole Mania Leaderboard Rules
     match /scores/{entryId} {
       allow list, get: if true;
-      allow create: if isSignedIn()
+      allow create: if isRegisteredAccount()
         && incoming().playerName is string
         && incoming().playerName.size() >= 1
         && incoming().playerName.size() <= 15
@@ -219,7 +227,7 @@ service cloud.firestore {
     // Space Runner Leaderboard Rules
     match /neon_rush_leaderboard/{entryId} {
       allow list, get: if true;
-      allow create: if isSignedIn()
+      allow create: if isRegisteredAccount()
         && incoming().name is string
         && incoming().name.size() >= 1
         && incoming().name.size() <= 16
@@ -235,7 +243,7 @@ service cloud.firestore {
     // The Ascension Leaderboard Rules
     match /the_ascension_scores/{entryId} {
       allow list, get: if true;
-      allow create: if isSignedIn()
+      allow create: if isRegisteredAccount()
         && incoming().name is string
         && incoming().name.size() >= 1
         && incoming().name.size() <= 16
@@ -248,11 +256,13 @@ service cloud.firestore {
     // Fun House Frenzy Leaderboard Rules
     match /fun_house_frenzy_scores/{userId} {
       allow list, get: if true;
-      allow create: if isOwner(userId)
+      allow create: if isRegisteredAccount()
+        && isOwner(userId)
         && isValidId(userId)
         && isValidFunHouseFrenzyScore(incoming())
         && incoming().updatedAt == request.time;
-      allow update: if isOwner(userId)
+      allow update: if isRegisteredAccount()
+        && isOwner(userId)
         && isValidFunHouseFrenzyScore(incoming())
         && incoming().userId == existing().userId
         && incoming().score > existing().score
@@ -264,11 +274,13 @@ service cloud.firestore {
     // Good Boy Leaderboard Rules
     match /good_boy_leaderboard/{userId} {
       allow list, get: if true;
-      allow create: if isOwner(userId)
+      allow create: if isRegisteredAccount()
+        && isOwner(userId)
         && isValidId(userId)
         && isValidGoodBoyScore(incoming())
         && incoming().updatedAt == request.time;
-      allow update: if isOwner(userId)
+      allow update: if isRegisteredAccount()
+        && isOwner(userId)
         && isValidGoodBoyScore(incoming())
         && incoming().userId == existing().userId
         && incoming().score > existing().score

@@ -10,15 +10,15 @@ import {
 import './good-boy.css';
 
 export default function GoodBoy() {
-  const { displayName } = useAuth();
+  const { displayName, isGuest } = useAuth();
   const gameRef = useRef<Game | null>(null);
   const [leaderboard, setLeaderboard] = useState<GoodBoyLeaderboardEntry[]>([]);
   const [lastScore, setLastScore] = useState<number | null>(null);
 
   const handleGameOver = useCallback((score: number) => {
     setLastScore(score);
-    void saveGoodBoyHighScore(score, displayName);
-  }, [displayName]);
+    if (!isGuest) void saveGoodBoyHighScore(score, displayName);
+  }, [displayName, isGuest]);
 
   useEffect(() => {
     if (!gameRef.current) {
