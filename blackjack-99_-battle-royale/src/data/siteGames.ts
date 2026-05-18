@@ -136,6 +136,7 @@ export const siteGames: GameCardData[] = [
     primarySection: 'featured',
     sections: ['featured', 'arcade'],
     internalPath: '/dont-stop',
+    coverImage: '/dont-stop-cover.png',
   },
   {
     id: 'mole-mania',
@@ -238,6 +239,7 @@ export const siteGames: GameCardData[] = [
     primarySection: 'academic-weapon',
     sections: ['academic-weapon'],
     internalPath: '/states-master',
+    coverImage: '/states-master-cover.png',
   },
   {
     id: 'linguist',
@@ -249,6 +251,7 @@ export const siteGames: GameCardData[] = [
     primarySection: 'academic-weapon',
     sections: ['academic-weapon'],
     internalPath: '/linguist',
+    coverImage: '/linguist-cover.png',
   },
   {
     id: 'tachymetry',
@@ -271,6 +274,7 @@ export const siteGames: GameCardData[] = [
     primarySection: 'arcade',
     sections: ['arcade'],
     internalPath: '/good-boy',
+    coverImage: '/good-boy-cover.png',
   },
 ];
 
