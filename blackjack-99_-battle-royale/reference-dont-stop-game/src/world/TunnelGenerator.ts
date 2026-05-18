@@ -682,7 +682,7 @@ export class TunnelGenerator {
         opacity: 0.22,
       }),
     );
-    windRibbon.position.set(0, 0.12, -this.tileSize * 5);
+    windRibbon.position.set(0, 0.12, this.tileSize * 5);
     group.add(windRibbon);
     group.position.copy(this.surfacePosition("floor", lane, -row * this.tileSize, 0));
     group.userData.blades = blades;
