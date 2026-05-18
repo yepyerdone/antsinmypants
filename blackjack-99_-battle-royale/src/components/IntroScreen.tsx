@@ -255,7 +255,10 @@ export const IntroScreen: React.FC<IntroScreenProps> = ({ onLaunchGame }) => {
               </div>
               <h2 id="site-games-title">Featured Games</h2>
             </div>
-            <p>Tap a card to jump straight into the correct route or game arena.</p>
+            <p>
+              <strong>Galatians 6:10</strong> Therefore as we have opportunity, let us do good to all people,
+              especially to those who belong to the family of believers.
+            </p>
           </div>
 
           <div className="site-games-rows">
