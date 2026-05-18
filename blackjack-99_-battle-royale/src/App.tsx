@@ -27,7 +27,7 @@ import { Game as MolarMadness } from './games/molar-madness/MolarMadness';
 import SnakeRushApp from './games/snake-rush/SnakeRushApp';
 import ChairsApp from './games/chairs-io/App';
 import SpaceRunner from './games/neon-rush/NeonRush';
-import TheAscension from './games/the-ascension/TheAscension';
+import DontStop from './games/dont-stop/DontStop';
 import MoleMania from './games/mole-mania/App';
 import StatesMaster from './games/states/App';
 import Tachymetry from './games/tachymetry/App';
@@ -68,8 +68,8 @@ export default function App() {
     } else if (location.pathname === '/space-runner' || location.pathname === '/neon-rush') {
       setSelectedGame('space-runner');
       setShowIntro(false);
-    } else if (location.pathname === '/the-ascension') {
-      setSelectedGame('the-ascension');
+    } else if (location.pathname === '/dont-stop') {
+      setSelectedGame('dont-stop');
       setShowIntro(false);
     } else if (location.pathname === '/mole-mania') {
       setSelectedGame('mole-mania');
@@ -567,8 +567,8 @@ export default function App() {
     return <SpaceRunner />;
   }
 
-  if (selectedGame === 'the-ascension') {
-    return <TheAscension />;
+  if (selectedGame === 'dont-stop') {
+    return <DontStop />;
   }
 
   if (selectedGame === 'mole-mania') {
@@ -635,8 +635,8 @@ export default function App() {
                   setSelectedGame('snake-rush');
                 } else if (gameId === 'space-runner') {
                   setSelectedGame('space-runner');
-                } else if (gameId === 'the-ascension') {
-                  setSelectedGame('the-ascension');
+                } else if (gameId === 'dont-stop') {
+                  setSelectedGame('dont-stop');
                 } else if (gameId === 'mole-mania') {
                   setSelectedGame('mole-mania');
                 } else if (gameId === 'states-master') {

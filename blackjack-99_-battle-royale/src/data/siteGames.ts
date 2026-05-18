@@ -9,7 +9,7 @@ export type PreviewType =
   | 'snake'
   | 'molar'
   | 'chairs'
-  | 'ascension'
+  | 'dont-stop'
   | 'mole'
   | 'states'
   | 'tachymetry'
@@ -127,15 +127,15 @@ export const siteGames: GameCardData[] = [
     externalUrl: 'https://fishfolk.github.io/punchy/player/latest/',
   },
   {
-    id: 'the-ascension',
-    title: 'The Ascension',
-    description: 'A high-stakes 1v1 matchmaking game where facial metrics determine dominance.',
-    category: 'Challenge',
-    meta: 'Top 10 scores',
-    preview: 'ascension',
+    id: 'dont-stop',
+    title: 'Dont Stop',
+    description: 'Sprint through a shifting stellar tunnel where every surface becomes the path.',
+    category: 'Runner',
+    meta: '3D challenge',
+    preview: 'dont-stop',
     primarySection: 'featured',
-    sections: ['featured', 'multiplayer'],
-    internalPath: '/the-ascension',
+    sections: ['featured', 'arcade'],
+    internalPath: '/dont-stop',
   },
   {
     id: 'mole-mania',
@@ -277,7 +277,7 @@ export const siteGames: GameCardData[] = [
 export const homeGameSections = [
   {
     title: 'Featured Games',
-    gameIds: ['blackjack-99', 'fun-house-frenzy', 'the-ascension', 'mole-mania', 'punchy'],
+    gameIds: ['blackjack-99', 'fun-house-frenzy', 'dont-stop', 'mole-mania', 'punchy'],
   },
   {
     title: 'Arcade Classics',

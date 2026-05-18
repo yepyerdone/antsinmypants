@@ -28,6 +28,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/chairs-io" element={<App />} />
               <Route path="/space-runner" element={<App />} />
               <Route path="/neon-rush" element={<App />} />
+              <Route path="/dont-stop" element={<App />} />
               <Route path="*" element={<App />} />
             </Route>
           </Routes>

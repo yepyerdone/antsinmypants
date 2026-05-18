@@ -10,7 +10,7 @@ export type PreviewType =
   | 'snake'
   | 'molar'
   | 'chairs'
-  | 'ascension'
+  | 'dont-stop'
   | 'mole'
   | 'states'
   | 'tachymetry'
@@ -189,6 +189,21 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
     );
   }
 
+  if (type === 'dont-stop') {
+    return (
+      <div className="site-game-preview site-game-preview--dont-stop" aria-label={`${title} preview`}>
+        <span className="preview-dont-stop-tunnel" />
+        <span className="preview-dont-stop-lane preview-dont-stop-lane--one" />
+        <span className="preview-dont-stop-lane preview-dont-stop-lane--two" />
+        <span className="preview-dont-stop-lane preview-dont-stop-lane--three" />
+        <span className="preview-dont-stop-runner" />
+        <span className="preview-dont-stop-orb preview-dont-stop-orb--one" />
+        <span className="preview-dont-stop-orb preview-dont-stop-orb--two" />
+        <span className="preview-score">RUN</span>
+      </div>
+    );
+  }
+
   if (type === 'chairs') {
     return (
       <div className="site-game-preview site-game-preview--chairs" aria-label={`${title} preview`}>
@@ -228,18 +243,6 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
         <span className="preview-fun-target" />
         <span className="preview-fun-laser" />
         <span className="preview-score">ACT 1</span>
-      </div>
-    );
-  }
-
-  if (type === 'ascension') {
-    return (
-      <div className="site-game-preview site-game-preview--ascension" aria-label={`${title} preview`}>
-        <span className="preview-ascension-scan" />
-        <span className="preview-ascension-face" />
-        <span className="preview-ascension-ring preview-ascension-ring--one" />
-        <span className="preview-ascension-ring preview-ascension-ring--two" />
-        <span className="preview-score">11/10</span>
       </div>
     );
   }
