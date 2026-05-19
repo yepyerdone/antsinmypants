@@ -22,11 +22,5 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  },
-  "exclude": [
-    "reference",
-    "reference-*",
-    "dist",
-    "node_modules"
-  ]
+  }
 }

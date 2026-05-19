@@ -36,6 +36,7 @@ import FunHouseFrenzy from './games/fun-house-frenzy/App';
 import Linguist from './games/linguist/App';
 import GoodBoy from './games/good-boy/App';
 import ReapersReckoning from './games/reapers-reckoning/ReapersReckoning';
+import DoWeHaveADeal from './games/do-we-have-a-deal/DoWeHaveADeal';
 
 const TURN_TIME_LIMIT = 15;
 
@@ -93,6 +94,9 @@ export default function App() {
       setSelectedGame('good-boy');
     } else if (location.pathname === '/reapers-reckoning') {
       setSelectedGame('reapers-reckoning');
+      setShowIntro(false);
+    } else if (location.pathname === '/do-we-have-a-deal') {
+      setSelectedGame('do-we-have-a-deal');
       setShowIntro(false);
     } else if (location.pathname === '/') {
       setSelectedGame(null);
@@ -613,6 +617,10 @@ export default function App() {
 
   if (selectedGame === 'reapers-reckoning') {
     return <ReapersReckoning />;
+  }
+
+  if (selectedGame === 'do-we-have-a-deal') {
+    return <DoWeHaveADeal />;
   }
 
   return (

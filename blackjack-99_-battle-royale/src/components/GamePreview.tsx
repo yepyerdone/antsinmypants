@@ -18,7 +18,8 @@ export type PreviewType =
   | 'fun-house'
   | 'linguist'
   | 'good-boy'
-  | 'reaper';
+  | 'reaper'
+  | 'deal';
 
 interface GamePreviewProps {
   type: PreviewType;
@@ -185,6 +186,20 @@ function GamePreview({ type, title, coverImage }: GamePreviewProps) {
         <span className="preview-reaper-door preview-reaper-door--three" />
         <span className="preview-reaper-figure" />
         <span className="preview-score">SOULS</span>
+      </div>
+    );
+  }
+
+  if (type === 'deal') {
+    return (
+      <div className="site-game-preview site-game-preview--deal" aria-label={`${title} preview`}>
+        <span className="preview-deal-stage" />
+        <span className="preview-deal-case preview-deal-case--one">7</span>
+        <span className="preview-deal-case preview-deal-case--two">13</span>
+        <span className="preview-deal-case preview-deal-case--three">21</span>
+        <span className="preview-deal-phone" />
+        <span className="preview-deal-offer">$125K</span>
+        <span className="preview-score">DEAL?</span>
       </div>
     );
   }

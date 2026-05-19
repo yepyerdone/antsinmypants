@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  .rotate-x-180 {
+    transform: rotateX(180deg);
+  }
+}
+
+body {
+  @apply bg-slate-950 text-white selection:bg-yellow-500/30;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(circle at top, rgba(255, 210, 94, 0.15), transparent 28%),
+    linear-gradient(180deg, #120d12 0%, #07080d 48%, #020308 100%);
+}
+
+.studio-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.studio-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 196, 92, 0.2), transparent 24%),
+    radial-gradient(circle at 15% 10%, rgba(156, 23, 43, 0.28), transparent 20%),
+    radial-gradient(circle at 85% 14%, rgba(40, 75, 155, 0.22), transparent 18%),
+    linear-gradient(180deg, #180e13 0%, #09080e 50%, #030409 100%);
+}
+
+.stage-floor {
+  position: relative;
+  border: 1px solid rgba(255, 221, 139, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 8%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 84px),
+    linear-gradient(180deg, rgba(35, 21, 18, 0.86), rgba(10, 10, 15, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+.stage-floor::before,
+.stage-floor::after {
+  content: "";
+  position: absolute;
+  inset: auto 4% 100% 4%;
+  height: 150px;
+  background: radial-gradient(circle at 50% 100%, rgba(255, 214, 124, 0.22), transparent 68%);
+  pointer-events: none;
+}
+
+.audience-band {
+  position: relative;
+  height: 76px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(circle at 10% 30%, rgba(255, 255, 255, 0.28) 0 3px, transparent 4px),
+    radial-gradient(circle at 22% 55%, rgba(255, 255, 255, 0.18) 0 3px, transparent 4px),
+    radial-gradient(circle at 36% 25%, rgba(255, 255, 255, 0.24) 0 3px, transparent 4px),
+    radial-gradient(circle at 52% 60%, rgba(255, 255, 255, 0.22) 0 3px, transparent 4px),
+    radial-gradient(circle at 66% 30%, rgba(255, 255, 255, 0.18) 0 3px, transparent 4px),
+    radial-gradient(circle at 80% 55%, rgba(255, 255, 255, 0.24) 0 3px, transparent 4px),
+    radial-gradient(circle at 92% 26%, rgba(255, 255, 255, 0.2) 0 3px, transparent 4px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.35)),
+    #130d13;
+}
+
+.audience-band::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 12% 100%, rgba(0, 0, 0, 0.88) 0 28px, transparent 29px),
+    radial-gradient(circle at 27% 100%, rgba(0, 0, 0, 0.82) 0 32px, transparent 33px),
+    radial-gradient(circle at 44% 100%, rgba(0, 0, 0, 0.9) 0 34px, transparent 35px),
+    radial-gradient(circle at 61% 100%, rgba(0, 0, 0, 0.84) 0 30px, transparent 31px),
+    radial-gradient(circle at 78% 100%, rgba(0, 0, 0, 0.88) 0 33px, transparent 34px),
+    radial-gradient(circle at 93% 100%, rgba(0, 0, 0, 0.84) 0 29px, transparent 30px);
+}
+
+.attendant {
+  position: relative;
+  width: 56px;
+  height: 142px;
+}
+
+.attendant::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 28px 28px 18px 18px;
+  background:
+    radial-gradient(circle at 50% 15%, #d8b08a 0 12px, transparent 13px),
+    linear-gradient(180deg, transparent 0 30px, #11141b 30px 100%);
+}
+
+.attendant::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 24px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #dcc27f, #8d6420);
+  box-shadow: inset 0 0 0 2px rgba(52, 35, 9, 0.55);
+}
+
+.show-card {
+  border: 1px solid rgba(255, 221, 139, 0.18);
+  background: rgba(10, 10, 16, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: theme('colors.slate.950');
+}
+
+::-webkit-scrollbar-thumb {
+  background: theme('colors.slate.800');
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.slate.700');
+}

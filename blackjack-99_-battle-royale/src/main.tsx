@@ -29,6 +29,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/space-runner" element={<App />} />
               <Route path="/neon-rush" element={<App />} />
               <Route path="/dont-stop" element={<App />} />
+              <Route path="/do-we-have-a-deal" element={<App />} />
               <Route path="*" element={<App />} />
             </Route>
           </Routes>

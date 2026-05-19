@@ -17,7 +17,8 @@ export type PreviewType =
   | 'fun-house'
   | 'linguist'
   | 'good-boy'
-  | 'reaper';
+  | 'reaper'
+  | 'deal';
 
 export type GameCardData = {
   id: string;
@@ -137,6 +138,17 @@ export const siteGames: GameCardData[] = [
     sections: ['featured', 'arcade'],
     internalPath: '/dont-stop',
     coverImage: '/dont-stop-cover.png',
+  },
+  {
+    id: 'do-we-have-a-deal',
+    title: 'Do We Have a Deal?',
+    description: 'Pick briefcases, weigh the banker offers, and chase the life-changing prize case.',
+    category: 'Game Show',
+    meta: 'Solo challenge',
+    preview: 'deal',
+    primarySection: 'featured',
+    sections: ['featured'],
+    internalPath: '/do-we-have-a-deal',
   },
   {
     id: 'mole-mania',
@@ -281,7 +293,7 @@ export const siteGames: GameCardData[] = [
 export const homeGameSections = [
   {
     title: 'Featured Games',
-    gameIds: ['blackjack-99', 'fun-house-frenzy', 'dont-stop', 'mole-mania', 'punchy'],
+    gameIds: ['blackjack-99', 'fun-house-frenzy', 'dont-stop', 'do-we-have-a-deal', 'mole-mania', 'punchy'],
   },
   {
     title: 'Arcade Classics',
